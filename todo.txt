@@ -1,0 +1,1 @@
+Remove hardcoded values and paths
