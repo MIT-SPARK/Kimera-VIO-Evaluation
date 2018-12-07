@@ -1,0 +1,17 @@
+experiment_label: 'euroc'
+
+settings:
+  run_benchmark: true
+  dataset_first_frame: 100
+
+build_dir: '/home/tonirv/code/spark_vio/build'
+results_dir: '/home/tonirv/code/spark_vio_evaluation/results'
+dataset_dir: '/home/tonirv/datasets/EuRoC'
+
+datasets_to_run:
+ - name: V1_01_easy
+   segments: [10,20,30,40,50]
+   pipelines: ['S', 'SP', 'SPR']
+ - name: V1_02_medium
+   segments: [10,20,30,40,50,60]
+   pipelines: ['S', 'SP', 'SPR']
