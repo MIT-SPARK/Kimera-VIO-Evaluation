@@ -5,6 +5,7 @@ import copy
 import os
 import yaml
 import numpy as np
+from evo.tools import plot
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 from pylab import setp
@@ -766,7 +767,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     # Read segments file
     for segment in segments:
         results["relative_errors"][segment] = dict()
-        print("RPE analysis of segment: " + segment)
+        print("RPE analysis of segment: %d"%segment)
         print("Calculating RPE segment translation part")
         rpe_segment_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                        float(segment), metrics.Unit.meters, 0.01, True)
@@ -801,9 +802,6 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     # Plot boxplot, or those cumulative figures you see in evo (like demographic plots)
 
     if display_plot or save_plots:
-        print("loading plot modules")
-        from evo.tools import plot
-
         print("plotting")
         plot_collection = plot.PlotCollection("Example")
         # metric values
@@ -906,7 +904,7 @@ def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_d
            extra_flagfile_path = ""):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
-    return subprocess.call("{}/stereoVIOEuroc \
+    return subprocess.call("{}/stereoVIOEuroc-planes \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
                            --dataset_path={}/{} --output_path={}\
                            --vio_params_path={}/params/{}/{} \
@@ -1001,7 +999,7 @@ def return_id_of_dataset(dataset_name):
     if dataset_name == "v2_03_difficult":
         return 10
 
-def run_dataset(results_dir, dataset_dir, dataset_name, build_dir,
+def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
                 discard_n_start_poses = 0, discard_n_end_poses = 0):
@@ -1009,9 +1007,8 @@ def run_dataset(results_dir, dataset_dir, dataset_name, build_dir,
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
     import time
-
-    with open(os.path.join(results_dir, dataset_name, 'segments.txt'), 'r') as myfile:
-        SEGMENTS = myfile.read().replace('\n', '').split(',')
+    dataset_name = dataset_properties['name']
+    dataset_segments = dataset_properties['segments']
 
     ################### RUN PIPELINE ################################
     pipeline_output_dir = results_dir + "/tmp_output/output"
@@ -1021,7 +1018,7 @@ def run_dataset(results_dir, dataset_dir, dataset_name, build_dir,
         print("Not running pipeline...")
     for pipeline_type in pipelines_to_run_list:
         if process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_dir,
-                       pipeline_type, SEGMENTS, save_results, plot, save_plots,
+                       pipeline_type, dataset_segments, save_results, plot, save_plots,
                        output_file, run_pipeline, analyse_vio,
                        discard_n_start_poses, discard_n_end_poses) == False:
             has_a_pipeline_failed = True
@@ -1043,7 +1040,7 @@ def run_dataset(results_dir, dataset_dir, dataset_name, build_dir,
                 checkStats(stats[pipeline_type])
 
             print("Drawing boxplots.")
-            draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(SEGMENTS))
+            draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
         else:
             print("A pipeline run has failed... skipping boxplot drawing.")
 
@@ -1303,31 +1300,21 @@ def run(args):
         logger.debug("main_parser config:\n{}".format(parser_str))
         logger.debug(SEP)
 
-    RESULTS_DIR = '/home/tonirv/code/evo-1/results'
-    DATASET_DIR = '/home/tonirv/datasets/EuRoC'
-    BUILD_DIR = '/home/tonirv/code/spark_vio/build'
+    # Get experiment information from yaml file.
+    experiment_params = yaml.load(args.experiments_path)
 
-    # Comment out any experiment that you do not want to run
-    LIST_OF_EXPERIMENTS_TO_RUN = [\
-                                  # 'MH_01_easy',
-                                  # 'MH_02_easy',
-                                  # 'MH_03_medium',
-                                  # 'mh_04_difficult', # Diff number of left/right imgs...
-                                  # 'MH_05_difficult',
-                                  'V1_01_easy',
-                                  # 'V1_02_medium',
-                                  # 'V1_03_difficult',
-                                  # 'V2_01_easy',
-                                  # 'V2_02_medium',
-                                  # 'v2_03_difficult' # Diff number of left/right imgs...
-                                 ]
+    results_dir = experiment_params['results_dir']
+    dataset_dir = experiment_params['dataset_dir']
+    build_dir = experiment_params['build_dir']
+    experiments_to_run = experiment_params['datasets_to_run']
 
     # Run experiments.
     print("Run experiments")
-    for dataset_name in LIST_OF_EXPERIMENTS_TO_RUN:
-        print("Run dataset:%s", dataset_name)
-        pipelines_to_run_list = build_list_of_pipelines_to_run(args.pipeline_type)
-        run_dataset(RESULTS_DIR, DATASET_DIR, dataset_name, BUILD_DIR,
+    for dataset in experiments_to_run:
+        print("Run dataset:%s", dataset['name'])
+        # This should be specified in the experiments list!
+        pipelines_to_run_list = dataset['pipelines']
+        run_dataset(results_dir, dataset_dir, dataset, build_dir,
                     args.run_pipeline, args.analyse_vio,
                     args.plot, args.save_results,
                     args.save_plots, args.save_boxplots, pipelines_to_run_list,
@@ -1335,12 +1322,17 @@ def run(args):
 
 def parser():
     import argparse
-    basic_desc = "Full evaluation of pipeline (APE trans + RPE trans + RPE rot) metric app"
+    basic_desc = "Full evaluation of SPARK VIO pipeline (APE trans + RPE trans + RPE rot) metric app"
 
     shared_parser = argparse.ArgumentParser(add_help=True, description="{}".format(basic_desc))
+    input_opts = shared_parser.add_argument_group("input options")
     algo_opts = shared_parser.add_argument_group("algorithm options")
     output_opts = shared_parser.add_argument_group("output options")
     usability_opts = shared_parser.add_argument_group("usability options")
+
+    input_opts.add_argument("experiments_path", type=argparse.FileType('r'),
+                           help="Path to the yaml file with experiments settings.",
+                            default = "./experiments.yaml")
 
     algo_opts.add_argument("-p", "--pipeline_type", type=float,
                            help="Pipeline_type = 0:All 1:S 2:SP 3:SPR -1:None", default = 0)
