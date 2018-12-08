@@ -32,3 +32,6 @@ script:
   - |
     ${pip} install pytest --upgrade;
     pytest -sv;
+
+notifications:
+  slack: spark-lab-mit:gTc6ivvZ6ZoNtbxcrk1YzRsc
