@@ -541,7 +541,7 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines):
             pipeline_dir = os.path.join(dataset_dir, pipeline_name)
             # Get results.
             results_file = os.path.join(pipeline_dir, 'results.yaml')
-            stats[dataset_name][pipeline_name]  = yaml.load(open(results_file,'r'))
+            stats[dataset_name][pipeline_name] = yaml.load(open(results_file, 'r'))
             print("Check stats from " + results_file)
             checkStats(stats[dataset_name][pipeline_name])
 
@@ -1306,19 +1306,20 @@ def run(args):
     results_dir = experiment_params['results_dir']
     dataset_dir = experiment_params['dataset_dir']
     build_dir = experiment_params['build_dir']
-    experiments_to_run = experiment_params['datasets_to_run']
+    datasets_to_run = experiment_params['datasets_to_run']
 
     # Run experiments.
     print("Run experiments")
-    for dataset in experiments_to_run:
-        print("Run dataset:%s", dataset['name'])
-        # This should be specified in the experiments list!
-        pipelines_to_run_list = dataset['pipelines']
+    for dataset in datasets_to_run:
+        print("Run dataset:", dataset['name'])
+        pipelines_to_run = dataset['pipelines']
         run_dataset(results_dir, dataset_dir, dataset, build_dir,
                     args.run_pipeline, args.analyse_vio,
                     args.plot, args.save_results,
-                    args.save_plots, args.save_boxplots, pipelines_to_run_list,
-                    args.discard_n_start_poses, args.discard_n_end_poses)
+                    args.save_plots, args.save_boxplots,
+                    pipelines_to_run,
+                    dataset['discard_n_start_poses'],
+                    dataset['discard_n_end_poses'])
 
 def parser():
     import argparse
@@ -1334,20 +1335,12 @@ def parser():
                            help="Path to the yaml file with experiments settings.",
                             default = "./experiments.yaml")
 
-    algo_opts.add_argument("-p", "--pipeline_type", type=float,
-                           help="Pipeline_type = 0:All 1:S 2:SP 3:SPR -1:None", default = 0)
-    algo_opts.add_argument("-s", "--discard_n_start_poses", type=float,
-                           help="Discard n start poses from ground-truth trajectory.", default = 0)
-    algo_opts.add_argument("-e", "--discard_n_end_poses", type=float,
-                           help="Discard n end poses from ground-truth trajectory", default = 0)
     algo_opts.add_argument("-r", "--run_pipeline", action="store_true",
                            help="Run vio?")
     algo_opts.add_argument("-a", "--analyse_vio", action="store_true",
                            help="Analyse vio, compute APE and RPE")
 
     output_opts.add_argument("--plot", action="store_true", help="show plot window",)
-    output_opts.add_argument("--plot_mode", default="xyz", help="the axes for plot projection",
-                             choices=["xy", "yx", "xz", "zx", "yz", "xyz"])
     output_opts.add_argument("--plot_colormap_max", type=float,
                              help="The upper bound used for the color map plot "
                              "(default: maximum error value)")
