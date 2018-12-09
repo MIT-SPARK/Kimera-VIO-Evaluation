@@ -30,7 +30,9 @@ install:
 
 before_script:
   - |
-    evo_config set plot_backend Agg;  # no X server in TravisCI
+    # no X server in TravisCI
+    export MPLBACKEND=Agg;
+    evo_config set plot_backend Agg;
 
 script:
   - |
