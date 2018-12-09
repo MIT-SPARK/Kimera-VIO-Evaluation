@@ -7,11 +7,14 @@ addons:
       # For latex rendering in matplotlib
       - dvipng
       - ghostscript
+      - latexmk
+
   homebrew:
     packages:
       # For latex rendering in matplotlib
       - dvipng
       - ghostscript
+      - latexmk
 
 language: python
 
@@ -44,6 +47,7 @@ before_script:
   - |
     # no X server in TravisCI
     export MPLBACKEND=Agg;
+    export PATH=$PATH
     evo_config set plot_backend Agg;
 
 script:
