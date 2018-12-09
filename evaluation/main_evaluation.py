@@ -383,8 +383,7 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
         rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('pgf.texsystem', 'latex-mk')
-        rc('text', usetex=True)
+        rc('text', usetex=False)
 
         # Init axis
         fig = plt.figure(figsize=(6,2))
@@ -397,7 +396,7 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
         legend_handles = []
         # Draw legend.
         color_id = 0
-        for pipeline_type, pipeline_stats in sorted(stats.values()[0].iteritems()):
+        for pipeline_type, pipeline_stats in sorted(stats.values()[0].items()): #inefficient in py2 but compatible py2 & 3
             # The dummy plots are used to create the legends.
             dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
             legend_labels.append(pipeline_type)
