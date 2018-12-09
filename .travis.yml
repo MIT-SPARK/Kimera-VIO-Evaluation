@@ -49,6 +49,7 @@ before_script:
     # no X server in TravisCI
     export MPLBACKEND=Agg;
     export PATH=$PATH
+    whereis latex
     evo_config set plot_backend Agg;
 
 script:
