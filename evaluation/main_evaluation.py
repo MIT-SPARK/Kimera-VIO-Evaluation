@@ -382,7 +382,7 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
         import seaborn as sns
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
+        rc('font',**{'family':'serif','serif':['Cardo'],'size':16}, 'pgf.texsystem': 'latex-mk')
         rc('text', usetex=True)
 
         # Init axis

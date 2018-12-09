@@ -7,12 +7,15 @@ addons:
       # For latex rendering in matplotlib
       - dvipng
       - ghostscript
+      - latex-mk
 
   homebrew:
     packages:
       # For latex rendering in matplotlib
       - dvipng
       - ghostscript
+    casks:
+      - mactex
 
 language: python
 
