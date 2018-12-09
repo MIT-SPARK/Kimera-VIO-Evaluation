@@ -1,5 +1,5 @@
-# Ignore submodule evo.
-evo
+# Ignore macOS things
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
