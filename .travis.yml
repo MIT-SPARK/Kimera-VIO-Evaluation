@@ -1,6 +1,18 @@
 os:
   - linux
 
+addons:
+  apt:
+    packages:
+      # For latex rendering in matplotlib
+      - dvipng
+      - ghostscript
+  homebrew:
+    packages:
+      # For latex rendering in matplotlib
+      - dvipng
+      - ghostscript
+
 language: python
 
 python:
