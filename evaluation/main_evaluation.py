@@ -130,7 +130,7 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         final_max_e_pos=0.0
         final_max_e_yaw=0.0
         segment_lengths = []
-        for pipeline_key, errors in sorted(stats.iter()):
+        for pipeline_key, errors in sorted(stats.iteritems()):
             # The dummy plots are used to create the legends.
             dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[idx_experiment])
             dummy_plots_pos.append(dummy_plot_pos[0])
@@ -142,7 +142,7 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
                 # Check that we have the expected number of segments
                 assert(n_segments == len(errors['relative_errors']))
                 idx_segment = 0
-                for segment_length, stats in sorted(errors["relative_errors"].iter(), key = lambda item: int(item[0])):
+                for segment_length, stats in sorted(errors["relative_errors"].iteritems(), key = lambda item: int(item[0])):
                     segment_lengths.append(segment_length)
                     # Find max value overall, to set max in y-axis
                     max_e_pos = stats["rpe_trans"]["max"]
@@ -260,7 +260,7 @@ def draw_ape_boxplots(stats, output_dir):
         legend_handles = []
         # Draw legend.
         color_id = 0
-        for pipeline_type, pipeline_stats in sorted(stats.values()[0].iter()):
+        for pipeline_type, pipeline_stats in sorted(stats.values()[0].iteritems()):
             # The dummy plots are used to create the legends.
             dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
             legend_labels.append(pipeline_type)
@@ -271,11 +271,11 @@ def draw_ape_boxplots(stats, output_dir):
         final_max_e_pos=0.50
         xtick_labels=[]
         pipelines_failed = dict()
-        for dataset_name, pipeline_types in sorted(stats.iter()):
+        for dataset_name, pipeline_types in sorted(stats.iteritems()):
             xtick_labels.append(dataset_name.replace('_', '\_'))
             if isinstance(pipeline_types, dict):
                 idx_pipeline_type = 0
-                for pipeline_type, pipeline_stats in sorted(pipeline_types.iter()):
+                for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
                     if isinstance(pipeline_stats, dict):
                         # Find max value overall, to set max in y-axis
                         max_e_pos = pipeline_stats["absolute_errors"]["max"]
@@ -294,7 +294,7 @@ def draw_ape_boxplots(stats, output_dir):
             idx_param_value = idx_param_value + 1
 
         # Draw crosses instead of boxplots for pipelines that failed.
-        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iter():
+        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iteritems():
             x_middle = idx_pipeline + pos[pipeline_type_idx_param_pair[1]]
             x_1 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
             y_1 = [0, final_max_e_pos]
@@ -412,11 +412,11 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
             final_max_e_pos = max_y
         param_values_boxplots=[]
         pipelines_failed = dict()
-        for param_value_boxplots, pipeline_types in sorted(stats.iter()):
+        for param_value_boxplots, pipeline_types in sorted(stats.iteritems()):
             param_values_boxplots.append(param_value_boxplots)
             if isinstance(pipeline_types, dict):
                 idx_pipeline_type = 0
-                for pipeline_type, pipeline_stats in sorted(pipeline_types.iter()):
+                for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
                     if isinstance(pipeline_stats, dict):
                         # Find max value overall, to set max in y-axis
                         max_e_pos = pipeline_stats["absolute_errors"]["max"]
@@ -436,7 +436,7 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
             idx_param_value = idx_param_value + 1
 
         # Draw crosses instead of boxplots for pipelines that failed.
-        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iter():
+        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iteritems():
             x_middle = idx_pipeline + pos[pipeline_type_idx_param_pair[1]]
             x_1 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
             y_1 = [0, final_max_e_pos]
@@ -648,11 +648,11 @@ def write_latex_table(stats, results_dir):
     all_lines = start_line
 
     winners = dict()
-    for dataset_name, pipeline_types in sorted(stats.iter()):
+    for dataset_name, pipeline_types in sorted(stats.iteritems()):
         median_error_pos = []
         # mean_error_pos = []
         rmse_error_pos = []
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.iter()):
+        for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos.append(pipeline_stats["absolute_errors"]["median"])
             # mean_error_pos.append(pipeline_stats["absolute_errors"]["mean"])
@@ -668,11 +668,11 @@ def write_latex_table(stats, results_dir):
                                  # mean_idx_min,
                                  rmse_idx_min]
 
-    for dataset_name, pipeline_types in sorted(stats.iter()):
+    for dataset_name, pipeline_types in sorted(stats.iteritems()):
         start = '{:>25} '.format(dataset_name.replace('_', '\\_'))
         one_line = start
         pipeline_idx = 0
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.iter()):
+        for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos = pipeline_stats["absolute_errors"]["median"] * 100 # as we report in cm
             # mean_error_pos = pipeline_stats["absolute_errors"]["mean"] * 100 # as we report in cm
@@ -1108,7 +1108,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                         else:
                             vio_params[param_name] = param_value
                         is_param_name_written[idx] = True
-                for extra_param_name, extra_param_value in extra_params_to_modify.iter():
+                for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
                     if extra_param_name in vio_params:
                         vio_params[extra_param_name] = extra_param_value
                         written_extra_param_names.append(extra_param_name)
@@ -1133,7 +1133,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                         else:
                             tracker_params[param_name] = param_value
                         is_param_name_written[idx] = True
-                for extra_param_name, extra_param_value in extra_params_to_modify.iter():
+                for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
                     if extra_param_name in tracker_params:
                         tracker_params[extra_param_name] = extra_param_value
                         written_extra_param_names.append(extra_param_name)
@@ -1153,7 +1153,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                     else:
                         write_flags_parameters(param_name, param_value,
                                                param_pipeline_dir + "/flags/override.flags")
-            for extra_param_name, extra_param_value in extra_params_to_modify.iter():
+            for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
                 if extra_param_name not in written_extra_param_names:
                     write_flags_parameters(extra_param_name,
                                            extra_param_value,
