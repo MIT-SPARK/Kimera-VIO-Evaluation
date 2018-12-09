@@ -117,7 +117,7 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
         rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('text', usetex=True)
+        rc('text', usetex=False)
 
         fig = plt.figure(figsize=(6,6))
         ax_pos = fig.add_subplot(211, ylabel='RPE translation [m]')
@@ -251,7 +251,7 @@ def draw_ape_boxplots(stats, output_dir):
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
         rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('text', usetex=True)
+        rc('text', usetex=False)
 
         # Init axis
         fig = plt.figure(figsize=(14, 6))
