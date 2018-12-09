@@ -1,22 +1,6 @@
 os:
   - linux
 
-addons:
-  apt:
-    packages:
-      # For latex rendering in matplotlib
-      - dvipng
-      - ghostscript
-      - latex-mk
-
-  homebrew:
-    packages:
-      # For latex rendering in matplotlib
-      - dvipng
-      - ghostscript
-    casks:
-      - mactex
-
 language: python
 
 python:
@@ -48,8 +32,6 @@ before_script:
   - |
     # no X server in TravisCI
     export MPLBACKEND=Agg;
-    export PATH="$PATH:/usr/bin/latex"
-    whereis latex
     evo_config set plot_backend Agg;
 
 script:
