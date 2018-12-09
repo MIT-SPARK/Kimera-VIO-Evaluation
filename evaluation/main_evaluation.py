@@ -564,13 +564,13 @@ def checkStats(stats):
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
 
-        if not "rpe_rot" in stats["relative_errors"].values()[0]:
+        if not "rpe_rot" in list(stats["relative_errors"].values())[0]:
             print("Stats: ")
             print(stats)
             raise Exception("\033[91mWrong stats format: no rpe_rot... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
-        if not "rpe_trans" in stats["relative_errors"].values()[0]:
+        if not "rpe_trans" in list(stats["relative_errors"].values())[0]:
             print("Stats: ")
             print(stats)
             raise Exception("\033[91mWrong stats format: no rpe_trans... \n"
