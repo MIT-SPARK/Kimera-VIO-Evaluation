@@ -191,7 +191,7 @@ def write_latex_table(stats, results_dir):
         median_error_pos = []
         # mean_error_pos = []
         rmse_error_pos = []
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
+        for _, pipeline_stats in sorted(pipeline_types.items()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos.append(pipeline_stats["absolute_errors"]["median"])
             # mean_error_pos.append(pipeline_stats["absolute_errors"]["mean"])
@@ -211,7 +211,7 @@ def write_latex_table(stats, results_dir):
         start = '{:>25} '.format(dataset_name.replace('_', '\\_'))
         one_line = start
         pipeline_idx = 0
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
+        for _, pipeline_stats in sorted(pipeline_types.items()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos = pipeline_stats["absolute_errors"]["median"] * 100 # as we report in cm
             # mean_error_pos = pipeline_stats["absolute_errors"]["mean"] * 100 # as we report in cm
@@ -522,7 +522,6 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
-    import time
     dataset_name = dataset_properties['name']
     dataset_segments = dataset_properties['segments']
 
@@ -598,7 +597,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
             param_value_dir = param_value
         ensure_dir("{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir))
         # Create params folder by copying from current official one.
-        param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir);
+        param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir)
         if (os.path.exists(param_dir)):
             rmtree(param_dir)
         copytree("/home/tonirv/code/evo/results/params", param_dir)
@@ -737,7 +736,7 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
 
     # Check and create file structure
     dataset_names = ["V1_01_easy"]
-    pipelines_to_run_list = build_list_of_pipelines_to_run(pipelines_to_run);
+    pipelines_to_run_list = build_list_of_pipelines_to_run(pipelines_to_run)
     REGRESSION_TESTS_DIR = "/home/tonirv/code/evo-1/regression_tests/" + test_name
     check_and_create_regression_test_structure(REGRESSION_TESTS_DIR, param_names, param_values,
                                                dataset_names, pipelines_to_run_list, extra_params_to_modify)
@@ -758,7 +757,6 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
             else:
                 param_value_dir = param_value
             results_dir = "{}/{}/{}".format(REGRESSION_TESTS_DIR, param_names_dir, param_value_dir)
-            pipeline_output_dir = results_dir + "/tmp_output/output"
             for dataset_name in dataset_names:
                 run_dataset(results_dir, DATASET_DIR, dataset_name, BUILD_DIR,
                                run_pipelines, # Should we re-run pipelines?
@@ -805,7 +803,6 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
     print("Finished regression test for param_name: {}".format(param_names_dir))
 
 def run(args):
-    import evo.common_ape_rpe as common
     from evo.tools import log
     from evo.tools.settings import SETTINGS
 
