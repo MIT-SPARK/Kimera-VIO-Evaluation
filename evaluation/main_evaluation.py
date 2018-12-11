@@ -330,7 +330,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         results_file = os.path.join(save_folder, 'results.yaml')
         print("Saving analysis results to: " + results_file)
         if confirm_overwrite:
-            if not user.check_and_confirm_overwrite(results_file):
+            if not evt.user.check_and_confirm_overwrite(results_file):
                 return
         with open(results_file,'w') as outfile:
             outfile.write(yaml.dump(results, default_flow_style=False))
@@ -809,13 +809,6 @@ def run(args):
     from evo.tools import log
     from evo.tools.settings import SETTINGS
 
-    log.configure_logging(args.verbose, args.silent, args.debug)
-    if args.debug:
-        from pprint import pformat
-        parser_str = pformat({arg: getattr(args, arg) for arg in vars(args)})
-        logger.debug("main_parser config:\n{}".format(parser_str))
-        logger.debug(SEP)
-
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path)
 
@@ -880,17 +873,6 @@ def parser():
                              help="Save boxplots?")
     output_opts.add_argument("--save_results", action="store_true",
                              help="Save results?")
-
-    usability_opts.add_argument("--no_warnings", action="store_true",
-                                help="no warnings requiring user confirmation")
-    usability_opts.add_argument("-v", "--verbose", action="store_true",
-                                help="verbose output")
-    usability_opts.add_argument("--silent", action="store_true",
-                                help="don't print any output")
-    usability_opts.add_argument("--debug", action="store_true",
-                                help="verbose output with additional debug info")
-    usability_opts.add_argument("-c", "--config",
-                                help=".json file with parameters (priority over command line args)")
 
     main_parser = argparse.ArgumentParser(
         description="{}".format(basic_desc))
