@@ -12,9 +12,31 @@ from shutil import copyfile, move, rmtree, copytree, copy2
 from evo.core import trajectory, sync, metrics
 import evaluation.tools as evt
 
-Y_MAX_APE_TRANS=[0.3, 0.25, 0.35, 0.5, 0.36, 0.170, 0.16, 0.4, 0.175, 0.24, 0.7]
-Y_MAX_RPE_TRANS=[0.028, 0.025, 0.091, 0.21, 0.07, 0.03, 0.04, 0.15, 0.04, 0.06, 0.17]
-Y_MAX_RPE_ROT=[0.4, 0.6, 0.35, 1.0, 0.3, 0.6, 1.5, 1.25, 0.6, 1.0, 2.6]
+Y_MAX_APE_TRANS={
+    "MH_01_easy": 0.3, "MH_02_easy": 0.25, "MH_03_medium": 0.35,
+    "mh_04_difficult": 0.5, "MH_05_difficult": 0.36, "V1_01_easy": 0.170,
+    "V1_02_medium": 0.16, "V1_03_difficult": 0.4,"V2_01_easy": 0.175,
+    "V2_02_medium": 0.24,"v2_03_difficult": 0.7
+    }
+Y_MAX_RPE_TRANS={
+    "MH_01_easy": 0.028, "MH_02_easy": 0.025, "MH_03_medium": 0.091,
+    "mh_04_difficult": 0.21, "MH_05_difficult": 0.07, "V1_01_easy": 0.03,
+    "V1_02_medium": 0.04, "V1_03_difficult": 0.15,"V2_01_easy": 0.04,
+    "V2_02_medium": 0.06,"v2_03_difficult": 0.17
+    }
+Y_MAX_RPE_ROT={
+"MH_01_easy":0.4,
+"MH_02_easy":0.6,
+"MH_03_medium":0.35,
+"mh_04_difficult":1.0,
+"MH_05_difficult":0.3,
+"V1_01_easy":0.6,
+"V1_02_medium":1.5,
+"V1_03_difficult":1.25,
+"V2_01_easy":0.6,
+"V2_02_medium":1.0,
+"v2_03_difficult":2.6
+}
 
 def move_output_from_to(pipeline_output_dir, output_destination_dir):
     try:
@@ -227,7 +249,7 @@ def write_latex_table(stats, results_dir):
         outfile.write(all_lines)
 
 def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_plot, save_plots,
-                 save_folder, confirm_overwrite = False, idx_analysis = -1, discard_n_start_poses=0,
+                 save_folder, confirm_overwrite = False, dataset_name = "", discard_n_start_poses=0,
                 discard_n_end_poses=0):
     """ Run analysis on given trajectories, saves plots on given path:
     :param traj_ref_path: path to the reference (ground truth) trajectory.
@@ -236,7 +258,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     :param save_plots: whether to save the plots.
     :param save_folder: where to save the plots.
     :param confirm_overwrite: whether to confirm overwriting plots or not.
-    :param idx_analysis: optional param, to allow setting the same scale on different plots.
+    :param dataset_name: optional param, to allow setting the same scale on different plots.
     """
     # Load trajectories.
     from evo.tools import file_interface
@@ -324,8 +346,9 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         # metric values
         fig_1 = plt.figure(figsize=(8, 8))
         ymax = -1
-        if idx_analysis is not -1:
-            ymax = Y_MAX_APE_TRANS[idx_analysis]
+        print(dataset_name)
+        if dataset_name is not "":
+            ymax = Y_MAX_APE_TRANS[dataset_name]
         plot.error_array(fig_1, ape_metric.error, statistics=ape_statistics,
                          name="APE translation", title=""#str(ape_metric)
                          , xlabel="Keyframe index [-]",
@@ -346,8 +369,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Trans
         ### metric values
         fig_3 = plt.figure(figsize=(8, 8))
-        if idx_analysis is not -1:
-            ymax = Y_MAX_RPE_TRANS[idx_analysis]
+        if dataset_name is not "":
+            ymax = Y_MAX_RPE_TRANS[dataset_name]
         plot.error_array(fig_3, rpe_metric_trans.error, statistics=rpe_stats_trans,
                          name="RPE translation", title=""#str(rpe_metric_trans)
                          , xlabel="Keyframe index [-]", ylabel="RPE translation [m]", y_max=ymax)
@@ -371,8 +394,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Rot
         ### metric values
         fig_5 = plt.figure(figsize=(8, 8))
-        if idx_analysis is not -1:
-            ymax = Y_MAX_RPE_ROT[idx_analysis]
+        if dataset_name is not "":
+            ymax = Y_MAX_RPE_ROT[dataset_name]
         plot.error_array(fig_5, rpe_metric_rot.error, statistics=rpe_stats_rot,
                          name="RPE rotation error", title=""#str(rpe_metric_rot)
                          , xlabel="Keyframe index [-]", ylabel="RPE rotation [deg]", y_max=ymax)
@@ -487,34 +510,10 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
               + pipeline_type + ".\033[0m")
         run_analysis(traj_ref_path, traj_est_s, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
-                     return_id_of_dataset(dataset_name),
+                     dataset_name,
                      discard_n_start_poses,
                      discard_n_end_poses)
     return True
-
-def return_id_of_dataset(dataset_name):
-    if dataset_name == "MH_01_easy":
-        return 0
-    if dataset_name == "MH_02_easy":
-        return 1
-    if dataset_name == "MH_03_medium":
-        return 2
-    if dataset_name == "mh_04_difficult":
-        return 3
-    if dataset_name == "MH_05_difficult":
-        return 4
-    if dataset_name == "V1_01_easy":
-        return 5
-    if dataset_name == "V1_02_medium":
-        return 6
-    if dataset_name == "V1_03_difficult":
-        return 7
-    if dataset_name == "V2_01_easy":
-        return 8
-    if dataset_name == "V2_02_medium":
-        return 9
-    if dataset_name == "v2_03_difficult":
-        return 10
 
 def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
                 run_pipeline, analyse_vio,
