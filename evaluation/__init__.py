@@ -1,1 +1,1 @@
-from main_evaluation import run, parser
+from .main_evaluation import run, parser
