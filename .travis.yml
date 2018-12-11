@@ -28,6 +28,12 @@ install:
     source .ci/set_pip_name.sh;
     ${pip} install . --upgrade;
 
+before_script:
+  - |
+    # no X server in TravisCI
+    export MPLBACKEND=Agg;
+    evo_config set plot_backend Agg;
+
 script:
   - |
     ${pip} install pytest --upgrade;

@@ -1,6 +1,9 @@
 # Ignore macOS things
 .DS_Store
 
+# Ignore vs code user settings
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

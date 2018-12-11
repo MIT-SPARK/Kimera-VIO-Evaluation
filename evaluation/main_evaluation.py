@@ -7,497 +7,36 @@ import yaml
 import numpy as np
 from evo.tools import plot
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
-from pylab import setp
 from shutil import copyfile, move, rmtree, copytree, copy2
 
 from evo.core import trajectory, sync, metrics
+import evaluation.tools as evt
 
-Y_MAX_APE_TRANS=[0.3, 0.25, 0.35, 0.5, 0.36, 0.170, 0.16, 0.4, 0.175, 0.24, 0.7]
-Y_MAX_RPE_TRANS=[0.028, 0.025, 0.091, 0.21, 0.07, 0.03, 0.04, 0.15, 0.04, 0.06, 0.17]
-Y_MAX_RPE_ROT=[0.4, 0.6, 0.35, 1.0, 0.3, 0.6, 1.5, 1.25, 0.6, 1.0, 2.6]
-
-def find_step_of_base(x, base):
-    return base * 10**np.floor(np.log10(np.abs(float(x))))
-
-def _set_boxplot_colors(boxplot_object, color):
-    setp(boxplot_object['boxes'][0], color=color)
-    setp(boxplot_object['caps'][0], color=color)
-    setp(boxplot_object['caps'][1], color=color)
-    setp(boxplot_object['whiskers'][0], color=color)
-    setp(boxplot_object['whiskers'][1], color=color)
-    #setp(boxplot_object['fliers'], color=color)
-    setp(boxplot_object['medians'][0], color=color)
-
-def draw_boxplot(axis, stats, position, idx_experiment):
-    """
-        bxpstats : list of dicts
-          A list of dictionaries containing stats for each boxplot.
-          Required keys are:
-
-          - ``med``: The median (scalar float).
-
-          - ``q1``: The first quartile (25th percentile) (scalar
-            float).
-
-          - ``q3``: The third quartile (75th percentile) (scalar
-            float).
-
-          - ``whislo``: Lower bound of the lower whisker (scalar
-            float).
-
-          - ``whishi``: Upper bound of the upper whisker (scalar
-            float).
-
-          Optional keys are:
-
-          - ``mean``: The mean (scalar float). Needed if
-            ``showmeans=True``.
-
-          - ``fliers``: Data beyond the whiskers (sequence of floats).
-            Needed if ``showfliers=True``.
-
-          - ``cilo`` & ``cihi``: Lower and upper confidence intervals
-            about the median. Needed if ``shownotches=True``.
-
-          - ``label``: Name of the dataset (string). If available,
-            this will be used a tick label for the boxplot
-
-        positions : array-like, default = [1, 2, ..., n]
-          Sets the positions of the boxes. The ticks and limits
-          are automatically set to match the positions.
-    """
-    colors = ['blue', 'black', 'green', 'red', 'mangenta', 'cyan', 'orange']
-    bxpstats = []
-    bxpstats_a = dict()
-    bxpstats_a['med'] = stats['median']
-    bxpstats_a['q1'] = stats['q1']
-    bxpstats_a['q3'] = stats['q3']
-    bxpstats_a['whislo'] = stats['min']
-    bxpstats_a['whishi'] = stats['max']
-    bxpstats.append(bxpstats_a)
-    pb = axis.bxp(bxpstats,
-                  positions=position,
-                  widths=0.8, vert=True,
-                  showcaps=True, showbox=True, showfliers=False, )
-    _set_boxplot_colors(pb, colors[idx_experiment])
-
-def draw_rpe_boxplots(output_dir, stats, n_segments):
-    """ Draw boxplots from stats:
-        which is a list that contains:
-            - pipeline type (string) (like S, SP or SPR):
-                - "relative_errors":
-                    - segment distance (float) (like 10 or 20 etc):
-                        - "max"
-                        - "min"
-                        - "mean"
-                        - "median"
-                        - "q1"
-                        - "q3"
-                        - "rmse"
-        This function iterates over the pipeline types, and for each pipeline type, it plots
-        the metrics achieved for each segment length. So the boxplot has in x-axis
-        the number of segments considered, and in y-axis one boxplot per pipeline.
-                        """
-
-    colors = ['blue', 'black', 'green', 'red', 'mangenta', 'cyan', 'orange']
-    if isinstance(stats, dict):
-        n_experiment = len(stats)
-        spacing = 1
-
-        # Precompute position of boxplots in plot.
-        pos = np.arange(0, n_segments * (n_experiment + spacing), (n_experiment + spacing))
-
-        # Init axes
-        # Use different plotting config.
-        plt.style.use('default')
-        import matplotlib as mpl
-        from matplotlib import rc
-        import seaborn as sns
-        sns.reset_orig()
-        mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('text', usetex=True)
-
-        fig = plt.figure(figsize=(6,6))
-        ax_pos = fig.add_subplot(211, ylabel='RPE translation [m]')
-        ax_yaw = fig.add_subplot(212, ylabel='RPE rotation [deg]', xlabel='Distance travelled [m]')
-        dummy_plots_pos = []
-        dummy_plots_yaw = []
-
-        idx_experiment = 0
-        x_labels = []
-        final_max_e_pos=0.0
-        final_max_e_yaw=0.0
-        segment_lengths = []
-        for pipeline_key, errors in sorted(stats.iteritems()):
-            # The dummy plots are used to create the legends.
-            dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[idx_experiment])
-            dummy_plots_pos.append(dummy_plot_pos[0])
-            dummy_plot_yaw = ax_yaw.plot([1,1], '-', color=colors[idx_experiment])
-            dummy_plots_yaw.append(dummy_plot_yaw[0])
-            x_labels.append(pipeline_key)
-            if isinstance(errors, dict):
-                assert("relative_errors" in errors)
-                # Check that we have the expected number of segments
-                assert(n_segments == len(errors['relative_errors']))
-                idx_segment = 0
-                for segment_length, stats in sorted(errors["relative_errors"].iteritems(), key = lambda item: int(item[0])):
-                    segment_lengths.append(segment_length)
-                    # Find max value overall, to set max in y-axis
-                    max_e_pos = stats["rpe_trans"]["max"]
-                    max_e_yaw = stats["rpe_rot"]["max"]
-                    #max_e_pos = 10.2+0.02
-                    #max_e_yaw = 30.0
-                    if max_e_pos > final_max_e_pos:
-                        final_max_e_pos = max_e_pos
-                    if max_e_yaw > final_max_e_yaw:
-                        final_max_e_yaw = max_e_yaw
-                    # Draw boxplot
-                    draw_boxplot(ax_pos, stats["rpe_trans"], [idx_experiment + pos[idx_segment]],
-                                 idx_experiment)
-                    draw_boxplot(ax_yaw, stats["rpe_rot"], [idx_experiment + pos[idx_segment]],
-                                idx_experiment)
-                    idx_segment = idx_segment + 1
-            else:
-                raise Exception("\033[91mValue in stats should be a dict: " + errors + "\033[99m")
-            idx_experiment = idx_experiment + 1
-
-        # Create legend.
-        ax_pos.legend(dummy_plots_yaw, x_labels, bbox_to_anchor=(0., 1.02, 1., .102),
-                      loc=3, ncol=3, mode='expand', borderaxespad=0.)
-
-        def _ax_formatting(ax, dummy_plots, final_max_e):
-            ax.yaxis.grid(ls='--', color='0.7')
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, pos: '%.2f'%y))
-            # ax.xaxis.grid(which='major', visible=True, ls=' ')
-            # ax.xaxis.grid(which='minor', visible=False)
-            #ax.xaxis.set_major_formatter(plt.NullFormatter())
-            ax.set_xticks(pos + 0.5*n_experiment - 0.5)
-            ax.set_xticklabels(segment_lengths)
-            ax.set_xlim(xmin=pos[0] - 1, xmax=pos[-1] + n_experiment + 0.2)
-            ax.set_ylim(ymin=0, ymax=final_max_e)
-            # Set yticks every multiple of 5 or 1. (so a tick 0.03 is now 0.00, 0.05,
-            # and if 1 then a tick 0.034 is 0.03, 0.04)
-            yticks = np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 5))
-            if len(yticks) < 4: # 4 is the minimum of yticks that we want.
-                ax.set_yticks(np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 1)))
-            else:
-                ax.set_yticks(yticks)
-            for p in dummy_plots:
-                p.set_visible(False)
-
-        # give some extra space for the plot...
-        final_max_e_pos += 0.05*final_max_e_pos
-        final_max_e_yaw += 0.05*final_max_e_yaw
-        _ax_formatting(ax_pos, dummy_plots_pos, final_max_e_pos)
-        _ax_formatting(ax_yaw, dummy_plots_yaw, final_max_e_yaw)
-
-        fig.savefig(os.path.join(output_dir, 'traj_relative_errors_boxplots.eps'),
-                    bbox_inches="tight", format="eps", dpi=1200)
-    else:
-        raise Exception("\033[91mStats should be a dict: " + stats + "\033[99m")
-
-    # Restore plotting config.
-    from evo.tools.settings import SETTINGS
-    plt.style.use('seaborn')
-    # configure matplotlib and seaborn according to package settings
-    sns.set(style=SETTINGS.plot_seaborn_style,
-            palette=SETTINGS.plot_seaborn_palette,
-            font=SETTINGS.plot_fontfamily,
-            font_scale=SETTINGS.plot_fontscale
-           )
-
-    rc_params = {
-        "lines.linewidth": SETTINGS.plot_linewidth,
-        "text.usetex": SETTINGS.plot_usetex,
-        "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
-        "pgf.texsystem": SETTINGS.plot_texsystem
+Y_MAX_APE_TRANS={
+    "MH_01_easy": 0.3, "MH_02_easy": 0.25, "MH_03_medium": 0.35,
+    "mh_04_difficult": 0.5, "MH_05_difficult": 0.36, "V1_01_easy": 0.170,
+    "V1_02_medium": 0.16, "V1_03_difficult": 0.4,"V2_01_easy": 0.175,
+    "V2_02_medium": 0.24,"v2_03_difficult": 0.7
     }
-    mpl.rcParams.update(rc_params)
-
-def draw_ape_boxplots(stats, output_dir):
-    """ Draw boxplots from stats:
-        which is a list that contains:
-            - dataset name (string) (like V1_01_easy, MH_01_easy etc):
-                - pipeline type (string) (like S, SP or SPR):
-                    - "absolute_errors":
-                        - "max"
-                        - "min"
-                        - "mean"
-                        - "median"
-                        - "q1"
-                        - "q3"
-                        - "rmse"
-        This function iterates over the pipeline types, and for each pipeline type, it plots
-        the metrics achieved, as a boxplot. So the boxplot has in x-axis the dataset name,
-        and in y-axis one boxplot per pipeline."""
-    colors = ['blue', 'black', 'green', 'red', 'mangenta', 'cyan', 'orange']
-    if isinstance(stats, dict):
-        n_param_values = len(stats)
-        n_pipeline_types = len(stats.values()[0])
-        spacing = 1
-
-        # Precompute position of boxplots in plot.
-        pos = np.arange(0, n_param_values * (n_pipeline_types + spacing),
-                        (n_pipeline_types + spacing))
-
-        # Use different plotting config.
-        plt.style.use('default')
-        import matplotlib as mpl
-        from matplotlib import rc
-        import seaborn as sns
-        sns.reset_orig()
-        mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('text', usetex=True)
-
-        # Init axis
-        fig = plt.figure(figsize=(14, 6))
-        ax_pos = fig.add_subplot(111, ylabel='APE translation error [m]', xlabel="Dataset")
-        legend_labels = []
-        legend_handles = []
-        # Draw legend.
-        color_id = 0
-        for pipeline_type, pipeline_stats in sorted(stats.values()[0].iteritems()):
-            # The dummy plots are used to create the legends.
-            dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
-            legend_labels.append(pipeline_type)
-            legend_handles.append(dummy_plot_pos[0])
-            color_id = color_id + 1
-
-        idx_param_value = 0
-        final_max_e_pos=0.50
-        xtick_labels=[]
-        pipelines_failed = dict()
-        for dataset_name, pipeline_types in sorted(stats.iteritems()):
-            xtick_labels.append(dataset_name.replace('_', '\_'))
-            if isinstance(pipeline_types, dict):
-                idx_pipeline_type = 0
-                for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
-                    if isinstance(pipeline_stats, dict):
-                        # Find max value overall, to set max in y-axis
-                        max_e_pos = pipeline_stats["absolute_errors"]["max"]
-                        # if max_e_pos > final_max_e_pos:
-                           # final_max_e_pos = max_e_pos
-                        # Draw boxplot
-                        draw_boxplot(ax_pos, pipeline_stats["absolute_errors"],
-                                     [idx_pipeline_type + pos[idx_param_value]], idx_pipeline_type)
-                    else:
-                        # If pipeline_stats is not a dict, then it means the pipeline failed...
-                        # Just plot a cross...
-                        pipelines_failed[idx_pipeline_type] = [pipeline_type, idx_param_value]
-                    idx_pipeline_type = idx_pipeline_type + 1
-            else:
-                raise Exception("\033[91mValue in stats should be a dict: " + errors + "\033[99m")
-            idx_param_value = idx_param_value + 1
-
-        # Draw crosses instead of boxplots for pipelines that failed.
-        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iteritems():
-            x_middle = idx_pipeline + pos[pipeline_type_idx_param_pair[1]]
-            x_1 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
-            y_1 = [0, final_max_e_pos]
-            x_2 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
-            y_2 = [final_max_e_pos, 0]
-            red_cross_plot = ax_pos.plot([1,1], 'xr')
-            pipeline_type = pipeline_type_idx_param_pair[0]
-            legend_labels.append("{} failure".format(pipeline_type))
-            legend_handles.append(red_cross_plot[0])
-            ax_pos.plot(x_1, y_1, '-r')
-            ax_pos.plot(x_2, y_2, '-r')
-
-        # Create legend.
-        ax_pos.legend(legend_handles, legend_labels, bbox_to_anchor=(0., 1.02, 1., .102),
-                      loc=3, ncol=3, mode='expand', borderaxespad=0.)
-
-        def _ax_formatting(ax, dummy_plots, final_max_e):
-            ax.yaxis.grid(ls='--', color='0.7')
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, pos: '%.2f'%y))
-            # ax.xaxis.grid(which='major', visible=True, ls=' ')
-            # ax.xaxis.grid(which='minor', visible=False)
-            #ax.xaxis.set_major_formatter(plt.NullFormatter())
-            ax.set_xticks(pos + 0.5*n_pipeline_types - 0.5)
-            ax.set_xticklabels(xtick_labels, rotation=-40, ha='left')
-            ax.set_xlim(xmin=pos[0] - 1, xmax=pos[-1] + n_pipeline_types + 0.2)
-            ax.set_ylim(ymin=0, ymax= final_max_e)
-            yticks = np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 5))
-            if len(yticks) < 4:
-                ax.set_yticks(np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 1)))
-            else:
-                ax.set_yticks(yticks)
-            for p in dummy_plots:
-                p.set_visible(False)
-
-        # give some extra space for the plot...
-        final_max_e_pos += 0.02
-        _ax_formatting(ax_pos, legend_handles, final_max_e_pos)
-
-        fig.savefig(os.path.join(output_dir, 'datasets_ape_boxplots.eps'),
-                    bbox_inches="tight", format="eps", dpi=1200)
-    else:
-        raise Exception("\033[91mStats should be a dict: " + stats + "\033[99m")
-
-    # Restore plotting config.
-    from evo.tools.settings import SETTINGS
-    plt.style.use('seaborn')
-    # configure matplotlib and seaborn according to package settings
-    sns.set(style=SETTINGS.plot_seaborn_style,
-            palette=SETTINGS.plot_seaborn_palette,
-            font=SETTINGS.plot_fontfamily,
-            font_scale=SETTINGS.plot_fontscale
-           )
-
-    rc_params = {
-        "lines.linewidth": SETTINGS.plot_linewidth,
-        "text.usetex": SETTINGS.plot_usetex,
-        "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
-        "pgf.texsystem": SETTINGS.plot_texsystem
+Y_MAX_RPE_TRANS={
+    "MH_01_easy": 0.028, "MH_02_easy": 0.025, "MH_03_medium": 0.091,
+    "mh_04_difficult": 0.21, "MH_05_difficult": 0.07, "V1_01_easy": 0.03,
+    "V1_02_medium": 0.04, "V1_03_difficult": 0.15,"V2_01_easy": 0.04,
+    "V2_02_medium": 0.06,"v2_03_difficult": 0.17
     }
-    mpl.rcParams.update(rc_params)
-
-def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -1):
-    """ Draw boxpots where x-axis are the values of the parameters in param_names, and the y-axis has boxplots with APE
-    performance of the pipelines in stats.
-    Stats is organized as follows:
-        - param_value_dir (path to directory containing results for the parameter with given value)
-            - pipeline (pipeline type e.g. S, SP or SPR)
-                - results (which is actually -max, -min etc !OR! False if there are no results if the pipeline failed."""
-    colors = ['blue', 'black', 'green', 'red', 'mangenta', 'cyan', 'orange']
-    if isinstance(stats, dict):
-        n_param_values = len(stats)
-        assert(n_param_values > 0)
-        n_pipeline_types = len(stats.values()[0])
-        spacing = 1
-
-        # Precompute position of boxplots in plot.
-        pos = np.arange(0, n_param_values * (n_pipeline_types + spacing),
-                        (n_pipeline_types + spacing))
-
-        # Use different plotting config.
-        plt.style.use('default')
-        import matplotlib as mpl
-        from matplotlib import rc
-        import seaborn as sns
-        sns.reset_orig()
-        mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
-        rc('text', usetex=True)
-
-        # Init axis
-        fig = plt.figure(figsize=(6,2))
-        param_names_dir = ""
-        for i in param_names:
-            param_names_dir += str(i) + "-"
-            param_names_dir = param_names_dir[:-1]
-        ax_pos = fig.add_subplot(111, ylabel='APE translation error [m]', xlabel="Values of parameter: {}".format(param_names_dir))
-        legend_labels = []
-        legend_handles = []
-        # Draw legend.
-        color_id = 0
-        for pipeline_type, pipeline_stats in sorted(stats.values()[0].iteritems()):
-            # The dummy plots are used to create the legends.
-            dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
-            legend_labels.append(pipeline_type)
-            legend_handles.append(dummy_plot_pos[0])
-            color_id = color_id + 1
-
-        idx_param_value = 0
-        auto_scale = False
-        final_max_e_pos = 0
-        if max_y < 0:
-            auto_scale = True
-        else:
-            final_max_e_pos = max_y
-        param_values_boxplots=[]
-        pipelines_failed = dict()
-        for param_value_boxplots, pipeline_types in sorted(stats.iteritems()):
-            param_values_boxplots.append(param_value_boxplots)
-            if isinstance(pipeline_types, dict):
-                idx_pipeline_type = 0
-                for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
-                    if isinstance(pipeline_stats, dict):
-                        # Find max value overall, to set max in y-axis
-                        max_e_pos = pipeline_stats["absolute_errors"]["max"]
-                        if auto_scale:
-                            if max_e_pos > final_max_e_pos:
-                               final_max_e_pos = max_e_pos
-                        # Draw boxplot
-                        draw_boxplot(ax_pos, pipeline_stats["absolute_errors"],
-                                     [idx_pipeline_type + pos[idx_param_value]], idx_pipeline_type)
-                    else:
-                        # If pipeline_stats is not a dict, then it means the pipeline failed...
-                        # Just plot a cross...
-                        pipelines_failed[idx_pipeline_type] = [pipeline_type, idx_param_value]
-                    idx_pipeline_type = idx_pipeline_type + 1
-            else:
-                raise Exception("\033[91mValue in stats should be a dict: " + errors + "\033[99m")
-            idx_param_value = idx_param_value + 1
-
-        # Draw crosses instead of boxplots for pipelines that failed.
-        for idx_pipeline, pipeline_type_idx_param_pair in pipelines_failed.iteritems():
-            x_middle = idx_pipeline + pos[pipeline_type_idx_param_pair[1]]
-            x_1 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
-            y_1 = [0, final_max_e_pos]
-            x_2 = [x_middle - 0.5*spacing, x_middle + 0.5*spacing]
-            y_2 = [final_max_e_pos, 0]
-            red_cross_plot = ax_pos.plot([1,1], 'xr')
-            pipeline_type = pipeline_type_idx_param_pair[0]
-            legend_labels.append("{} failure".format(pipeline_type))
-            legend_handles.append(red_cross_plot[0])
-            ax_pos.plot(x_1, y_1, '-r')
-            ax_pos.plot(x_2, y_2, '-r')
-
-        # Create legend.
-        ax_pos.legend(legend_handles, legend_labels, bbox_to_anchor=(0., 1.02, 1., .102),
-                      loc=3, ncol=3, mode='expand', borderaxespad=0.)
-
-        def _ax_formatting(ax, dummy_plots, final_max_e):
-            ax.yaxis.grid(ls='--', color='0.7')
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, pos: '%.2f'%y))
-            # ax.xaxis.grid(which='major', visible=True, ls=' ')
-            # ax.xaxis.grid(which='minor', visible=False)
-            #ax.xaxis.set_major_formatter(plt.NullFormatter())
-            ax.set_xticks(pos + 0.5*n_pipeline_types - 0.5)
-            ax.set_xticklabels(param_values_boxplots)
-            ax.set_xlim(xmin=pos[0] - 1, xmax=pos[-1] + n_pipeline_types + 0.2)
-            ax.set_ylim(ymin=0, ymax= final_max_e)
-            yticks = np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 5))
-            if len(yticks) < 4:
-                ax.set_yticks(np.arange(0, final_max_e, find_step_of_base(final_max_e/5, 1)))
-            else:
-                ax.set_yticks(yticks)
-            for p in dummy_plots:
-                p.set_visible(False)
-
-        # give some extra space for the plot...
-        final_max_e_pos += 0.02
-        _ax_formatting(ax_pos, legend_handles, final_max_e_pos)
-
-        fig.savefig(os.path.join(output_dir, param_names_dir + '_absolute_errors_boxplots.eps'),
-                    bbox_inches="tight", format="eps", dpi=1200)
-    else:
-        raise Exception("\033[91mStats should be a dict: " + stats + "\033[99m")
-
-    # Restore plotting config.
-    from evo.tools.settings import SETTINGS
-    plt.style.use('seaborn')
-    # configure matplotlib and seaborn according to package settings
-    sns.set(style=SETTINGS.plot_seaborn_style,
-            palette=SETTINGS.plot_seaborn_palette,
-            font=SETTINGS.plot_fontfamily,
-            font_scale=SETTINGS.plot_fontscale
-           )
-
-    rc_params = {
-        "lines.linewidth": SETTINGS.plot_linewidth,
-        "text.usetex": SETTINGS.plot_usetex,
-        "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
-        "pgf.texsystem": SETTINGS.plot_texsystem
-    }
-    mpl.rcParams.update(rc_params)
+Y_MAX_RPE_ROT={
+"MH_01_easy":0.4,
+"MH_02_easy":0.6,
+"MH_03_medium":0.35,
+"mh_04_difficult":1.0,
+"MH_05_difficult":0.3,
+"V1_01_easy":0.6,
+"V1_02_medium":1.5,
+"V1_03_difficult":1.25,
+"V2_01_easy":0.6,
+"V2_02_medium":1.0,
+"v2_03_difficult":2.6
+}
 
 def move_output_from_to(pipeline_output_dir, output_destination_dir):
     try:
@@ -546,7 +85,7 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines):
             checkStats(stats[dataset_name][pipeline_name])
 
     print("Drawing APE boxplots.")
-    draw_ape_boxplots(stats, RESULTS_DIR)
+    evt.draw_ape_boxplots(stats, RESULTS_DIR)
     # Write APE table
     write_latex_table(stats, RESULTS_DIR)
     # Write APE table without S pipeline
@@ -564,13 +103,13 @@ def checkStats(stats):
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
 
-        if not "rpe_rot" in stats["relative_errors"].values()[0]:
+        if not "rpe_rot" in list(stats["relative_errors"].values())[0]:
             print("Stats: ")
             print(stats)
             raise Exception("\033[91mWrong stats format: no rpe_rot... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
-        if not "rpe_trans" in stats["relative_errors"].values()[0]:
+        if not "rpe_trans" in list(stats["relative_errors"].values())[0]:
             print("Stats: ")
             print(stats)
             raise Exception("\033[91mWrong stats format: no rpe_trans... \n"
@@ -648,11 +187,11 @@ def write_latex_table(stats, results_dir):
     all_lines = start_line
 
     winners = dict()
-    for dataset_name, pipeline_types in sorted(stats.iteritems()):
+    for dataset_name, pipeline_types in sorted(stats.items()):
         median_error_pos = []
         # mean_error_pos = []
         rmse_error_pos = []
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
+        for _, pipeline_stats in sorted(pipeline_types.items()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos.append(pipeline_stats["absolute_errors"]["median"])
             # mean_error_pos.append(pipeline_stats["absolute_errors"]["mean"])
@@ -668,11 +207,11 @@ def write_latex_table(stats, results_dir):
                                  # mean_idx_min,
                                  rmse_idx_min]
 
-    for dataset_name, pipeline_types in sorted(stats.iteritems()):
+    for dataset_name, pipeline_types in sorted(stats.items()):
         start = '{:>25} '.format(dataset_name.replace('_', '\\_'))
         one_line = start
         pipeline_idx = 0
-        for pipeline_type, pipeline_stats in sorted(pipeline_types.iteritems()):
+        for _, pipeline_stats in sorted(pipeline_types.items()):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos = pipeline_stats["absolute_errors"]["median"] * 100 # as we report in cm
             # mean_error_pos = pipeline_stats["absolute_errors"]["mean"] * 100 # as we report in cm
@@ -710,7 +249,7 @@ def write_latex_table(stats, results_dir):
         outfile.write(all_lines)
 
 def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_plot, save_plots,
-                 save_folder, confirm_overwrite = False, idx_analysis = -1, discard_n_start_poses=0,
+                 save_folder, confirm_overwrite = False, dataset_name = "", discard_n_start_poses=0,
                 discard_n_end_poses=0):
     """ Run analysis on given trajectories, saves plots on given path:
     :param traj_ref_path: path to the reference (ground truth) trajectory.
@@ -719,7 +258,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     :param save_plots: whether to save the plots.
     :param save_folder: where to save the plots.
     :param confirm_overwrite: whether to confirm overwriting plots or not.
-    :param idx_analysis: optional param, to allow setting the same scale on different plots.
+    :param dataset_name: optional param, to allow setting the same scale on different plots.
     """
     # Load trajectories.
     from evo.tools import file_interface
@@ -791,7 +330,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         results_file = os.path.join(save_folder, 'results.yaml')
         print("Saving analysis results to: " + results_file)
         if confirm_overwrite:
-            if not user.check_and_confirm_overwrite(results_file):
+            if not evt.user.check_and_confirm_overwrite(results_file):
                 return
         with open(results_file,'w') as outfile:
             outfile.write(yaml.dump(results, default_flow_style=False))
@@ -807,8 +346,9 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         # metric values
         fig_1 = plt.figure(figsize=(8, 8))
         ymax = -1
-        if idx_analysis is not -1:
-            ymax = Y_MAX_APE_TRANS[idx_analysis]
+        print(dataset_name)
+        if dataset_name is not "":
+            ymax = Y_MAX_APE_TRANS[dataset_name]
         plot.error_array(fig_1, ape_metric.error, statistics=ape_statistics,
                          name="APE translation", title=""#str(ape_metric)
                          , xlabel="Keyframe index [-]",
@@ -829,8 +369,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Trans
         ### metric values
         fig_3 = plt.figure(figsize=(8, 8))
-        if idx_analysis is not -1:
-            ymax = Y_MAX_RPE_TRANS[idx_analysis]
+        if dataset_name is not "":
+            ymax = Y_MAX_RPE_TRANS[dataset_name]
         plot.error_array(fig_3, rpe_metric_trans.error, statistics=rpe_stats_trans,
                          name="RPE translation", title=""#str(rpe_metric_trans)
                          , xlabel="Keyframe index [-]", ylabel="RPE translation [m]", y_max=ymax)
@@ -854,8 +394,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Rot
         ### metric values
         fig_5 = plt.figure(figsize=(8, 8))
-        if idx_analysis is not -1:
-            ymax = Y_MAX_RPE_ROT[idx_analysis]
+        if dataset_name is not "":
+            ymax = Y_MAX_RPE_ROT[dataset_name]
         plot.error_array(fig_5, rpe_metric_rot.error, statistics=rpe_stats_rot,
                          name="RPE rotation error", title=""#str(rpe_metric_rot)
                          , xlabel="Keyframe index [-]", ylabel="RPE rotation [deg]", y_max=ymax)
@@ -970,34 +510,10 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
               + pipeline_type + ".\033[0m")
         run_analysis(traj_ref_path, traj_est_s, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
-                     return_id_of_dataset(dataset_name),
+                     dataset_name,
                      discard_n_start_poses,
                      discard_n_end_poses)
     return True
-
-def return_id_of_dataset(dataset_name):
-    if dataset_name == "MH_01_easy":
-        return 0
-    if dataset_name == "MH_02_easy":
-        return 1
-    if dataset_name == "MH_03_medium":
-        return 2
-    if dataset_name == "mh_04_difficult":
-        return 3
-    if dataset_name == "MH_05_difficult":
-        return 4
-    if dataset_name == "V1_01_easy":
-        return 5
-    if dataset_name == "V1_02_medium":
-        return 6
-    if dataset_name == "V1_03_difficult":
-        return 7
-    if dataset_name == "V2_01_easy":
-        return 8
-    if dataset_name == "V2_02_medium":
-        return 9
-    if dataset_name == "v2_03_difficult":
-        return 10
 
 def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
                 run_pipeline, analyse_vio,
@@ -1006,7 +522,6 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
-    import time
     dataset_name = dataset_properties['name']
     dataset_segments = dataset_properties['segments']
 
@@ -1040,7 +555,7 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
                 checkStats(stats[pipeline_type])
 
             print("Drawing boxplots.")
-            draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
+            evt.draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
         else:
             print("A pipeline run has failed... skipping boxplot drawing.")
 
@@ -1082,7 +597,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
             param_value_dir = param_value
         ensure_dir("{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir))
         # Create params folder by copying from current official one.
-        param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir);
+        param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir)
         if (os.path.exists(param_dir)):
             rmtree(param_dir)
         copytree("/home/tonirv/code/evo/results/params", param_dir)
@@ -1108,7 +623,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                         else:
                             vio_params[param_name] = param_value
                         is_param_name_written[idx] = True
-                for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
+                for extra_param_name, extra_param_value in extra_params_to_modify.items():
                     if extra_param_name in vio_params:
                         vio_params[extra_param_name] = extra_param_value
                         written_extra_param_names.append(extra_param_name)
@@ -1133,7 +648,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                         else:
                             tracker_params[param_name] = param_value
                         is_param_name_written[idx] = True
-                for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
+                for extra_param_name, extra_param_value in extra_params_to_modify.items():
                     if extra_param_name in tracker_params:
                         tracker_params[extra_param_name] = extra_param_value
                         written_extra_param_names.append(extra_param_name)
@@ -1153,7 +668,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                     else:
                         write_flags_parameters(param_name, param_value,
                                                param_pipeline_dir + "/flags/override.flags")
-            for extra_param_name, extra_param_value in extra_params_to_modify.iteritems():
+            for extra_param_name, extra_param_value in extra_params_to_modify.items():
                 if extra_param_name not in written_extra_param_names:
                     write_flags_parameters(extra_param_name,
                                            extra_param_value,
@@ -1221,7 +736,7 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
 
     # Check and create file structure
     dataset_names = ["V1_01_easy"]
-    pipelines_to_run_list = build_list_of_pipelines_to_run(pipelines_to_run);
+    pipelines_to_run_list = build_list_of_pipelines_to_run(pipelines_to_run)
     REGRESSION_TESTS_DIR = "/home/tonirv/code/evo-1/regression_tests/" + test_name
     check_and_create_regression_test_structure(REGRESSION_TESTS_DIR, param_names, param_values,
                                                dataset_names, pipelines_to_run_list, extra_params_to_modify)
@@ -1242,7 +757,6 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
             else:
                 param_value_dir = param_value
             results_dir = "{}/{}/{}".format(REGRESSION_TESTS_DIR, param_names_dir, param_value_dir)
-            pipeline_output_dir = results_dir + "/tmp_output/output"
             for dataset_name in dataset_names:
                 run_dataset(results_dir, DATASET_DIR, dataset_name, BUILD_DIR,
                                run_pipelines, # Should we re-run pipelines?
@@ -1285,20 +799,12 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
             max_y = 0.40
         if dataset_name == "V1_01_easy":
             max_y = 0.20
-        draw_regression_simple_boxplot_APE(param_names, stats, plot_dir, max_y)
+        evt.draw_regression_simple_boxplot_APE(param_names, stats, plot_dir, max_y)
     print("Finished regression test for param_name: {}".format(param_names_dir))
 
 def run(args):
-    import evo.common_ape_rpe as common
     from evo.tools import log
     from evo.tools.settings import SETTINGS
-
-    log.configure_logging(args.verbose, args.silent, args.debug)
-    if args.debug:
-        from pprint import pformat
-        parser_str = pformat({arg: getattr(args, arg) for arg in vars(args)})
-        logger.debug("main_parser config:\n{}".format(parser_str))
-        logger.debug(SEP)
 
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path)
@@ -1357,17 +863,6 @@ def parser():
                              help="Save boxplots?")
     output_opts.add_argument("--save_results", action="store_true",
                              help="Save results?")
-
-    usability_opts.add_argument("--no_warnings", action="store_true",
-                                help="no warnings requiring user confirmation")
-    usability_opts.add_argument("-v", "--verbose", action="store_true",
-                                help="verbose output")
-    usability_opts.add_argument("--silent", action="store_true",
-                                help="don't print any output")
-    usability_opts.add_argument("--debug", action="store_true",
-                                help="verbose output with additional debug info")
-    usability_opts.add_argument("-c", "--config",
-                                help=".json file with parameters (priority over command line args)")
 
     main_parser = argparse.ArgumentParser(
         description="{}".format(basic_desc))
