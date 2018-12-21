@@ -2,16 +2,23 @@ experiment_label: 'euroc'
 
 settings:
   run_benchmark: true
-  dataset_first_frame: 100
+  optional:
+    dataset_first_frame: 1500
+    dataset_last_frame: 1500
 
-build_dir: '/home/tonirv/code/spark_vio/build'
-results_dir: '/home/tonirv/code/spark_vio_evaluation/results'
-dataset_dir: '/home/tonirv/datasets/EuRoC'
+build_dir: '/home/tonirv/Code/spark_vio/build'
+results_dir: '/home/tonirv/Code/spark_vio_evaluation/results'
+dataset_dir: '/home/tonirv/datasets/euroc'
 
 datasets_to_run:
  - name: V1_01_easy
    segments: [10,20,30,40,50]
-   pipelines: ['S', 'SP', 'SPR']
- - name: V1_02_medium
-   segments: [10,20,30,40,50,60]
-   pipelines: ['S', 'SP', 'SPR']
+   pipelines: ['S', 'SPR']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   #- name: V1_02_medium
+   #segments: [10,20,30,40,50,60]
+   #pipelines: ['S', 'SPR']
+   #discard_n_start_poses: 10
+   #discard_n_end_poses: 10
+
