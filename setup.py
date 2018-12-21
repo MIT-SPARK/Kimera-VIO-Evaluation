@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='spark_vio_evaluation',
-      version='0.1',
+      version='0.2',
       description='Code for evaluating the performance of the SPARK VIO pipeline',
       url='https://github.com/ToniRV/spark_vio_evaluation',
       author='Antoni Rosinol',
