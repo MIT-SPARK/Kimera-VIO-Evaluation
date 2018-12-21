@@ -270,8 +270,18 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     """
     # Load trajectories.
     from evo.tools import file_interface
-    traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path)
-    traj_est = file_interface.read_swe_csv_trajectory(traj_est_path)
+    traj_ref = None
+    try:
+        traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path)
+    except file_interface.FileInterfaceException as e:
+        raise Exception("\033[91mMissing ground truth csv! \033[93m {}.".format(e))
+
+    traj_est = None
+    try:
+        traj_est = file_interface.read_swe_csv_trajectory(traj_est_path)
+    except file_interface.FileInterfaceException as e:
+        print(e)
+        raise Exception("\033[91mMissing ground truth csv.\033[99m")
 
     print("Registering trajectories")
     traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
@@ -535,7 +545,8 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
     dataset_segments = dataset_properties['segments']
 
     ################### RUN PIPELINE ################################
-    pipeline_output_dir = results_dir + "/tmp_output/output"
+    pipeline_output_dir = results_dir + "/tmp_output/output/"
+    create_full_path_if_not_exists(pipeline_output_dir)
     output_file = pipeline_output_dir + "/output_posesVIO.csv"
     has_a_pipeline_failed = False
     if len(pipelines_to_run_list) == 0:
