@@ -38,6 +38,14 @@ Y_MAX_RPE_ROT={
 "v2_03_difficult":2.6
 }
 
+def create_full_path_if_not_exists(filename):
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
 def move_output_from_to(pipeline_output_dir, output_destination_dir):
     try:
         if (os.path.exists(output_destination_dir)):
@@ -444,7 +452,7 @@ def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_d
            extra_flagfile_path = ""):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
-    return subprocess.call("{}/stereoVIOEuroc-planes \
+    return subprocess.call("{}/stereoVIOEuroc \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
                            --dataset_path={}/{} --output_path={}\
                            --vio_params_path={}/params/{}/{} \
@@ -454,7 +462,7 @@ def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_d
                            --flagfile={}/params/{}/{} --flagfile={}/params/{}/{} \
                            --log_output=True".format(
                                build_dir, dataset_dir, dataset_name, pipeline_output_dir,
-                               results_dir, pipeline_type, "vioParameters.yaml",
+                               results_dir, pipeline_type, "regularVioParameters.yaml",
                                results_dir, pipeline_type, "trackerParameters.yaml",
                                results_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
                                results_dir, pipeline_type, "flags/Mesher.flags",
@@ -485,14 +493,15 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
     dataset_result_dir = results_dir + "/" + dataset_name + "/"
     dataset_pipeline_result_dir = dataset_result_dir + "/" + pipeline_type + "/"
     traj_ref_path = dataset_result_dir + "/traj_gt.csv"
-    traj_est_s = dataset_result_dir + "/" + pipeline_type + "/" + "traj_es.csv"
+    traj_es = dataset_result_dir + "/" + pipeline_type + "/" + "traj_es.csv"
+    create_full_path_if_not_exists(traj_es)
     if run_pipeline:
         if run_vio(build_dir, dataset_dir, dataset_name, results_dir,
                    pipeline_output_dir, pipeline_type) == 0:
             print("Successful pipeline run.")
             print("\033[1mCopying output file: " + output_file + "\n to results file:\n" + \
-                  traj_est_s + "\033[0m")
-            copyfile(output_file, traj_est_s)
+                  traj_es + "\033[0m")
+            copyfile(output_file, traj_es)
             try:
                 output_destination_dir = dataset_pipeline_result_dir + "/output/"
                 print("\033[1mCopying output dir: " + pipeline_output_dir
@@ -508,7 +517,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
     if analyse_vio:
         print("\033[1mAnalysing dataset: " + dataset_result_dir + " for pipeline "
               + pipeline_type + ".\033[0m")
-        run_analysis(traj_ref_path, traj_est_s, SEGMENTS,
+        run_analysis(traj_ref_path, traj_es, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
                      dataset_name,
                      discard_n_start_poses,
