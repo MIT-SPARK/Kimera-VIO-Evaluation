@@ -1,4 +1,5 @@
 from setuptools import setup
+import fastentrypoints
 
 setup(name='spark_vio_evaluation',
       version='0.2',
