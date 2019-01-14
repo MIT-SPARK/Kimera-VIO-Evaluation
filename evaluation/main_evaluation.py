@@ -3,6 +3,7 @@
 from __future__ import print_function
 import copy
 import os
+import errno
 import yaml
 import numpy as np
 from evo.tools import plot
@@ -44,6 +45,7 @@ def create_full_path_if_not_exists(filename):
             os.makedirs(os.path.dirname(filename))
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
+                print("Could not create inexistent filename: " + filename)
                 raise
 
 def move_output_from_to(pipeline_output_dir, output_destination_dir):
