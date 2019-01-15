@@ -6,7 +6,7 @@ settings:
     dataset_first_frame: 1500
     dataset_last_frame: 1500
 
-build_dir: '$WORKSPACE/spark_vio/build'
+build_dir: '$WORKSPACE/build'
 results_dir: '/root/spark_vio_evaluation/results'
 dataset_dir: '/Datasets/euroc'
 
