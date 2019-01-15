@@ -831,9 +831,9 @@ def run(args):
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path)
 
-    results_dir = experiment_params['results_dir']
-    dataset_dir = experiment_params['dataset_dir']
-    build_dir = experiment_params['build_dir']
+    results_dir = os.path.expandvars(experiment_params['results_dir'])
+    dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
+    build_dir = os.path.expandvars(experiment_params['build_dir'])
     datasets_to_run = experiment_params['datasets_to_run']
 
     # Run experiments.

@@ -6,9 +6,9 @@ settings:
     dataset_first_frame: 1500
     dataset_last_frame: 1500
 
-build_dir: '/home/tonirv/Code/spark_vio/build'
-results_dir: '/home/tonirv/Code/spark_vio_evaluation/results'
-dataset_dir: '/home/tonirv/datasets/euroc'
+build_dir: '$HOME/Code/spark_vio/build'
+results_dir: '$HOME/Code/spark_vio_evaluation/results'
+dataset_dir: '$HOME/datasets/euroc'
 
 datasets_to_run:
  - name: V1_01_easy
