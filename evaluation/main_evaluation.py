@@ -897,6 +897,7 @@ def parser():
     return shared_parser
 
 import argcomplete
+import sys
 if __name__ == '__main__':
     parser = parser()
     argcomplete.autocomplete(parser)
