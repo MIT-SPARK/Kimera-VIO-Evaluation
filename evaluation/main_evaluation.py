@@ -838,16 +838,19 @@ def run(args):
 
     # Run experiments.
     print("Run experiments")
+    successful_run = True;
     for dataset in datasets_to_run:
         print("Run dataset:", dataset['name'])
         pipelines_to_run = dataset['pipelines']
-        run_dataset(results_dir, dataset_dir, dataset, build_dir,
-                    args.run_pipeline, args.analyse_vio,
-                    args.plot, args.save_results,
-                    args.save_plots, args.save_boxplots,
-                    pipelines_to_run,
-                    dataset['discard_n_start_poses'],
-                    dataset['discard_n_end_poses'])
+        if not run_dataset(results_dir, dataset_dir, dataset, build_dir,
+                           args.run_pipeline, args.analyse_vio,
+                           args.plot, args.save_results,
+                           args.save_plots, args.save_boxplots,
+                           pipelines_to_run,
+                           dataset['discard_n_start_poses'],
+                           dataset['discard_n_end_poses']):
+            successful_run = False
+    return successful_run
 
 def parser():
     import argparse
@@ -898,5 +901,8 @@ if __name__ == '__main__':
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    run(args)
+    if run(args):
+        sys.exit(os.EX_OK)
+    else:
+        sys.exit(os.EX_OSERR)
 
