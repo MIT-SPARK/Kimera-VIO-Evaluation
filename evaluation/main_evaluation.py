@@ -904,5 +904,5 @@ if __name__ == '__main__':
     if run(args):
         sys.exit(os.EX_OK)
     else:
-        sys.exit(os.EX_OSERR)
+        raise Exception("Main evaluation run failed.")
 
