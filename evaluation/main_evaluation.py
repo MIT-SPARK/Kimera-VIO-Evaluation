@@ -586,7 +586,7 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
     else:
         print("A pipeline has failed!")
     print("Finished evaluation for dataset: " + dataset_name)
-    return has_a_pipeline_failed
+    return not has_a_pipeline_failed
 
 def write_flags_parameters(param_name, param_new_value, params_path):
     directory = os.path.dirname(params_path)
