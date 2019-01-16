@@ -7,6 +7,9 @@ settings:
     dataset_last_frame: 1500
 
 build_dir: '$WORKSPACE/build'
+# TODO separate getting ground-truth from results_dir
+# This will be useful for Jenkins to analyze the pipeline using ground-truth
+# while storing results in workspace
 results_dir: '/root/spark_vio_evaluation/results'
 dataset_dir: '/Datasets/euroc'
 
