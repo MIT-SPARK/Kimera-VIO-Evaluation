@@ -48,25 +48,24 @@ def create_full_path_if_not_exists(filename):
                 print("Could not create inexistent filename: " + filename)
                 raise
 
-def move_output_from_to(pipeline_output_dir, output_destination_dir):
+def move_output_from_to(from_dir, to_dir):
     try:
-        if (os.path.exists(output_destination_dir)):
-            rmtree(output_destination_dir)
+        if (os.path.exists(to_dir)):
+            rmtree(to_dir)
     except:
-        print("Directory:" + output_destination_dir + " does not exist, we can safely move output.")
+        print("Directory:" + to_dir + " does not exist, we can safely move output.")
     try:
-        if (os.path.isdir(pipeline_output_dir)):
-            move(pipeline_output_dir, output_destination_dir)
+        if (os.path.isdir(from_dir)):
+            move(from_dir, to_dir)
         else:
             print("There is no output directory...")
     except:
-        print("Could not move output from: " + pipeline_output_dir + " to: "
-              + output_destination_dir)
+        print("Could not move output from: " + from_dir + " to: " + to_dir)
         raise
     try:
-        os.makedirs(pipeline_output_dir)
+        os.makedirs(from_dir)
     except:
-        print("Could not mkdir: " + pipeline_output_dir)
+        print("Could not mkdir: " + from_dir)
         raise
 
 def ensure_dir(dir_path):
