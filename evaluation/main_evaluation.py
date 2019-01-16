@@ -466,11 +466,11 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir, pipeline_output_di
     return subprocess.call("{}/stereoVIOEuroc \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
                            --dataset_path={}/{} --output_path={}\
-                           --vio_params_path={}/params/{}/{} \
-                           --tracker_params_path={}/params/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
+                           --vio_params_path={}/{}/{} \
+                           --tracker_params_path={}/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --log_output=True".format(
                                build_dir, dataset_dir, dataset_name, pipeline_output_dir,
                                params_dir, pipeline_type, "regularVioParameters.yaml",

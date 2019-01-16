@@ -8,6 +8,7 @@ settings:
 
 build_dir: '$HOME/Code/spark_vio/build'
 results_dir: '$HOME/Code/spark_vio_evaluation/results'
+params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
 dataset_dir: '$HOME/datasets/euroc'
 
 datasets_to_run:
