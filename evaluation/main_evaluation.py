@@ -459,7 +459,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
             #        args.save_results, result, confirm_overwrite=not args.no_warnings)
 
 # Run pipeline as a subprocess.
-def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_dir, pipeline_type,
+def run_vio(build_dir, dataset_dir, dataset_name, params_dir, pipeline_output_dir, pipeline_type,
            extra_flagfile_path = ""):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
@@ -468,22 +468,22 @@ def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_d
                            --dataset_path={}/{} --output_path={}\
                            --vio_params_path={}/params/{}/{} \
                            --tracker_params_path={}/params/{}/{} \
-                           --flagfile={}/params/{}/{} --flagfile={}/params/{}/{} \
-                           --flagfile={}/params/{}/{} --flagfile={}/params/{}/{} \
-                           --flagfile={}/params/{}/{} --flagfile={}/params/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/params/{}/{} \
                            --log_output=True".format(
                                build_dir, dataset_dir, dataset_name, pipeline_output_dir,
-                               results_dir, pipeline_type, "regularVioParameters.yaml",
-                               results_dir, pipeline_type, "trackerParameters.yaml",
-                               results_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
-                               results_dir, pipeline_type, "flags/Mesher.flags",
-                               results_dir, pipeline_type, "flags/VioBackEnd.flags",
-                               results_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
-                               results_dir, pipeline_type, "flags/Visualizer3D.flags",
-                               results_dir, pipeline_type, extra_flagfile_path), \
+                               params_dir, pipeline_type, "regularVioParameters.yaml",
+                               params_dir, pipeline_type, "trackerParameters.yaml",
+                               params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
+                               params_dir, pipeline_type, "flags/Mesher.flags",
+                               params_dir, pipeline_type, "flags/VioBackEnd.flags",
+                               params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
+                               params_dir, pipeline_type, "flags/Visualizer3D.flags",
+                               params_dir, pipeline_type, extra_flagfile_path), \
                            shell=True)
 
-def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_dir,
+def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline, analyse_vio, discard_n_start_poses, discard_n_end_poses):
     """ build_dir: directory where the pipeline executable resides,
     dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work),
@@ -491,6 +491,8 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
     results_dir: directory where the results of the run will reside:
         used as results_dir/dataset_name/S, results_dir/dataset_name/SP, results_dir/dataset_name/SPR
         where each directory have traj_est.csv (the estimated trajectory), and plots if requested.
+    params_dir: directory where the parameters for each pipeline reside:
+        used as params_dir/S, params_dir/SP, params_dir/SPR.
     pipeline_output_dir: where to store all output_* files produced by the pipeline,
     pipeline_type: type of pipeline to process (1: S, 2: SP, 3: SPR)
     SEGMENTS: segments for RPE boxplots,
@@ -500,13 +502,13 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
     output_file: the name of the trajectory estimate output of the vio which will then be copied as traj_est.csv,
     run_pipeline: whether to run the VIO to generate a new traj_est.csv,
     analyse_vio: whether to analyse traj_est.csv or not"""
-    dataset_result_dir = results_dir + "/" + dataset_name + "/"
-    dataset_pipeline_result_dir = dataset_result_dir + "/" + pipeline_type + "/"
+    dataset_results_dir = results_dir + "/" + dataset_name + "/"
+    dataset_pipeline_result_dir = dataset_results_dir + "/" + pipeline_type + "/"
     traj_ref_path = dataset_dir + "/" + dataset_name + "/mav0/state_groundtruth_estimate0/data.csv" # TODO make it not specific to EUROC
-    traj_es = dataset_result_dir + "/" + pipeline_type + "/" + "traj_es.csv"
+    traj_es = dataset_results_dir + "/" + pipeline_type + "/" + "traj_es.csv"
     create_full_path_if_not_exists(traj_es)
     if run_pipeline:
-        if run_vio(build_dir, dataset_dir, dataset_name, results_dir,
+        if run_vio(build_dir, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type) == 0:
             print("Successful pipeline run.")
             print("\033[1mCopying output file: " + output_file + "\n to results file:\n" + \
@@ -525,7 +527,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
             return False
 
     if analyse_vio:
-        print("\033[1mAnalysing dataset: " + dataset_result_dir + " for pipeline "
+        print("\033[1mAnalysing dataset: " + dataset_results_dir + " for pipeline "
               + pipeline_type + ".\033[0m")
         run_analysis(traj_ref_path, traj_es, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
@@ -534,7 +536,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
                      discard_n_end_poses)
     return True
 
-def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
+def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_dir,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
                 discard_n_start_poses = 0, discard_n_end_poses = 0):
@@ -552,7 +554,7 @@ def run_dataset(results_dir, dataset_dir, dataset_properties, build_dir,
     if len(pipelines_to_run_list) == 0:
         print("Not running pipeline...")
     for pipeline_type in pipelines_to_run_list:
-        if process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_dir,
+        if process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                        pipeline_type, dataset_segments, save_results, plot, save_plots,
                        output_file, run_pipeline, analyse_vio,
                        discard_n_start_poses, discard_n_end_poses) == False:
@@ -777,8 +779,9 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
             else:
                 param_value_dir = param_value
             results_dir = "{}/{}/{}".format(REGRESSION_TESTS_DIR, param_names_dir, param_value_dir)
+            PARAMS_DIR = results_dir
             for dataset_name in dataset_names:
-                run_dataset(results_dir, DATASET_DIR, dataset_name, BUILD_DIR,
+                run_dataset(results_dir, PARAMS_DIR, DATASET_DIR, dataset_name, BUILD_DIR,
                                run_pipelines, # Should we re-run pipelines?
                                True, # Should we run the analysis of per pipeline errors?
                                False, # Should we display plots?
@@ -830,6 +833,7 @@ def run(args):
     experiment_params = yaml.load(args.experiments_path)
 
     results_dir = os.path.expandvars(experiment_params['results_dir'])
+    params_dir = os.path.expandvars(experiment_params['params_dir'])
     dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
     build_dir = os.path.expandvars(experiment_params['build_dir'])
     datasets_to_run = experiment_params['datasets_to_run']
@@ -840,7 +844,7 @@ def run(args):
     for dataset in datasets_to_run:
         print("Run dataset:", dataset['name'])
         pipelines_to_run = dataset['pipelines']
-        if not run_dataset(results_dir, dataset_dir, dataset, build_dir,
+        if not run_dataset(results_dir, params_dir, dataset_dir, dataset, build_dir,
                            args.run_pipeline, args.analyse_vio,
                            args.plot, args.save_results,
                            args.save_plots, args.save_boxplots,
