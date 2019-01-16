@@ -274,7 +274,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     from evo.tools import file_interface
     traj_ref = None
     try:
-        traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path)
+        traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path) # TODO make it non-euroc specific.
     except file_interface.FileInterfaceException as e:
         raise Exception("\033[91mMissing ground truth csv! \033[93m {}.".format(e))
 
@@ -487,12 +487,11 @@ def run_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_d
 def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline, analyse_vio, discard_n_start_poses, discard_n_end_poses):
     """ build_dir: directory where the pipeline executable resides,
-    dataset_dir: directory of the dataset,
+    dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work),
     dataset_name: specific dataset to run,
     results_dir: directory where the results of the run will reside:
         used as results_dir/dataset_name/S, results_dir/dataset_name/SP, results_dir/dataset_name/SPR
         where each directory have traj_est.csv (the estimated trajectory), and plots if requested.
-        results_dir/dataset_name/ must contain traj_gt.csv (the ground truth trajectory for analysis to work),
     pipeline_output_dir: where to store all output_* files produced by the pipeline,
     pipeline_type: type of pipeline to process (1: S, 2: SP, 3: SPR)
     SEGMENTS: segments for RPE boxplots,
@@ -504,7 +503,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, pipeline_outp
     analyse_vio: whether to analyse traj_est.csv or not"""
     dataset_result_dir = results_dir + "/" + dataset_name + "/"
     dataset_pipeline_result_dir = dataset_result_dir + "/" + pipeline_type + "/"
-    traj_ref_path = dataset_result_dir + "/traj_gt.csv"
+    traj_ref_path = dataset_dir + "/" + dataset_name + "/mav0/state_groundtruth_estimate0/data.csv" # TODO make it not specific to EUROC
     traj_es = dataset_result_dir + "/" + pipeline_type + "/" + "traj_es.csv"
     create_full_path_if_not_exists(traj_es)
     if run_pipeline:
