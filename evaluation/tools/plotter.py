@@ -279,7 +279,7 @@ def draw_ape_boxplots(stats, output_dir):
                         pipelines_failed[idx_pipeline_type] = [pipeline_type, idx_param_value]
                     idx_pipeline_type = idx_pipeline_type + 1
             else:
-                raise Exception("\033[91mValue in stats should be a dict: " + errors + "\033[99m")
+                raise Exception("\033[91mValue in stats should be a dict.\033[99m")
             idx_param_value = idx_param_value + 1
 
         # Draw crosses instead of boxplots for pipelines that failed.
@@ -421,7 +421,7 @@ def draw_regression_simple_boxplot_APE(param_names, stats, output_dir, max_y = -
                         pipelines_failed[idx_pipeline_type] = [pipeline_type, idx_param_value]
                     idx_pipeline_type = idx_pipeline_type + 1
             else:
-                raise Exception("\033[91mValue in stats should be a dict: " + errors + "\033[99m")
+                raise Exception("\033[91mValue in stats should be a dict: \033[99m")
             idx_param_value = idx_param_value + 1
 
         # Draw crosses instead of boxplots for pipelines that failed.

@@ -3,7 +3,6 @@
 from __future__ import print_function
 import copy
 import os
-import errno
 import yaml
 import numpy as np
 from evo.tools import plot
@@ -38,15 +37,6 @@ Y_MAX_RPE_ROT={
 "V2_02_medium":1.0,
 "v2_03_difficult":2.6
 }
-
-def create_full_path_if_not_exists(filename):
-    if not os.path.exists(os.path.dirname(filename)):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                print("Could not create inexistent filename: " + filename)
-                raise
 
 def move_output_from_to(from_dir, to_dir):
     try:
@@ -506,7 +496,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
     dataset_pipeline_result_dir = dataset_results_dir + "/" + pipeline_type + "/"
     traj_ref_path = dataset_dir + "/" + dataset_name + "/mav0/state_groundtruth_estimate0/data.csv" # TODO make it not specific to EUROC
     traj_es = dataset_results_dir + "/" + pipeline_type + "/" + "traj_es.csv"
-    create_full_path_if_not_exists(traj_es)
+    evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
         if run_vio(build_dir, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type) == 0:
@@ -548,7 +538,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
 
     ################### RUN PIPELINE ################################
     pipeline_output_dir = results_dir + "/tmp_output/output/"
-    create_full_path_if_not_exists(pipeline_output_dir)
+    evt.create_full_path_if_not_exists(pipeline_output_dir)
     output_file = pipeline_output_dir + "/output_posesVIO.csv"
     has_a_pipeline_failed = False
     if len(pipelines_to_run_list) == 0:
