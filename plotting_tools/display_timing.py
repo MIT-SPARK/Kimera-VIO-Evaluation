@@ -83,8 +83,8 @@ def get_pipeline_times(results_folder, pipeline_names):
         if os.path.isdir(results_folder):
             timing_results_dir = os.path.join(results_folder, pipeline_name, "output/output_timingVIO.txt")
             if os.path.exists(timing_results_dir):
-                print 'Parsing results for pipeline: %s in file: %s' \
-                % (pipeline_name, timing_results_dir)
+                print('Parsing results for pipeline: %s in file: %s' \
+                % (pipeline_name, timing_results_dir))
                 filename = open(timing_results_dir, 'r')
                 keyframe_ids, update_times = \
                 np.loadtxt(filename, delimiter=' ', usecols=(0,3), unpack=True) # 4th column are results.
@@ -102,8 +102,8 @@ def get_pipeline_times(results_folder, pipeline_names):
                 prev_pipeline_name = pipeline_name
                 prev_keyframe_ids = keyframe_ids
             else:
-                print 'WARNING: pipeline with name: %s has missing results... ' \
-                 'No file found at: %s' % (pipeline_name, timing_results_dir)
+                print('WARNING: pipeline with name: %s has missing results... ' \
+                 'No file found at: %s' % (pipeline_name, timing_results_dir))
         else:
             raise Exception ('ERROR: invalid results folder: %s' % results_folder)
     return keyframe_ids, pipeline_times
@@ -133,14 +133,18 @@ def main(results_folder, pipeline_names):
     keyframe_ids, pipelines_times = get_pipeline_times(results_folder, pipeline_names)
     assert len(keyframe_ids) > 0, 'There does not seem to be keyframe_ids, these are the x axis of the plot'
     assert len(pipelines_times) > 0, 'Missing pipeline timing information.'
-    draw_timing_plot(os.path.join(results_folder, "timing/all_timing_for_paper.pdf"),
-                     keyframe_ids, pipelines_times)
+    final_plot_path = os.path.join(results_folder, "timing/pipeline_times.pdf")
+    print('Drawing timing plot in: %s' % final_plot_path)
+    draw_timing_plot(final_plot_path, keyframe_ids, pipelines_times)
 
 if __name__ == "__main__":
     import argcomplete
+    import sys
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
     # HARDCODED pipeline_names for convenience.
+    # Don't worry, if the pipeline has no results ther will be just a warning.
     PIPELINE_NAMES=['S', 'SP', 'SPR']
     main(args.path_to_vio_output, PIPELINE_NAMES)
+    sys.exit(os.EX_OK)
