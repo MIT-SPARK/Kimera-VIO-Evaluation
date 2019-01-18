@@ -61,7 +61,7 @@ def draw_timing_plot(filename,
     if display_plot:
         plt.show()
 
-def get_pipeline_times(results_folder, pipeline_names):
+def get_pipeline_times(results_folder, pipeline_names, time_column_idx):
     """ Returns a list of keyframe_ids, together with pipelines_times, a list of dict for information
     on the pipeline timing and how to plot it. See draw_timing_plot for the 
     actual structure of pipelines_times.
@@ -71,6 +71,8 @@ def get_pipeline_times(results_folder, pipeline_names):
         results_folder/pipeline_names[etc]/output/output_timingVIO.txt etc
         - pipeline_names: are the names of the pipelines for which results are available.
         This function will warn if there are no results available for the given pipeline.
+        - time_column_idx: Specifies the column in the CSV file that is parsed which contains
+        the timing information. Depending on the column specified, one or another time is parsed.
     """
     # Set random seed for returning always the same colors
     np.random.seed(0)
@@ -87,7 +89,7 @@ def get_pipeline_times(results_folder, pipeline_names):
                 % (pipeline_name, timing_results_dir))
                 filename = open(timing_results_dir, 'r')
                 keyframe_ids, update_times = \
-                np.loadtxt(filename, delimiter=' ', usecols=(0,3), unpack=True) # 4th column are results.
+                np.loadtxt(filename, delimiter=' ', usecols=(0, time_column_idx), unpack=True) # 4th column are results.
                 pipeline_times.append({
                     'pipeline_name': pipeline_name,
                     'line_color': np.random.rand(3),
@@ -120,7 +122,7 @@ def parser():
         default="/home/tonirv/code/evo/results/V1_01_easy/")
     return main_parser
 
-def main(results_folder, pipeline_names):
+def main(results_folder, pipeline_names, time_column_idx):
     """
         Displays timing of VIO stored in 'results_folder' parameter as a path.
         In particular 'results_folder' should point to the following filesystem structure:
@@ -129,8 +131,9 @@ def main(results_folder, pipeline_names):
         results_folder/pipeline_names[etc]/output/output_timingVIO.txt etc
         Where pipeline_names are the names of the pipelines for which results are available.
         This function will warn if there are not results available for the given pipeline.
+        - time_column_idx: specifies the idx of the column which is to be parsed in the CSV file.
     """
-    keyframe_ids, pipelines_times = get_pipeline_times(results_folder, pipeline_names)
+    keyframe_ids, pipelines_times = get_pipeline_times(results_folder, pipeline_names, time_column_idx)
     assert len(keyframe_ids) > 0, 'There does not seem to be keyframe_ids, these are the x axis of the plot'
     assert len(pipelines_times) > 0, 'Missing pipeline timing information.'
     final_plot_path = os.path.join(results_folder, "timing/pipeline_times.pdf")
@@ -146,5 +149,6 @@ if __name__ == "__main__":
     # HARDCODED pipeline_names for convenience.
     # Don't worry, if the pipeline has no results ther will be just a warning.
     PIPELINE_NAMES=['S', 'SP', 'SPR']
-    main(args.path_to_vio_output, PIPELINE_NAMES)
+    TIME_TYPE=3 # 3->4th column in CSV file that corresponds to optimization time.
+    main(args.path_to_vio_output, PIPELINE_NAMES, TIME_TYPE)
     sys.exit(os.EX_OK)
