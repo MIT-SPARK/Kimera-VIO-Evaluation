@@ -6,15 +6,15 @@ settings:
     dataset_first_frame: 1500
     dataset_last_frame: 1500
 
-build_dir: '$HOME/Code/spark_vio/build'
-results_dir: '$HOME/Code/spark_vio_evaluation/results'
-params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
-dataset_dir: '$HOME/datasets/euroc'
+build_dir: '$WORKSPACE/build'
+results_dir: '$WORKSPACE/spark_vio_evaluation/results'
+params_dir: '/root/spark_vio_evaluation/experiments/params'
+dataset_dir: '/Datasets/euroc'
 
 datasets_to_run:
  - name: V1_01_easy
-   segments: [10,20,30,40,50]
-   pipelines: ['S', 'SPR']
+   segments: [10, 20]
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    #- name: V1_02_medium
