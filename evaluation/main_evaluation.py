@@ -156,9 +156,9 @@ def write_latex_table(stats, results_dir):
     # \\begin{tabular}{l p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm}}
     # \\hline
     # Sequence             & \\multicolumn{2}{c}{\\textbf{S}} & \\multicolumn{2}{c}{\\textbf{S + P}}  & \\multicolumn{2}{c}{\\textbf{S + P + R} (Proposed)}          \\\\ \\hline
-                         # & Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) &
-                         # Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) & Median
-                         # APE Translation (m) & Mean APE Translation (m)  & RMSE APE translation (m) \\\\
+    # & Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) &
+    # Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) & Median
+    # APE Translation (m) & Mean APE Translation (m)  & RMSE APE translation (m) \\\\
     # """
     start_line = """\\begin{table}[H]
   \\centering
@@ -224,9 +224,9 @@ def write_latex_table(stats, results_dir):
 
             # Bold for min mean error
             # if len(winners[dataset_name][1]) == 1 and winners[dataset_name][1][0] == pipeline_idx:
-                # one_line += bold_in + '{:.1f}'.format(mean_error_pos) + bold_out
+            # one_line += bold_in + '{:.1f}'.format(mean_error_pos) + bold_out
             # else:
-                # one_line += '& {:.1f} '.format(mean_error_pos)
+            # one_line += '& {:.1f} '.format(mean_error_pos)
 
             # Bold for min rmse error
             # Do not bold, if multiple max
@@ -434,33 +434,35 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 
     ## Plot results
     #if args.plot or args.save_plot or args.serialize_plot:
-        #    common.plot(
-        #        args, result,
-        #        result.trajectories[ref_name],
-        #        result.trajectories[est_name])
+    #    common.plot(
+    #        args, result,
+    #        result.trajectories[ref_name],
+    #        result.trajectories[est_name])
 
     ## Save results
     #if args.save_results:
-        #    logger.debug(SEP)
-        #    if not SETTINGS.save_traj_in_zip:
-            #        del result.trajectories[ref_name]
-            #        del result.trajectories[est_name]
-            #    file_interface.save_res_file(
-            #        args.save_results, result, confirm_overwrite=not args.no_warnings)
+    #    logger.debug(SEP)
+    #    if not SETTINGS.save_traj_in_zip:
+    #        del result.trajectories[ref_name]
+    #        del result.trajectories[est_name]
+    #    file_interface.save_res_file(
+    #        args.save_results, result, confirm_overwrite=not args.no_warnings)
 
 # Run pipeline as a subprocess.
-def run_vio(build_dir, dataset_dir, dataset_name, params_dir, pipeline_output_dir, pipeline_type,
-           extra_flagfile_path = ""):
+def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
+            pipeline_output_dir, pipeline_type, initial_k, final_k,
+            extra_flagfile_path=""):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
     return subprocess.call("{}/stereoVIOEuroc \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
-                           --dataset_path={}/{} --output_path={}\
+                           --dataset_path={}/{} --output_path={} \
                            --vio_params_path={}/{}/{} \
                            --tracker_params_path={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                           --initial_k={} --final_k={} \
                            --log_output=True".format(
                                build_dir, dataset_dir, dataset_name, pipeline_output_dir,
                                params_dir, pipeline_type, "regularVioParameters.yaml",
@@ -470,11 +472,13 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir, pipeline_output_di
                                params_dir, pipeline_type, "flags/VioBackEnd.flags",
                                params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
                                params_dir, pipeline_type, "flags/Visualizer3D.flags",
-                               params_dir, pipeline_type, extra_flagfile_path), \
+                               params_dir, pipeline_type, extra_flagfile_path,
+                               initial_k, final_k), \
                            shell=True)
 
 def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
-                pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline, analyse_vio, discard_n_start_poses, discard_n_end_poses):
+                pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
+                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k):
     """ build_dir: directory where the pipeline executable resides,
     dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work),
     dataset_name: specific dataset to run,
@@ -499,7 +503,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
     evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
         if run_vio(build_dir, dataset_dir, dataset_name, params_dir,
-                   pipeline_output_dir, pipeline_type) == 0:
+                   pipeline_output_dir, pipeline_type, initial_k, final_k) == 0:
             print("Successful pipeline run.")
             print("\033[1mCopying output file: " + output_file + "\n to results file:\n" + \
                   traj_es + "\033[0m")
@@ -529,7 +533,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
 def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_dir,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
-                discard_n_start_poses = 0, discard_n_end_poses = 0):
+                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0):
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
@@ -544,11 +548,12 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
     if len(pipelines_to_run_list) == 0:
         print("Not running pipeline...")
     for pipeline_type in pipelines_to_run_list:
-        if process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
-                       pipeline_type, dataset_segments, save_results, plot, save_plots,
-                       output_file, run_pipeline, analyse_vio,
-                       discard_n_start_poses, discard_n_end_poses) == False:
-            has_a_pipeline_failed = True
+        has_a_pipeline_failed = not process_vio(
+            build_dir, dataset_dir, dataset_name, results_dir, params_dir,
+            pipeline_output_dir, pipeline_type, dataset_segments, save_results,
+            plot, save_plots, output_file, run_pipeline, analyse_vio,
+            discard_n_start_poses, discard_n_end_poses,
+            initial_k, final_k)
 
     # Save boxplots
     if save_boxplots:
@@ -560,7 +565,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
                 results = results_dir + "/" + dataset_name + "/" + pipeline_type + "/results.yaml"
                 if not os.path.exists(results):
                     raise Exception("\033[91mCannot plot boxplots: missing results for %s pipeline \
-                                    and dataset: %s"%(pipeline_type, dataset_name) + "\033[99m")
+                                    and dataset: %s"                                                                                                        %(pipeline_type, dataset_name) + "\033[99m")
 
                 stats[pipeline_type]  = yaml.load(open(results,'r'))
                 print("Check stats %s "%(pipeline_type) + results)
@@ -839,6 +844,8 @@ def run(args):
                            args.plot, args.save_results,
                            args.save_plots, args.save_boxplots,
                            pipelines_to_run,
+                           dataset['initial_frame'],
+                           dataset['final_frame'],
                            dataset['discard_n_start_poses'],
                            dataset['discard_n_end_poses']):
             successful_run = False
