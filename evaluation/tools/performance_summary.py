@@ -10,7 +10,7 @@ import csv
 import evaluation.tools as evt
 
 def parser():
-    basic_desc = "Plot timing results for VIO pipeline."
+    basic_desc = "Plot summary of performance results for VIO pipeline."
     main_parser = argparse.ArgumentParser(description="{}".format(basic_desc))
     input_options = main_parser.add_argument_group("input options")
     input_options.add_argument(
@@ -34,10 +34,10 @@ def write_vio_results_summary(results, vio_results_summary_path):
     # Write to CSV file.
     with open(vio_results_summary_path, 'w') as vio_results_summary_file:
         print('Writing VIO summary results to: %s' % vio_results_summary_path)
-        performance_metrics = ['ATE_mean', 'ATE_rmse', 'Timing']
-        writer = csv.DictWriter(vio_results_summary_file, fieldnames=performance_metrics)    
+        performance_metrics = ['ATE_mean', 'ATE_rmse']
+        writer = csv.DictWriter(vio_results_summary_file, fieldnames=performance_metrics)
         writer.writeheader()
-        writer.writerow({'ATE_mean': ATE_mean, 'ATE_rmse': ATE_rmse, 'Timing': 0})
+        writer.writerow({'ATE_mean': ATE_mean, 'ATE_rmse': ATE_rmse})
 
 def main(vio_results_path, vio_results_summary_path):
     # Read vio results yaml file.
