@@ -15,3 +15,5 @@ datasets_to_run:
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
+   initial_frame: 100
+   final_frame: 1000
