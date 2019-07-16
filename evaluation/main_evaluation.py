@@ -38,33 +38,6 @@ Y_MAX_RPE_ROT={
 "v2_03_difficult":2.6
 }
 
-def move_output_from_to(from_dir, to_dir):
-    try:
-        if (os.path.exists(to_dir)):
-            rmtree(to_dir)
-    except:
-        print("Directory:" + to_dir + " does not exist, we can safely move output.")
-    try:
-        if (os.path.isdir(from_dir)):
-            move(from_dir, to_dir)
-        else:
-            print("There is no output directory...")
-    except:
-        print("Could not move output from: " + from_dir + " to: " + to_dir)
-        raise
-    try:
-        os.makedirs(from_dir)
-    except:
-        print("Could not mkdir: " + from_dir)
-        raise
-
-def ensure_dir(dir_path):
-    """ Check if the path directory exists: if it does, returns true,
-    if not creates the directory dir_path and returns if it was successful"""
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    return True
-
 def aggregate_ape_results(list_of_datasets, list_of_pipelines):
     RESULTS_DIR = '/home/tonirv/code/evo-1/results'
     # Load results.
@@ -430,7 +403,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 
         if save_plots:
             print("Saving plots to: " + save_folder)
-            plot_collection.export(save_folder + "/plots", False)
+            plot_collection.export(save_folder + "/plots.pdf", False)
 
     ## Plot results
     #if args.plot or args.save_plot or args.serialize_plot:
@@ -454,7 +427,7 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
             extra_flagfile_path=""):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
-    return subprocess.call("{}/stereoVIOEuroc \
+    return subprocess.call("{}/spark_vio \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
                            --dataset_path={}/{} --output_path={} \
                            --vio_params_path={}/{}/{} \
@@ -512,7 +485,7 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
                 output_destination_dir = dataset_pipeline_result_dir + "/output/"
                 print("\033[1mCopying output dir: " + pipeline_output_dir
                       + "\n to destination:\n" + output_destination_dir + "\033[0m")
-                move_output_from_to(pipeline_output_dir, output_destination_dir)
+                evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
             except:
                 print("\033[1mFailed copying output dir: " + pipeline_output_dir
                       + "\n to destination:\n" + output_destination_dir + "\033[0m")
@@ -595,14 +568,14 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                                                dataset_names, pipeline_types, extra_params_to_modify):
     """ Makes/Checks that the file structure is the correct one, and updates the parameters with the given values"""
     # Make or check regression_test directory
-    assert(ensure_dir(regression_tests_path))
+    assert(evt.ensure_dir(regression_tests_path))
     # Make or check param_name directory
     # Use as param_name the concatenated elements of param_names
     param_names_dir = ""
     for i in param_names:
         param_names_dir += str(i) + "-"
     param_names_dir = param_names_dir[:-1]
-    assert(ensure_dir("{}/{}".format(regression_tests_path, param_names_dir)))
+    assert(evt.ensure_dir("{}/{}".format(regression_tests_path, param_names_dir)))
     for param_value in param_values:
         # Create/Check param_value folder
         param_value_dir = ""
@@ -612,7 +585,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
             param_value_dir = param_value_dir[:-1]
         else:
             param_value_dir = param_value
-        ensure_dir("{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir))
+        evt.ensure_dir("{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir))
         # Create params folder by copying from current official one.
         param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir)
         if (os.path.exists(param_dir)):
@@ -622,7 +595,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
         # Modify param with param value
         for pipeline_type in pipeline_types:
             param_pipeline_dir = "{}/{}".format(param_dir, pipeline_type)
-            ensure_dir(param_pipeline_dir)
+            evt.ensure_dir(param_pipeline_dir)
             written_extra_param_names = []
             is_param_name_written = [False] * len(param_names)
             # VIO params
@@ -692,10 +665,10 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                                            param_pipeline_dir + "/flags/override.flags")
 
         # Create/Check tmp_output folder
-        ensure_dir("{}/{}/{}/tmp_output/output".format(regression_tests_path, param_names_dir, param_value_dir))
+        evt.ensure_dir("{}/{}/{}/tmp_output/output".format(regression_tests_path, param_names_dir, param_value_dir))
 
         for dataset_name in dataset_names:
-            ensure_dir("{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir, dataset_name))
+            evt.ensure_dir("{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir, dataset_name))
             # Create ground truth trajectory by copying from current official one.
             copy2("/home/tonirv/code/evo/results/{}/traj_gt.csv".format(dataset_name),
                  "{}/{}/{}/{}/traj_gt.csv".format(regression_tests_path, param_names_dir,
@@ -705,14 +678,14 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
                  "{}/{}/{}/{}/segments.txt".format(regression_tests_path, param_names_dir,
                                                   param_value_dir, dataset_name))
             for pipeline_type in pipeline_types:
-                ensure_dir("{}/{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir,
+                evt.ensure_dir("{}/{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir,
                                                    dataset_name, pipeline_type))
 
     # Make/Check results dir for current param_names
-    ensure_dir("{}/{}/results".format(regression_tests_path, param_names_dir))
+    evt.ensure_dir("{}/{}/results".format(regression_tests_path, param_names_dir))
     for dataset_name in dataset_names:
         # Make/Check dataset dir for current param_names_dir, as the performance given the param depends on the dataset.
-        ensure_dir("{}/{}/results/{}".format(regression_tests_path, param_names_dir, dataset_name))
+        evt.ensure_dir("{}/{}/results/{}".format(regression_tests_path, param_names_dir, dataset_name))
 
 def build_list_of_pipelines_to_run(pipelines_to_run):
     pipelines_to_run_list = []
