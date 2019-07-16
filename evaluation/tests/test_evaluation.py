@@ -26,7 +26,7 @@ class TestMainEvaluation(TestCase):
         os.remove(boxplots_file)
 
         # Check that we have generated plots.
-        plots_file = 'evaluation/tests/test_results/V1_01_easy/S/plots'
+        plots_file = 'evaluation/tests/test_results/V1_01_easy/S/plots.pdf'
         self.assertTrue(os.path.isfile(plots_file))
         # Remove file so that we do not re-test and get a false negative...
         os.remove(plots_file)
