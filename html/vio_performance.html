@@ -6,6 +6,7 @@
   </head>
   <body>
     <div class="graph" id="vio_performance"></div>
+    <div class="graph" id="test"></div>
 
     <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="js/dygraph-1.1.1.min.js"></script>
@@ -19,6 +20,21 @@
             ylabel: 'ATE [m]',
             legend: 'always',
             labelsDivStyles: { 'textAlign': 'right' },
+          }
+        );
+        new Dygraph(
+          document.getElementById("test"),
+          "Date,Series1,Series2\n" +
+          "1247382000,100,200\n" +
+          "1247986800,150,201\n",
+          {
+            axis : {
+              x : {
+                valueFormatter: Dygraph.dateString_,
+                valueParser: function(x) { return 1000*parseInt(x); },
+                ticker: Dygraph.dateTicker
+              }
+            }
           }
         );
       });
