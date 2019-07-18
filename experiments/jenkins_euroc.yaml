@@ -4,8 +4,9 @@ settings:
   run_benchmark: true
   optional:
 
+# $WORKSPACE is a variable defined by Jenkins and sent through docker
 build_dir: '$WORKSPACE/build'
-results_dir: '$WORKSPACE/spark_vio_evaluation/results'
+results_dir: '$WORKSPACE/spark_vio_evaluation/html/data'
 params_dir: '/root/spark_vio_evaluation/experiments/params'
 dataset_dir: '/Datasets/euroc'
 
