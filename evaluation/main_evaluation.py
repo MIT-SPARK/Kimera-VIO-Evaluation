@@ -367,11 +367,10 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
             print("\033[1mCopying output file: " + output_file + "\n to results file:\n" + \
                   traj_es + "\033[0m")
             copyfile(output_file, traj_es)
+            output_destination_dir = dataset_pipeline_result_dir + "/output/"
+            print("\033[1mMoving output dir: " + pipeline_output_dir
+                  + "\n to destination:\n" + output_destination_dir + "\033[0m")
             try:
-                output_destination_dir = dataset_pipeline_result_dir + "/output/"
-                evt.create_full_path_if_not_exists(output_destination_dir)
-                print("\033[1mCopying output dir: " + pipeline_output_dir
-                      + "\n to destination:\n" + output_destination_dir + "\033[0m")
                 evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
             except:
                 print("\033[1mFailed copying output dir: " + pipeline_output_dir
