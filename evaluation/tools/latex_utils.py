@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 from evaluation.tools.math_utils import locate_min
 

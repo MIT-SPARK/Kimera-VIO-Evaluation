@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 from shutil import rmtree, move
 import errno

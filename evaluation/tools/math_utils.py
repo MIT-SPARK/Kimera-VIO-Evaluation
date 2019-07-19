@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 def locate_min(a):
     smallest = min(a)
