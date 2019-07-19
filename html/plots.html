@@ -10,7 +10,7 @@
     <button class="tablink" onclick="openPage('Home', this, 'red')">Home</button>
     <button class="tablink" onclick="openPage('News', this, 'green')" id="defaultOpen">News</button>
     <button class="tablink" onclick="openPage('Contact', this, 'blue')">Contact</button>
-    <button class="tablink" onclick="openPage('About', this, 'orange')">About</button>
+    <button class="tablink" onclick="openPage('V1_01_easy', this, 'orange')">V1_01_easy</button>
 
     <div id="Home" class="tabcontent">
       <h3>Home</h3>
@@ -27,14 +27,15 @@
       <p>Get in touch, or swing by for a cup of coffee.</p>
     </div>
 
-    <div id="About" class="tabcontent">
-      <h3>About</h3>
+    <div id="V1_01_easy" class="tabcontent">
+      <h3>V1_01_easy</h3>
       <p>Who we are and what we do.</p>
+      <div class="pdf"></div>
     </div>
 
     <script type="text/javascript" src="js/custom.js"></script>
     <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="js/pdfobject.js"></script>
-    <script>PDFObject.embed("data/V1_01_easy/S/plots.pdf", document.body);</script>
+    <script>PDFObject.embed("data/V1_01_easy/S/plots.pdf", "#V1_01_easy .pdf");</script>
   </body>
 </html>
