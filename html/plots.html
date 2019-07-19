@@ -7,10 +7,11 @@
     <link rel="stylesheet" type="text/css" href="css/style.css">
   </head>
   <body>
+    <button class="tablink" onclick="openPage('V1_01_easy', this, 'orange')">V1_01_easy</button>
+    <button class="tablink" onclick="openPage('MH_01_easy', this, 'orange')">MH_01_easy</button>
     <button class="tablink" onclick="openPage('Home', this, 'red')">Home</button>
     <button class="tablink" onclick="openPage('News', this, 'green')" id="defaultOpen">News</button>
     <button class="tablink" onclick="openPage('Contact', this, 'blue')">Contact</button>
-    <button class="tablink" onclick="openPage('V1_01_easy', this, 'orange')">V1_01_easy</button>
 
     <div id="Home" class="tabcontent">
       <h3>Home</h3>
@@ -32,10 +33,16 @@
       <p>Who we are and what we do.</p>
       <div class="pdf"></div>
     </div>
+    <div id="MH_01_easy" class="tabcontent">
+      <h3>MH_01_easy</h3>
+      <p>Who we are and what we do.</p>
+      <div class="pdf"></div>
+    </div>
 
     <script type="text/javascript" src="js/custom.js"></script>
     <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="js/pdfobject.js"></script>
     <script>PDFObject.embed("data/V1_01_easy/S/plots.pdf", "#V1_01_easy .pdf");</script>
+    <script>PDFObject.embed("data/MH_01_easy/S/plots.pdf", "#MH_01_easy .pdf");</script>
   </body>
 </html>
