@@ -23,21 +23,6 @@
             labelsDivStyles: { 'textAlign': 'right' },
           }
         );
-        new Dygraph(
-          document.getElementById("test"),
-          "Date,Series1,Series2\n" +
-          "1247382000,100,200\n" +
-          "1247986800,150,201\n",
-          {
-            axis : {
-              x : {
-                valueFormatter: Dygraph.dateString_,
-                valueParser: function(x) { return 1000*parseInt(x); },
-                ticker: Dygraph.dateTicker
-              }
-            }
-          }
-        );
       });
     </script>
   </body>
