@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-import shutil as sh
+from shutil import rmtree, move
 import errno
 
 def create_full_path_if_not_exists(filename):
@@ -16,12 +16,12 @@ def create_full_path_if_not_exists(filename):
 def move_output_from_to(from_dir, to_dir):
     try:
         if (os.path.exists(to_dir)):
-            sh.rmtree(to_dir)
+            rmtree(to_dir)
     except:
         print("Directory:" + to_dir + " does not exist, we can safely move output.")
     try:
         if (os.path.isdir(from_dir)):
-            sh.move(from_dir, to_dir)
+            move(from_dir, to_dir)
         else:
             print("There is no output directory...")
     except:

@@ -101,11 +101,6 @@ def get_distance_from_start(gt_translation):
     distances = np.concatenate(([0], distances))
     return distances
 
-def locate_min(a):
-    smallest = min(a)
-    return smallest, [index for index, element in enumerate(a)
-                      if smallest == element]
-
 def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_plot, save_plots,
                  save_folder, confirm_overwrite = False, dataset_name = "", discard_n_start_poses=0,
                 discard_n_end_poses=0):
