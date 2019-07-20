@@ -26,8 +26,11 @@ body, html {
 
 /* Style the tab content (and add height:100% for full page content) */
 .tab-pane {
-  color: white;
-  display: none;
+  padding: 0px 0px; /* No padding, so pdf takes all place */
+  height: 100%;
+  min-height: 100%;
+}
+.tab-pane {
   padding: 0px 0px; /* No padding, so pdf takes all place */
   height: 100%;
 }
