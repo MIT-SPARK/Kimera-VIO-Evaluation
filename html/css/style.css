@@ -28,7 +28,7 @@ body, html {
 .tabcontent {
   color: white;
   display: none;
-  padding: 100px 20px;
+  padding: 0px 0px; /* No padding, so pdf takes all place */
   height: 100%;
 }
 
