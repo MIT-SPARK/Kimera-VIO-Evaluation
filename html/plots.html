@@ -1,48 +1,29 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>VIO PERFORMANCE PLOTS</title>
+    <title>EUROC PERFORMANCE PLOTS</title>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="css/style.css">
   </head>
   <body>
     <button class="tablink" onclick="openPage('V1_01_easy', this, 'orange')">V1_01_easy</button>
     <button class="tablink" onclick="openPage('MH_01_easy', this, 'orange')">MH_01_easy</button>
-    <button class="tablink" onclick="openPage('Home', this, 'red')">Home</button>
-    <button class="tablink" onclick="openPage('News', this, 'green')" id="defaultOpen">News</button>
-    <button class="tablink" onclick="openPage('Contact', this, 'blue')">Contact</button>
 
-    <div id="Home" class="tabcontent">
-      <h3>Home</h3>
-      <p>Home is where the heart is..</p>
-    </div>
-
-    <div id="News" class="tabcontent">
-      <h3>News</h3>
-      <p>Some news this fine day!</p>
-    </div>
-
-    <div id="Contact" class="tabcontent">
-      <h3>Contact</h3>
-      <p>Get in touch, or swing by for a cup of coffee.</p>
-    </div>
-
-    <div id="V1_01_easy" class="tabcontent">
-      <h3>V1_01_easy</h3>
-      <p>Who we are and what we do.</p>
-      <div class="pdf"></div>
-    </div>
-    <div id="MH_01_easy" class="tabcontent">
-      <h3>MH_01_easy</h3>
-      <p>Who we are and what we do.</p>
-      <div class="pdf"></div>
-    </div>
+    <div id="V1_01_easy" class="tabcontent"></div>
+    <div id="MH_01_easy" class="tabcontent"></div>
 
     <script type="text/javascript" src="js/custom.js"></script>
     <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="js/pdfobject.js"></script>
     <script>PDFObject.embed("data/V1_01_easy/S/plots.pdf", "#V1_01_easy");</script>
-    <script>PDFObject.embed("data/MH_01_easy/S/plots.pdf", "#MH_01_easy .pdf");</script>
+    <script>PDFObject.embed("data/MH_01_easy/S/plots.pdf", "#MH_01_easy");</script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
   </body>
 </html>
