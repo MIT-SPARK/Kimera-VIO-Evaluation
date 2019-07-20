@@ -9,17 +9,30 @@
     <link rel="stylesheet" type="text/css" href="css/style.css">
   </head>
   <body>
-    <button class="tablink" onclick="openPage('V1_01_easy', this, 'orange')">V1_01_easy</button>
-    <button class="tablink" onclick="openPage('MH_01_easy', this, 'orange')">MH_01_easy</button>
 
-    <div id="V1_01_easy" class="tabcontent"></div>
-    <div id="MH_01_easy" class="tabcontent"></div>
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="home-tab" data-toggle="tab" href="#V1_01_easy" role="tab" aria-controls="V1_01_easy" aria-selected="true">V1_01_easy</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="MH_01_easy-tab" data-toggle="tab" href="#MH_01_easy" role="tab" aria-controls="MH_01_easy" aria-selected="false">MH_01_easy</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Contact</a>
+  </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+  <div class="tab-pane fade show active" id="V1_01_easy" role="tabpanel" aria-labelledby="V1_01_easy-tab">...</div>
+  <div class="tab-pane fade" id="MH_01_easy" role="tabpanel" aria-labelledby="MH_01_easy-tab">...</div>
+  <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">...</div>
+</div>
 
     <script type="text/javascript" src="js/custom.js"></script>
     <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="js/pdfobject.js"></script>
     <script>PDFObject.embed("data/V1_01_easy/S/plots.pdf", "#V1_01_easy");</script>
     <script>PDFObject.embed("data/MH_01_easy/S/plots.pdf", "#MH_01_easy");</script>
+
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
