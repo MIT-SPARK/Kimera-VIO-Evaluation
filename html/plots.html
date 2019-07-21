@@ -43,7 +43,7 @@
       for (x of datasets) {
         document.getElementById('myTab').insertAdjacentHTML('beforeend',
           '<li class="nav-item">\n' +
-              '<a class="nav-link active" id="' + x + '-tab" data-toggle="tab" href="#' + x + '" role="tab" aria-controls="' + x + '" aria-selected="false">'+ x + '</a>\n' +
+              '<a class="nav-link" id="' + x + '-tab" data-toggle="tab" href="#' + x + '" role="tab" aria-controls="' + x + '" aria-selected="false">'+ x + '</a>\n' +
           '</li>');
         document.getElementById('myTabContent').insertAdjacentHTML('beforeend',
           '<div class="tab-pane fade" id="' + x + '" role="tabpanel" aria-labelledby="' + x + '-tab"></div>');
