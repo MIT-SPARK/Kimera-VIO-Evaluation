@@ -38,15 +38,14 @@ Y_MAX_RPE_ROT={
     "V2_03_difficult":2.6
 }
 
-def aggregate_ape_results(list_of_datasets, list_of_pipelines):
-    RESULTS_DIR = '/home/tonirv/code/evo-1/results'
+def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
     # Load results.
     print("Loading dataset results")
 
     # Aggregate all stats for each pipeline and dataset
     stats = dict()
     for dataset_name in list_of_datasets:
-        dataset_dir = os.path.join(RESULTS_DIR, dataset_name)
+        dataset_dir = os.path.join(results_dir, dataset_name)
         stats[dataset_name] = dict()
         for pipeline_name in list_of_pipelines:
             pipeline_dir = os.path.join(dataset_dir, pipeline_name)
@@ -54,15 +53,15 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines):
             results_file = os.path.join(pipeline_dir, 'results.yaml')
             stats[dataset_name][pipeline_name] = yaml.load(open(results_file, 'r'))
             print("Check stats from " + results_file)
-            checkStats(stats[dataset_name][pipeline_name])
+            check_stats(stats[dataset_name][pipeline_name])
 
     print("Drawing APE boxplots.")
-    evt.draw_ape_boxplots(stats, RESULTS_DIR)
+    evt.draw_ape_boxplots(stats, results_dir)
     # Write APE table
-    evt.write_latex_table(stats, RESULTS_DIR)
+    evt.write_latex_table(stats, results_dir)
     # Write APE table without S pipeline
 
-def checkStats(stats):
+def check_stats(stats):
     if not "relative_errors" in stats:
         print("Stats: ")
         print(stats)
@@ -93,13 +92,6 @@ def checkStats(stats):
         raise Exception("\033[91mWrong stats format: no absolute_errors... \n"
                         "Are you sure you runned the pipeline and "
                         "saved the results? (--save_results).\033[99m")
-
-def get_distance_from_start(gt_translation):
-    distances = np.diff(gt_translation[:,0:3],axis=0)
-    distances = np.sqrt(np.sum(np.multiply(distances, distances),1))
-    distances = np.cumsum(distances)
-    distances = np.concatenate(([0], distances))
-    return distances
 
 def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_plot, save_plots,
                  save_folder, confirm_overwrite = False, dataset_name = "", discard_n_start_poses=0,
@@ -306,7 +298,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
             extra_flagfile_path=""):
-    """ Runs pipeline depending on the pipeline_type"""
+    """ Runs pipeline depending on the pipeline_type using a subprocess."""
     import subprocess
     return subprocess.call("{}/spark_vio \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
@@ -423,7 +415,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
 
                 stats[pipeline_type]  = yaml.load(open(results,'r'))
                 print("Check stats %s "%(pipeline_type) + results)
-                checkStats(stats[pipeline_type])
+                check_stats(stats[pipeline_type])
 
             print("Drawing boxplots.")
             evt.draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
@@ -437,6 +429,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
     print("Finished evaluation for dataset: " + dataset_name)
     return not has_a_pipeline_failed
 
+# Only used for regression tests.
 def write_flags_parameters(param_name, param_new_value, params_path):
     directory = os.path.dirname(params_path)
     if not os.path.exists(directory):
@@ -445,6 +438,7 @@ def write_flags_parameters(param_name, param_new_value, params_path):
     params_flagfile.write("--" + param_name + "=" + param_new_value)
     params_flagfile.close()
 
+# Only used for regression tests.
 def check_and_create_regression_test_structure(regression_tests_path, param_names, param_values,
                                                dataset_names, pipeline_types, extra_params_to_modify):
     """ Makes/Checks that the file structure is the correct one, and updates the parameters with the given values"""
@@ -568,6 +562,7 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
         # Make/Check dataset dir for current param_names_dir, as the performance given the param depends on the dataset.
         evt.ensure_dir("{}/{}/results/{}".format(regression_tests_path, param_names_dir, dataset_name))
 
+# Only used for regression tests.
 def build_list_of_pipelines_to_run(pipelines_to_run):
     pipelines_to_run_list = []
     if pipelines_to_run == 0:
@@ -586,6 +581,7 @@ def build_list_of_pipelines_to_run(pipelines_to_run):
         pipelines_to_run_list = ['SP', 'SPR']
     return pipelines_to_run_list
 
+# Only used for regression tests.
 def regression_test_simple(test_name, param_names, param_values, only_compile_regression_test_results,
                            run_pipelines, pipelines_to_run, extra_params_to_modify):
     """ Runs the vio pipeline with different values for the given param
@@ -675,9 +671,6 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
     print("Finished regression test for param_name: {}".format(param_names_dir))
 
 def run(args):
-    from evo.tools import log
-    from evo.tools.settings import SETTINGS
-
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path)
 
@@ -689,7 +682,7 @@ def run(args):
 
     # Run experiments.
     print("Run experiments")
-    successful_run = True;
+    successful_run = True
     for dataset in datasets_to_run:
         print("Run dataset:", dataset['name'])
         pipelines_to_run = dataset['pipelines']
