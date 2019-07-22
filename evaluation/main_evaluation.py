@@ -14,28 +14,28 @@ import evaluation.tools as evt
 
 Y_MAX_APE_TRANS={
     "MH_01_easy": 0.3, "MH_02_easy": 0.25, "MH_03_medium": 0.35,
-    "mh_04_difficult": 0.5, "MH_05_difficult": 0.36, "V1_01_easy": 0.170,
+    "MH_04_difficult": 0.5, "MH_05_difficult": 0.36, "V1_01_easy": 0.170,
     "V1_02_medium": 0.16, "V1_03_difficult": 0.4,"V2_01_easy": 0.175,
-    "V2_02_medium": 0.24,"v2_03_difficult": 0.7
+    "V2_02_medium": 0.24,"V2_03_difficult": 0.7
     }
 Y_MAX_RPE_TRANS={
     "MH_01_easy": 0.028, "MH_02_easy": 0.025, "MH_03_medium": 0.091,
-    "mh_04_difficult": 0.21, "MH_05_difficult": 0.07, "V1_01_easy": 0.03,
+    "MH_04_difficult": 0.21, "MH_05_difficult": 0.07, "V1_01_easy": 0.03,
     "V1_02_medium": 0.04, "V1_03_difficult": 0.15,"V2_01_easy": 0.04,
-    "V2_02_medium": 0.06,"v2_03_difficult": 0.17
+    "V2_02_medium": 0.06,"V2_03_difficult": 0.17
     }
 Y_MAX_RPE_ROT={
     "MH_01_easy":0.4,
     "MH_02_easy":0.6,
     "MH_03_medium":0.35,
-    "mh_04_difficult":1.0,
+    "MH_04_difficult":1.0,
     "MH_05_difficult":0.3,
     "V1_01_easy":0.6,
     "V1_02_medium":1.5,
     "V1_03_difficult":1.25,
     "V2_01_easy":0.6,
     "V2_02_medium":1.0,
-    "v2_03_difficult":2.6
+    "V2_03_difficult":2.6
 }
 
 def aggregate_ape_results(list_of_datasets, list_of_pipelines):
