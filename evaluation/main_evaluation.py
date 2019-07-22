@@ -702,6 +702,7 @@ def run(args):
                            dataset['final_frame'],
                            dataset['discard_n_start_poses'],
                            dataset['discard_n_end_poses']):
+            print("\033[91m Dataset:", dataset['name'], " failed!! \033[00m")
             successful_run = False
     return successful_run
 
