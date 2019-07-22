@@ -1,0 +1,88 @@
+experiment_label: 'euroc'
+
+settings:
+  run_benchmark: true
+  optional: ''
+build_dir: '$HOME/Code/spark_vio/build'
+results_dir: '$HOME/Code/spark_vio_evaluation/results'
+params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
+dataset_dir: '$HOME/datasets/euroc/EuRoC'
+
+datasets_to_run:
+ - name: V1_01_easy
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 50
+   discard_n_end_poses: 50
+   initial_frame: 100
+   final_frame: 2900
+ - name: V1_02_medium
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   initial_frame: 200
+   final_frame: 600
+ - name: V1_03_difficult
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   initial_frame: 200
+   final_frame: 600
+ - name: V2_01_easy
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   initial_frame: 200
+   final_frame: 600
+ - name: V2_02_medium
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   initial_frame: 200
+   final_frame: 600
+ - name: V2_03_difficult
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
+   initial_frame: 200
+   final_frame: 600
+ - name: MH_01_easy
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 20
+   discard_n_end_poses: 20
+   initial_frame: 200
+   final_frame: 600
+ - name: MH_02_easy
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 20
+   discard_n_end_poses: 20
+   initial_frame: 200
+   final_frame: 600
+ - name: MH_03_medium
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 20
+   discard_n_end_poses: 20
+   initial_frame: 200
+   final_frame: 600
+ - name: MH_04_difficult
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 20
+   discard_n_end_poses: 20
+   initial_frame: 200
+   final_frame: 600
+ - name: MH_05_difficult
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 20
+   discard_n_end_poses: 20
+   initial_frame: 200
+   final_frame: 600
