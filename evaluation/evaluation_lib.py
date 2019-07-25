@@ -295,12 +295,12 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
             plot_collection.export(save_folder + "/plots.pdf", False)
 
 # Run pipeline as a subprocess.
-def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
+def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
             extra_flagfile_path=""):
     """ Runs pipeline depending on the pipeline_type using a subprocess."""
     import subprocess
-    return subprocess.call("{}/spark_vio \
+    return subprocess.call("{} \
                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
                            --dataset_path={}/{} --output_path={} \
                            --vio_params_path={}/{}/{} \
@@ -310,7 +310,7 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --initial_k={} --final_k={} \
                            --log_output=True".format(
-                               build_dir, dataset_dir, dataset_name, pipeline_output_dir,
+                               executable_path, dataset_dir, dataset_name, pipeline_output_dir,
                                params_dir, pipeline_type, "regularVioParameters.yaml",
                                params_dir, pipeline_type, "trackerParameters.yaml",
                                params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
@@ -322,11 +322,11 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
                                initial_k, final_k), \
                            shell=True)
 
-def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
+def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
                 analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k):
     """ 
-    * build_dir: directory where the pipeline executable resides.
+    * executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
     * dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
     * dataset_name: specific dataset to run.
     * results_dir: directory where the results of the run will reside:
@@ -350,11 +350,10 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
     traj_es = dataset_results_dir + "/" + pipeline_type + "/" + "traj_es.csv"
     evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
-        if run_vio(build_dir, dataset_dir, dataset_name, params_dir,
+        if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type, initial_k, final_k) == 0:
             print("Successful pipeline run.")
-            print("\033[1mCopying output file: " + output_file + "\n to results file:\n" + \
-                  traj_es + "\033[0m")
+            print("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s"%(output_file, traj_es))
             copyfile(output_file, traj_es)
             output_destination_dir = dataset_pipeline_result_dir + "/output/"
             print("\033[1mMoving output dir: " + pipeline_output_dir
@@ -378,7 +377,9 @@ def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, p
                      discard_n_end_poses)
     return True
 
-def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_dir,
+
+# TODO(Toni): replace all string concats with os.path.join()
+def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, executable_path,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
                 initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0):
@@ -397,7 +398,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, build_
         print("Not running pipeline...")
     for pipeline_type in pipelines_to_run_list:
         has_a_pipeline_failed = not process_vio(
-            build_dir, dataset_dir, dataset_name, results_dir, params_dir,
+            executable_path, dataset_dir, dataset_name, results_dir, params_dir,
             pipeline_output_dir, pipeline_type, dataset_segments, save_results,
             plot, save_plots, output_file, run_pipeline, analyse_vio,
             discard_n_start_poses, discard_n_end_poses,

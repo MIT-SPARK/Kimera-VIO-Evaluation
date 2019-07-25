@@ -6,45 +6,44 @@ import yaml
 from shutil import rmtree, copytree, copy2
 
 import evaluation.tools as evt
+from evaluation_lib import run_dataset
 
-def write_flags_params(param_filepath, param_name_to_value):
-    """ Write params to gflags file 
+def write_flags_params(param_filepath, param_name, param_value):
+    """ Write params to gflags file.
 
     Args:
-        param_filepath: path to the gflag file
-        param_name_to_value: dict from param name to value for those parameters that we want to write
+        param_filepath: path to the gflag file.
+        param_name: name of the parameter to write.
+        param_value: value of the parameter to write.
 
     Returns:
     """
     directory = os.path.dirname(param_filepath)
     if not os.path.exists(directory):
-        raise Exception("\033[91mCould not find directory: " + directory + "\033[99m")
+        raise Exception("\033[91mCould not find directory: \033[99m \n %s" % directory )
     params_flagfile = open(param_filepath, "a+")
-    for param_name, param_value in param_name_to_value:
-        params_flagfile.write("--" + param_name + "=" + param_value)
+    params_flagfile.write("--" + param_name + "=" + param_value)
     params_flagfile.close()
 
-def write_yaml_params(param_filepath, param_name_to_value):
+def write_yaml_params(param_filepath, param_name, param_value, default_flow_style):
     """ Writes a line in a YAML file with a param_name and a param_value by searching
     for the param_name and overwritting its param_value
 
     Args:
         param_filepath: path to the file containing the params.
-        param_name_to_value: dict mapping a parameter name to its value.
+        param_name: name of the parameter to write.
+        param_value: value of the parameter to write.
 
     Returns:
-        is_param_name_written: dict specifying if the parameter was written or not.
-
+        is_param_name_written: bool specifying if the parameter was written or not.
     """
     directory = os.path.dirname(param_filepath)
     if not os.path.exists(directory):
         raise Exception(
-            "\033[91mCould not find directory: " + directory + "\033[99m")
-    # Check param_file exists:
-    assert(os.path.isfile(param_filepath))
-    # Check param_name_to_value is a dict()
-    assert(isinstance(param_name_to_value, dict))
-    is_param_name_written = {}
+            "\033[91mCould not find directory: \033[99m \n %s" % directory ) # Check param_file exists: assert(os.path.isfile(param_filepath))
+    is_param_name_written = False
+    # New params store old params and changes just the param_name with the new param_value
+    # Then we dump/write these new params to file again.
     new_params = []
     with open(param_filepath, 'r') as infile:
         # Skip first yaml line: it contains %YAML:... which can't be read...
@@ -53,98 +52,88 @@ def write_yaml_params(param_filepath, param_name_to_value):
             new_params = yaml.load(infile)
         except:
              raise Exception("Error loading YAML file: {}" % param_filepath)
-        for param_name, param_value in enumerate(param_name_to_value):
-            if param_name in new_params:
-                # Modify param_name with param_value
-                new_params[param_name] = param_value
-                is_param_name_written[param_name] = True
-            else:
-                # Param_name was not written to file because it is not present in file.
-                is_param_name_written[param_name] = False
+        if param_name in new_params:
+            # Modify param_name with param_value
+            new_params[param_name] = param_value
+            is_param_name_written = True
+        else:
+            # Param_name was not written to file because it is not present in file.
+            is_param_name_written = False
     # Store param_names with param_value
     with open(param_filepath, 'w') as outfile:
         # First line must contain %YAML:1.0
         outfile.write("%YAML:1.0\n")
     with open(param_filepath, 'a') as outfile:
         # Write the actual new parameters.
-        outfile.write(yaml.dump(new_params, default_flow_style=False))
+        if not default_flow_style:
+            outfile.write(yaml.dump(new_params, default_flow_style=False))
+        else:
+            outfile.write(yaml.dump(new_params)) # Do not use default_flow_style=True, adds braces...
     return is_param_name_written
 
-def check_and_create_regression_test_structure(regression_tests_path, param_name_to_values,
-                                               dataset_names, pipeline_types, extra_params_to_modify):
+def get_items(dict_object):
+    for key in dict_object:
+        yield key, dict_object[key]
+
+def check_and_create_regression_test_structure(regression_tests_path, baseline_params_dir, param_name_to_values,
+                                               ground_truth_path):
     """ Makes/Checks that the file structure is the correct one, and updates the parameters with the given values
 
     Args:
-        regression_tests_path:
+        regression_tests_path: path to the root folder where all regression results will be stored.
+        baseline_params_dir: path to the directory containing the baseline parameters used for the VIO, which we modify with
+            the regressed parameters.
         param_name_to_value: dict mapping a parameter name to its value.
-        dataset_names:
-        pipeline_types:
-        extra_params_to_modify:
+        ground_truth_path: path to the ground-truth of euroc's dataset containing a traj_gt.csv file per dataset.
+        (NOT NEEDED) dataset_names: name of the datasets for which we will be running regression tests.
+        (NOT NEEDED) pipeline_types: list of the pipeline types to run [S, SP and/or SPR].
+        (NOT NEEDED FOR NOW) extra_params_to_modify: extra parameters to modify besides the baseline regression (disabled for now.).
 
     Returns:
 
     """
-    # Make or check regression_test directory
+    # Make or check regression_test root directory
     assert(evt.ensure_dir(regression_tests_path))
+    print(param_name_to_values)
+    for param_name, param_values in get_items(param_name_to_values):
+        # Create or check param_name directory
+        param_name_dir = os.path.join(regression_tests_path, param_name)
+        assert(evt.ensure_dir(param_name_dir))
 
-    # Make or check param_name directory
-    # Use as param_name the concatenated elements of param_names
-    param_names_dir = ""
-    for i in param_name_to_values:
-        param_names_dir += str(i) + "-"
-    param_names_dir = param_names_dir[:-1]
-    assert(evt.ensure_dir("{}/{}".format(regression_tests_path, param_names_dir)))
+        # Create/Check tmp_output folder
+        #tmp_output_dir = os.path.join(param_name_dir, "tmp_output/output")
+        #evt.ensure_dir(tmp_output_dir)
 
-    for param_name, param_value in param_name_to_values:
-        # Create/Check param_value folder
+        for param_value in param_values:
+            # Create or check param_value folder
+            param_name_value_dir = os.path.join(param_name_dir, str(param_value))
+            assert(evt.ensure_dir(param_name_value_dir))
 
-        ##########################
-        param_value_dir = ""
-        if isinstance(param_value, list):
-            for i in param_value:
-                param_value_dir += str(i) + "-"
-            param_value_dir = param_value_dir[:-1]
-        else:
-            param_value_dir = param_value
-        ###########################
+            # Create params folder by copying from current baseline one.
+            modified_baseline_params_dir = os.path.join(param_name_value_dir, "params")
+            if (os.path.exists(modified_baseline_params_dir)):
+                rmtree(modified_baseline_params_dir)
+            # TODO(Toni): check that baseline_params_dir is good
+            copytree(baseline_params_dir, modified_baseline_params_dir)
 
-        evt.ensure_dir("{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir))
+            ######## MODIFY REGRESSED PARAMETER ##############################
+            # Modify param with param value by searching in all yaml files
+            is_param_name_written_in_yaml_file = False
+            for root, _, files in os.walk(modified_baseline_params_dir):
+                for file in files:
+                    if file.endswith(".yaml"):
+                        if "tracker" in file:
+                            is_param_name_written_in_yaml_file = write_yaml_params(
+                                os.path.join(root, file), param_name, param_value, False)
+                        else:
+                            is_param_name_written_in_yaml_file = write_yaml_params(
+                                os.path.join(root, file), param_name, param_value, True)
 
-        # Create params folder by copying from current official one.
-        param_dir = "{}/{}/{}/params".format(regression_tests_path, param_names_dir, param_value_dir)
-        if (os.path.exists(param_dir)):
-            rmtree(param_dir)
-        copytree("/home/tonirv/code/evo/results/params", param_dir)
-
-        # Modify param with param value
-        for pipeline_type in pipeline_types:
-            param_pipeline_dir = "{}/{}".format(param_dir, pipeline_type)
-            evt.ensure_dir(param_pipeline_dir)
-            written_extra_param_names = []
-
-            # TODO(Toni) Remove hardcoded...
-            ###########################################################
-            # VIO params
-            vio_file = param_pipeline_dir + "/vioParameters.yaml"
-            is_param_name_written_in_vio_file = write_yaml_params(vio_file, param_name_to_values)
-            ###################################################################
-            # Tracker params
-            tracker_file = param_pipeline_dir + "/trackerParameters.yaml"
-            is_param_name_written_in_tracker_file = write_yaml_params(tracker_file, param_name_to_values)
-            ###################################################################
-
-            # Join both dictionaries, the non-written params to yaml files must be gflags.
-            is_param_name_written = dict()
-            for key in param_name_to_values:
-                is_param_name_written[key] = is_param_name_written_in_vio_file[key] or is_param_name_written_in_tracker_file[key]
-
-            ###################################################################
-            # Gflags
-            for param_name, param_value in param_name_to_values:
-                if not is_param_name_written[param_name]:
-                    # Could not find param_name in vio_params nor tracker_params
-                    # it must be a gflag:
-                    write_flags_params(param_pipeline_dir + "/flags/override.flags", param_name_to_values)
+            # Modify gflags parameters
+            if not is_param_name_written_in_yaml_file:
+                # Could not find param_name in vio_params nor tracker_params it must be a gflag:
+                write_flags_params(os.path.join(modified_baseline_params_dir, "flags/override.flags"),
+                                   param_name, param_value)
             #for extra_param_name, extra_param_value in extra_params_to_modify.items():
             #    if extra_param_name not in written_extra_param_names:
             #        write_flags_params(extra_param_name,
@@ -152,72 +141,45 @@ def check_and_create_regression_test_structure(regression_tests_path, param_name
             #                               param_pipeline_dir + "/flags/override.flags")
             ###################################################################
 
-        # Create/Check tmp_output folder
-        evt.ensure_dir("{}/{}/{}/tmp_output/output".format(regression_tests_path, param_names_dir, param_value_dir))
+            # Create/Check dataset name directory
+            #for dataset in dataset_names:
+            #    # Create/Check dataset_name folder
+            #    param_name_value_dataset_dir = os.path.join(param_name_value_dir, dataset)
+            #    assert(evt.ensure_dir(param_name_value_dataset_dir))
 
-        ###################################################################
-        # TODO(TONI): remove hardcoded
-        for dataset_name in dataset_names:
-            evt.ensure_dir("{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir, dataset_name))
-            # Create ground truth trajectory by copying from current official one.
-            copy2("/home/tonirv/code/evo/results/{}/traj_gt.csv".format(dataset_name),
-                 "{}/{}/{}/{}/traj_gt.csv".format(regression_tests_path, param_names_dir,
-                                                  param_value_dir, dataset_name))
-            # Create segments by copying from current official one.
-            copy2("/home/tonirv/code/evo/results/{}/segments.txt".format(dataset_name),
-                 "{}/{}/{}/{}/segments.txt".format(regression_tests_path, param_names_dir,
-                                                  param_value_dir, dataset_name))
-            for pipeline_type in pipeline_types:
-                evt.ensure_dir("{}/{}/{}/{}/{}".format(regression_tests_path, param_names_dir, param_value_dir,
-                                                   dataset_name, pipeline_type))
+            #    # Create/Check pipeline name directory
+            #    for pipeline_type in pipeline_types:
+            #        # Create/Check pipeline folder
+            #        param_name_value_dataset_pipeline_dir = os.path.join(param_name_value_dataset_dir, pipeline_type)
+            #        assert(evt.ensure_dir(param_name_value_dataset_pipeline_dir))
 
     # Make/Check results dir for current param_names
-    evt.ensure_dir("{}/{}/results".format(regression_tests_path, param_names_dir))
-    for dataset_name in dataset_names:
-        # Make/Check dataset dir for current param_names_dir, as the performance given the param depends on the dataset.
-        evt.ensure_dir("{}/{}/results/{}".format(regression_tests_path, param_names_dir, dataset_name))
-
-# TODO(TONI): remove this, as it is parsed in YAML
-def build_list_of_pipelines_to_run(pipelines_to_run):
-    pipelines_to_run_list = []
-    if pipelines_to_run == 0:
-        pipelines_to_run_list = ['S', 'SP', 'SPR']
-    if pipelines_to_run == 1:
-        pipelines_to_run_list = ['S']
-    if pipelines_to_run == 2:
-        pipelines_to_run_list = ['SP']
-    if pipelines_to_run == 3:
-        pipelines_to_run_list = ['SPR']
-    if pipelines_to_run == 4:
-        pipelines_to_run_list = ['S', 'SP']
-    if pipelines_to_run == 5:
-        pipelines_to_run_list = ['S', 'SPR']
-    if pipelines_to_run == 6:
-        pipelines_to_run_list = ['SP', 'SPR']
-    return pipelines_to_run_list
+    param_name_results_dir = os.path.join(param_name_dir, "results")
+    assert(evt.ensure_dir(param_name_results_dir))
+    #for dataset_name in dataset_names:
+    #    # Make/Check dataset dir for current param_names_dir, as the performance given the param depends on the dataset.
+    #    assert(evt.ensure_dir(os.path.join(param_name_results_dir, dataset_name)))
 
 def regression_test_simple(test_name, param_names, param_values, only_compile_regression_test_results,
                            run_pipelines, pipelines_to_run, extra_params_to_modify):
     """ Runs the vio pipeline with different values for the given param
     and draws graphs to decide best value for the param:
-        - param_names: names of the parameters to fine-tune: e.g ["monoNoiseSigma", "stereoNoiseSigma"]
-        - param_values: values that the parameter should take: e.g [[1.0, 1.3], [1.0, 1.2]]
+
+    Args:
+        - param_names_to_values: dict with names of the parameters to fine-tune
+            together with a list of values to test: e.g {"monoNoiseSigma": [1.0, 1.3], "stereoNoiseSigma": [1.0, 1.2]}
         - only_compile_regression_test_results: just draw boxplots for regression test,
             skip all per pipeline analysis and runs, assumes we have results.yaml for
             each param value, dataset and pipeline.
         - run_pipelines: run pipelines, if set to false, it won't run pipelines and will assume we have a traj_est.csv already.
-        - pipelines_to_run: which pipeline to run, useful when a parameter only affects a single pipeline."""
-    # Ensure input is correct.
-    if isinstance(param_names, list):
-        if len(param_names) > 1:
-            assert(len(param_names) == len(param_values[0]))
-            for i in range(2, len(param_names)):
-                # Ensure all rows have the same number of parameter changes
-                assert(len(param_values[i-2]) == len(param_values[i-1]))
+        - pipelines_to_run: which pipeline to run, useful when a parameter only affects a single pipeline.
+
+    Returns:
+        """
 
     # Check and create file structure
     dataset_names = ["V1_01_easy"]
-    pipelines_to_run_list = build_list_of_pipelines_to_run(pipelines_to_run)
+    pipelines_to_run_list = []#build_list_of_pipelines_to_run(pipelines_to_run)
     REGRESSION_TESTS_DIR = "/home/tonirv/code/evo-1/regression_tests/" + test_name
     check_and_create_regression_test_structure(REGRESSION_TESTS_DIR, param_names, param_values,
                                                dataset_names, pipelines_to_run_list, extra_params_to_modify)
@@ -283,3 +245,93 @@ def regression_test_simple(test_name, param_names, param_values, only_compile_re
             max_y = 0.20
         evt.draw_regression_simple_boxplot_APE(param_names, stats, plot_dir, max_y)
     print("Finished regression test for param_name: {}".format(param_names_dir))
+
+def run(args):
+    # Get experiment information from yaml file.
+    experiment_params = yaml.load(args.experiments_path)
+
+    regression_tests_dir = os.path.expandvars(experiment_params['regression_tests_dir'])
+    params_dir = os.path.expandvars(experiment_params['params_dir'])
+    dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
+    executable_path = os.path.expandvars(experiment_params['executable_path'])
+
+    datasets_to_run = experiment_params['datasets_to_run']
+    regression_params = experiment_params['regression_parameters']
+
+    # Build dictionary from parameter name to list of parameter values
+    param_name_to_values = dict()
+    for regression_param in regression_params:
+        param_name_to_values[regression_param['name']] = regression_param['values']
+
+    print("Setup regression tests.")
+    check_and_create_regression_test_structure(regression_tests_dir,
+                                               params_dir,
+                                               param_name_to_values,
+                                               dataset_dir)
+
+    # Run experiments.
+    print("Run regression tests.")
+    for regression_param in regression_params:
+        # Redirect to param_name_value dir
+        param_name = regression_param['name']
+        for param_value in regression_param['values']:
+            results_dir = os.path.join(regression_tests_dir, param_name, str(param_value))
+            # Redirect to modified params_dir
+            params_dir = os.path.join(results_dir, 'params')
+            for dataset in datasets_to_run:
+                print("Run dataset: ", dataset['name'])
+                pipelines_to_run = dataset['pipelines']
+                if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
+                                args.run_pipeline, args.analyse_vio,
+                                args.plot, args.save_results,
+                                args.save_plots, args.save_boxplots,
+                                pipelines_to_run,
+                                dataset['initial_frame'],
+                                dataset['final_frame'],
+                                dataset['discard_n_start_poses'],
+                                dataset['discard_n_end_poses']):
+                    raise Exception("\033[91m Dataset: ", dataset['name'], " failed!! \033[00m")
+
+def parser():
+    import argparse
+    basic_desc = "Regression tests of SPARK VIO pipeline."
+
+    shared_parser = argparse.ArgumentParser(add_help=True, description="{}".format(basic_desc))
+
+    input_opts = shared_parser.add_argument_group("input options")
+    evaluation_opts = shared_parser.add_argument_group("algorithm options")
+    output_opts = shared_parser.add_argument_group("output options")
+
+    input_opts.add_argument("experiments_path", type=argparse.FileType('r'),
+                            help="Path to the yaml file with experiments settings.",
+                            default="./experiments.yaml")
+
+    evaluation_opts.add_argument("-r", "--run_pipeline", action="store_true",
+                                 help="Run vio?")
+    evaluation_opts.add_argument("-a", "--analyse_vio", action="store_true",
+                                 help="Analyse vio, compute APE and RPE")
+
+    output_opts.add_argument(
+        "--plot", action="store_true", help="show plot window",)
+    output_opts.add_argument("--save_plots", action="store_true",
+                             help="Save plots?")
+    output_opts.add_argument("--save_boxplots", action="store_true",
+                             help="Save boxplots?")
+    output_opts.add_argument("--save_results", action="store_true",
+                             help="Save results?")
+
+    main_parser = argparse.ArgumentParser(description="{}".format(basic_desc))
+    sub_parsers = main_parser.add_subparsers(dest="subcommand")
+    sub_parsers.required = True
+    return shared_parser
+
+import argcomplete
+import sys
+if __name__ == '__main__':
+    parser = parser()
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+    if run(args):
+        sys.exit(os.EX_OK)
+    else:
+        raise Exception("Regression tests failed.")

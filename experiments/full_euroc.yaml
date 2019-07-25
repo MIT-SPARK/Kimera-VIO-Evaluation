@@ -3,7 +3,7 @@ experiment_label: 'euroc'
 settings:
   run_benchmark: true
   optional: ''
-build_dir: '$HOME/Code/spark_vio/build'
+executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
 results_dir: '$HOME/Code/spark_vio_evaluation/results'
 params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
 dataset_dir: '$HOME/datasets/euroc/EuRoC'

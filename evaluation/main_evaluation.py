@@ -13,7 +13,7 @@ def run(args):
     results_dir = os.path.expandvars(experiment_params['results_dir'])
     params_dir = os.path.expandvars(experiment_params['params_dir'])
     dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
-    build_dir = os.path.expandvars(experiment_params['build_dir'])
+    executable_path = os.path.expandvars(experiment_params['executable_path'])
     datasets_to_run = experiment_params['datasets_to_run']
 
     # Run experiments.
@@ -22,7 +22,7 @@ def run(args):
     for dataset in datasets_to_run:
         print("Run dataset: ", dataset['name'])
         pipelines_to_run = dataset['pipelines']
-        if not run_dataset(results_dir, params_dir, dataset_dir, dataset, build_dir,
+        if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
                            args.run_pipeline, args.analyse_vio,
                            args.plot, args.save_results,
                            args.save_plots, args.save_boxplots,
