@@ -5,6 +5,7 @@ import copy
 import os
 import yaml
 import numpy as np
+import glog as log
 from evo.tools import plot
 import matplotlib.pyplot as plt
 from shutil import copyfile, move, rmtree, copytree, copy2
@@ -56,7 +57,7 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
     with results """
     # Load results.
-    print("Loading dataset results")
+    log.info("Loading dataset results")
 
     # Aggregate all stats for each pipeline and dataset
     stats = dict()
@@ -68,10 +69,10 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
             # Get results.
             results_file = os.path.join(pipeline_dir, 'results.yaml')
             stats[dataset_name][pipeline_name] = yaml.load(open(results_file, 'r'))
-            print("Check stats from " + results_file)
+            log.info("Check stats from " + results_file)
             check_stats(stats[dataset_name][pipeline_name])
 
-    print("Drawing APE boxplots.")
+    log.info("Drawing APE boxplots.")
     evt.draw_ape_boxplots(stats, results_dir)
     # Write APE table
     evt.write_latex_table(stats, results_dir)
@@ -79,8 +80,8 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
 
 def check_stats(stats):
     if not "relative_errors" in stats:
-        print("Stats: ")
-        print(stats)
+        log.info("Stats: ")
+        log.info(stats)
         raise Exception("\033[91mWrong stats format: no relative_errors... \n"
                         "Are you sure you runned the pipeline and "
                         "saved the results? (--save_results).\033[99m")
@@ -91,20 +92,20 @@ def check_stats(stats):
                             "saved the results? (--save_results).\033[99m")
 
         if not "rpe_rot" in list(stats["relative_errors"].values())[0]:
-            print("Stats: ")
-            print(stats)
+            log.info("Stats: ")
+            log.info(stats)
             raise Exception("\033[91mWrong stats format: no rpe_rot... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
         if not "rpe_trans" in list(stats["relative_errors"].values())[0]:
-            print("Stats: ")
-            print(stats)
+            log.info("Stats: ")
+            log.info(stats)
             raise Exception("\033[91mWrong stats format: no rpe_trans... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
     if not "absolute_errors" in stats:
-        print("Stats: ")
-        print(stats)
+        log.info("Stats: ")
+        log.info(stats)
         raise Exception("\033[91mWrong stats format: no absolute_errors... \n"
                         "Are you sure you runned the pipeline and "
                         "saved the results? (--save_results).\033[99m")
@@ -133,13 +134,13 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     try:
         traj_est = file_interface.read_swe_csv_trajectory(traj_est_path)
     except file_interface.FileInterfaceException as e:
-        print(e)
+        log.info(e)
         raise Exception("\033[91mMissing ground truth csv.\033[99m")
 
-    print("Registering trajectories")
+    evt.print_purple("Registering trajectories")
     traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
 
-    print("Aligning trajectories")
+    evt.print_purple("Aligning trajectories")
     traj_est = trajectory.align_trajectory(traj_est, traj_ref, correct_scale = False,
                                            discard_n_start_poses = int(discard_n_start_poses),
                                            discard_n_end_poses = int(discard_n_end_poses))
@@ -151,34 +152,34 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     results = dict()
 
     results["absolute_errors"] = dict()
-    print("Calculating APE translation part")
+    evt.print_purple("Calculating APE translation part")
     data = (traj_ref, traj_est)
     ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
     ape_metric.process_data(data)
     ape_statistics = ape_metric.get_all_statistics()
     results["absolute_errors"] = ape_statistics
-    print("mean:", ape_statistics["mean"])
+    log.info("mean: %f" % ape_statistics["mean"])
 
-    print("Calculating RPE translation part for plotting")
+    evt.print_purple("Calculating RPE translation part for plotting")
     rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                    1.0, metrics.Unit.frames, 0.0, False)
     rpe_metric_trans.process_data(data)
     rpe_stats_trans = rpe_metric_trans.get_all_statistics()
-    print("mean:", rpe_stats_trans["mean"])
+    log.info("mean: %f" % rpe_stats_trans["mean"])
 
-    print("Calculating RPE rotation angle for plotting")
+    evt.print_purple("Calculating RPE rotation angle for plotting")
     rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                  1.0, metrics.Unit.frames, 1.0, False)
     rpe_metric_rot.process_data(data)
     rpe_stats_rot = rpe_metric_rot.get_all_statistics()
-    print("mean:", rpe_stats_rot["mean"])
+    log.info("mean: %f" % rpe_stats_rot["mean"])
 
     results["relative_errors"] = dict()
     # Read segments file
     for segment in segments:
         results["relative_errors"][segment] = dict()
-        print("RPE analysis of segment: %d"%segment)
-        print("Calculating RPE segment translation part")
+        evt.print_purple("RPE analysis of segment: %d"%segment)
+        evt.print_lightpurple("Calculating RPE segment translation part")
         rpe_segment_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                        float(segment), metrics.Unit.meters, 0.01, True)
         rpe_segment_metric_trans.process_data(data)
@@ -187,7 +188,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         # print(rpe_segment_stats_trans)
         # print("mean:", rpe_segment_stats_trans["mean"])
 
-        print("Calculating RPE segment rotation angle")
+        evt.print_lightpurple("Calculating RPE segment rotation angle")
         rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                      float(segment), metrics.Unit.meters, 0.01, True)
         rpe_segment_metric_rot.process_data(data)
@@ -199,7 +200,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     if save_results:
         # Save results file
         results_file = os.path.join(save_folder, 'results.yaml')
-        print("Saving analysis results to: " + results_file)
+        evt.print_green("Saving analysis results to: ")
+        log.info(results_file)
         if confirm_overwrite:
             if not evt.user.check_and_confirm_overwrite(results_file):
                 return
@@ -209,15 +211,15 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     # For each segment in segments file
     # Calculate rpe with delta = segment in meters with all-pairs set to True
     # Calculate max, min, rmse, mean, median etc
-    # Plot boxplot, or those cumulative figures you see in evo (like demographic plots)
 
+    # Plot boxplot, or those cumulative figures you see in evo (like demographic plots)
     if display_plot or save_plots:
-        print("plotting")
+        evt.print_green("Plotting:")
+        log.info(dataset_name)
         plot_collection = plot.PlotCollection("Example")
         # metric values
         fig_1 = plt.figure(figsize=(8, 8))
         ymax = -1
-        print(dataset_name)
         if dataset_name is not "":
             ymax = Y_MAX_APE_TRANS[dataset_name]
         plot.error_array(fig_1, ape_metric.error, statistics=ape_statistics,
@@ -287,12 +289,13 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         plot_collection.add_figure("RPE_rotation_trajectory_error", fig_6)
 
         if display_plot:
-            print("Displaying plots.")
+            evt.print_green("Displaying plots.")
             plot_collection.show()
 
         if save_plots:
-            print("Saving plots to: " + save_folder)
-            plot_collection.export(save_folder + "/plots.pdf", False)
+            evt.print_green("Saving plots to: ")
+            log.info(save_folder)
+            plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
 # Run pipeline as a subprocess.
 def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
@@ -309,7 +312,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --initial_k={} --final_k={} \
-                           --log_output=True".format(
+                           --log_output=True --minloglevel=3".format(
                                executable_path, dataset_dir, dataset_name, pipeline_output_dir,
                                params_dir, pipeline_type, "regularVioParameters.yaml",
                                params_dir, pipeline_type, "trackerParameters.yaml",
@@ -352,24 +355,25 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     if run_pipeline:
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type, initial_k, final_k) == 0:
-            print("Successful pipeline run.")
-            print("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s"%(output_file, traj_es))
+            evt.print_green("Successful pipeline run.")
+            log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
+                (output_file, traj_es))
             copyfile(output_file, traj_es)
             output_destination_dir = dataset_pipeline_result_dir + "/output/"
-            print("\033[1mMoving output dir: " + pipeline_output_dir
-                  + "\n to destination:\n" + output_destination_dir + "\033[0m")
+            log.info("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" % 
+                (pipeline_output_dir, output_destination_dir))
             try:
                 evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
             except:
-                print("\033[1mFailed copying output dir: " + pipeline_output_dir
-                      + "\n to destination:\n" + output_destination_dir + "\033[0m")
+                log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" % 
+                    (pipeline_output_dir, output_destination_dir))
         else:
-            print("Pipeline failed on dataset: " + dataset_name)
+            log.error("Pipeline failed on dataset: " + dataset_name)
             return False
 
     if analyse_vio:
-        print("\033[1mAnalysing dataset: " + dataset_results_dir + " for pipeline "
-              + pipeline_type + ".\033[0m")
+        log.info("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
+                 % (dataset_results_dir, pipeline_type))
         run_analysis(traj_ref_path, traj_es, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
                      dataset_name,
@@ -395,7 +399,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
     output_file = pipeline_output_dir + "/output_posesVIO.csv"
     has_a_pipeline_failed = False
     if len(pipelines_to_run_list) == 0:
-        print("Not running pipeline...")
+        log.warning("Not running pipeline...")
     for pipeline_type in pipelines_to_run_list:
         has_a_pipeline_failed = not process_vio(
             executable_path, dataset_dir, dataset_name, results_dir, params_dir,
@@ -406,9 +410,8 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
 
     # Save boxplots
     if save_boxplots:
-        if has_a_pipeline_failed == False:
-            print("Saving boxplots.")
-
+        # TODO(Toni) is this really saving the boxplots?
+        if not has_a_pipeline_failed:
             stats = dict()
             for pipeline_type in pipelines_to_run_list:
                 results = results_dir + "/" + dataset_name + "/" + pipeline_type + "/results.yaml"
@@ -417,17 +420,17 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
                                     and dataset: %s"%(pipeline_type, dataset_name) + "\033[99m")
 
                 stats[pipeline_type]  = yaml.load(open(results,'r'))
-                print("Check stats %s "%(pipeline_type) + results)
+                log.info("Check stats %s in %s" % (pipeline_type, results))
                 check_stats(stats[pipeline_type])
 
-            print("Drawing boxplots.")
+            log.info("Drawing boxplots.")
             evt.draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
         else:
-            print("A pipeline run has failed... skipping boxplot drawing.")
+            log.warning("A pipeline run has failed... skipping boxplot drawing.")
 
     if not has_a_pipeline_failed:
-        print("All pipeline runs were successful.")
+        evt.print_green("All pipeline runs were successful.")
     else:
-        print("A pipeline has failed!")
-    print("Finished evaluation for dataset: " + dataset_name)
+        log.error("A pipeline has failed!")
+    evt.print_green("Finished evaluation for dataset: " + dataset_name)
     return not has_a_pipeline_failed

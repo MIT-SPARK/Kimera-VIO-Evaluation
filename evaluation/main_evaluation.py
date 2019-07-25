@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+import glog as log
 import os
 import yaml
 
@@ -17,10 +18,10 @@ def run(args):
     datasets_to_run = experiment_params['datasets_to_run']
 
     # Run experiments.
-    print("Run experiments")
+    log.info("Run experiments")
     successful_run = True
     for dataset in datasets_to_run:
-        print("Run dataset: ", dataset['name'])
+        log.info("Run dataset: %s" % dataset['name'])
         pipelines_to_run = dataset['pipelines']
         if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
                            args.run_pipeline, args.analyse_vio,
@@ -31,9 +32,8 @@ def run(args):
                            dataset['final_frame'],
                            dataset['discard_n_start_poses'],
                            dataset['discard_n_end_poses']):
-            print("\033[91m Dataset: ", dataset['name'], " failed!! \033[00m")
+            log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
             successful_run = False
-
     return successful_run
 
 def parser():
@@ -72,6 +72,7 @@ def parser():
 import argcomplete
 import sys
 if __name__ == '__main__':
+    log.setLevel("INFO")
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()

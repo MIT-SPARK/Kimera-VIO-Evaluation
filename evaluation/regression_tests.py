@@ -3,10 +3,12 @@
 from __future__ import print_function
 import os
 import yaml
+import glog as log
 from shutil import rmtree, copytree, copy2
 
 import evaluation.tools as evt
 from evaluation_lib import run_dataset
+
 
 def write_flags_params(param_filepath, param_name, param_value):
     """ Write params to gflags file.
@@ -94,7 +96,6 @@ def check_and_create_regression_test_structure(regression_tests_path, baseline_p
     """
     # Make or check regression_test root directory
     assert(evt.ensure_dir(regression_tests_path))
-    print(param_name_to_values)
     for param_name, param_values in get_items(param_name_to_values):
         # Create or check param_name directory
         param_name_dir = os.path.join(regression_tests_path, param_name)
@@ -263,14 +264,14 @@ def run(args):
     for regression_param in regression_params:
         param_name_to_values[regression_param['name']] = regression_param['values']
 
-    print("Setup regression tests.")
+    log.info("Setup regression tests.")
     check_and_create_regression_test_structure(regression_tests_dir,
                                                params_dir,
                                                param_name_to_values,
                                                dataset_dir)
 
     # Run experiments.
-    print("Run regression tests.")
+    log.info("Run regression tests.")
     for regression_param in regression_params:
         # Redirect to param_name_value dir
         param_name = regression_param['name']
@@ -279,7 +280,7 @@ def run(args):
             # Redirect to modified params_dir
             params_dir = os.path.join(results_dir, 'params')
             for dataset in datasets_to_run:
-                print("Run dataset: ", dataset['name'])
+                log.info("Run dataset: ", dataset['name'])
                 pipelines_to_run = dataset['pipelines']
                 if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
                                 args.run_pipeline, args.analyse_vio,
@@ -291,6 +292,7 @@ def run(args):
                                 dataset['discard_n_start_poses'],
                                 dataset['discard_n_end_poses']):
                     raise Exception("\033[91m Dataset: ", dataset['name'], " failed!! \033[00m")
+    return True
 
 def parser():
     import argparse
