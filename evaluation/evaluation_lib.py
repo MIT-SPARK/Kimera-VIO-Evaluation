@@ -353,14 +353,15 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     traj_es = dataset_results_dir + "/" + pipeline_type + "/" + "traj_es.csv"
     evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
+        evt.print_green("Run pipeline: %s" % pipeline_type)
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type, initial_k, final_k) == 0:
             evt.print_green("Successful pipeline run.")
-            log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
+            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
                 (output_file, traj_es))
             copyfile(output_file, traj_es)
             output_destination_dir = dataset_pipeline_result_dir + "/output/"
-            log.info("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" % 
+            log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" % 
                 (pipeline_output_dir, output_destination_dir))
             try:
                 evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
@@ -372,15 +373,15 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
             return False
 
     if analyse_vio:
-        log.info("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
+        log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
                  % (dataset_results_dir, pipeline_type))
+        evt.print_green("Starting analysis of pipeline: %s" % pipeline_type)
         run_analysis(traj_ref_path, traj_es, SEGMENTS,
                      save_results, plot, save_plots, dataset_pipeline_result_dir, False,
                      dataset_name,
                      discard_n_start_poses,
                      discard_n_end_poses)
     return True
-
 
 # TODO(Toni): replace all string concats with os.path.join()
 def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, executable_path,
