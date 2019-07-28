@@ -192,17 +192,18 @@ def run(args):
                                 dataset['final_frame'],
                                 dataset['discard_n_start_poses'],
                                 dataset['discard_n_end_poses']):
-                    raise Exception("\033[91m Dataset: ", dataset_name, " failed!! \033[00m")
+                    log.warning("A pipeline run has failed...")
                 stats[param_name][param_value][dataset_name] = dict()
                 for pipeline in pipelines_to_run:
                     results_file = os.path.join(results_dir, dataset_name, pipeline, "results.yaml")
                     if os.path.isfile(results_file):
                         stats[param_name][param_value][dataset_name][pipeline] = yaml.load(open(results_file,'r'))
                     else:
-                        log.warning("Could not find results file: {}. Adding cross to boxplot...".format(results_file))
+                        log.warning("Could not find results file: {}. \n Adding cross.".format(results_file))
                         stats[param_name][param_value][dataset_name][pipeline] = False
 
     # Save all stats in regression tests root directory
+    # TODO(Toni) ideally save them as a pandas dataframe object! And put NaNs where there is a False
     with open(os.path.join(regression_tests_dir, "all_stats.yaml"), 'w') as outfile:
         outfile.write(yaml.dump(stats))
 
@@ -250,6 +251,7 @@ def parser():
 import argcomplete
 import sys
 if __name__ == '__main__':
+    log.setLevel('INFO')
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()

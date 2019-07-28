@@ -8,7 +8,7 @@ import errno
 def create_full_path_if_not_exists(filename):
     if not os.path.exists(os.path.dirname(filename)):
         try:
-            log.info('Creating non-existent path: %s' % filename)
+            log.debug('Creating non-existent path: %s' % filename)
             os.makedirs(os.path.dirname(filename))
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:

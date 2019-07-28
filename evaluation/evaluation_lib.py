@@ -80,8 +80,8 @@ def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
 
 def check_stats(stats):
     if not "relative_errors" in stats:
-        log.info("Stats: ")
-        log.info(stats)
+        log.error("Stats: ")
+        log.error(stats)
         raise Exception("\033[91mWrong stats format: no relative_errors... \n"
                         "Are you sure you runned the pipeline and "
                         "saved the results? (--save_results).\033[99m")
@@ -92,20 +92,20 @@ def check_stats(stats):
                             "saved the results? (--save_results).\033[99m")
 
         if not "rpe_rot" in list(stats["relative_errors"].values())[0]:
-            log.info("Stats: ")
-            log.info(stats)
+            log.error("Stats: ")
+            log.error(stats)
             raise Exception("\033[91mWrong stats format: no rpe_rot... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
         if not "rpe_trans" in list(stats["relative_errors"].values())[0]:
-            log.info("Stats: ")
-            log.info(stats)
+            log.error("Stats: ")
+            log.error(stats)
             raise Exception("\033[91mWrong stats format: no rpe_trans... \n"
                             "Are you sure you runned the pipeline and "
                             "saved the results? (--save_results).\033[99m")
     if not "absolute_errors" in stats:
-        log.info("Stats: ")
-        log.info(stats)
+        log.error("Stats: ")
+        log.error(stats)
         raise Exception("\033[91mWrong stats format: no absolute_errors... \n"
                         "Are you sure you runned the pipeline and "
                         "saved the results? (--save_results).\033[99m")
@@ -151,7 +151,6 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 
     results = dict()
 
-    results["absolute_errors"] = dict()
     evt.print_purple("Calculating APE translation part")
     data = (traj_ref, traj_est)
     ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
@@ -161,6 +160,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 
     log.info(ape_result.pretty_str(info=True))
 
+    # TODO(Toni): Save RPE computation results rather than the statistics
+    # you can compute statistics later...
     evt.print_purple("Calculating RPE translation part for plotting")
     rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                    1.0, metrics.Unit.frames, 0.0, False)
@@ -201,13 +202,15 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     if save_results:
         # Save results file
         results_file = os.path.join(save_folder, 'results.yaml')
-        evt.print_green("Saving analysis results to: ")
-        log.info(results_file)
-        if confirm_overwrite:
-            if not evt.user.check_and_confirm_overwrite(results_file):
-                return
+        evt.print_green("Saving analysis results to: %s" % results_file)
         with open(results_file,'w') as outfile:
-            outfile.write(yaml.dump(results, default_flow_style=False))
+            if confirm_overwrite:
+                if evt.user.check_and_confirm_overwrite(results_file):
+                        outfile.write(yaml.dump(results, default_flow_style=False))
+                else:
+                    log.info("Not overwritting results.")
+            else:
+                outfile.write(yaml.dump(results, default_flow_style=False))
 
     # For each segment in segments file
     # Calculate rpe with delta = segment in meters with all-pairs set to True
@@ -373,6 +376,8 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
                     (pipeline_output_dir, output_destination_dir))
         else:
             log.error("Pipeline failed on dataset: " + dataset_name)
+            # Avoid writting results.yaml with analysis if the pipeline failed.
+            log.info("Not writting results.yaml")
             return False
 
     if analyse_vio:
