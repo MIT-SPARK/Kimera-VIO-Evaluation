@@ -139,24 +139,9 @@ def check_and_create_regression_test_structure(regression_tests_path, baseline_p
             #                               param_pipeline_dir + "/flags/override.flags")
             ###################################################################
 
-            # Create/Check dataset name directory
-            #for dataset in dataset_names:
-            #    # Create/Check dataset_name folder
-            #    param_name_value_dataset_dir = os.path.join(param_name_value_dir, dataset)
-            #    assert(ensure_dir(param_name_value_dataset_dir))
-
-            #    # Create/Check pipeline name directory
-            #    for pipeline_type in pipeline_types:
-            #        # Create/Check pipeline folder
-            #        param_name_value_dataset_pipeline_dir = os.path.join(param_name_value_dataset_dir, pipeline_type)
-            #        assert(ensure_dir(param_name_value_dataset_pipeline_dir))
-
     # Make/Check results dir for current param_names
     param_name_results_dir = os.path.join(param_name_dir, "results")
     assert(ensure_dir(param_name_results_dir))
-    #for dataset_name in dataset_names:
-    #    # Make/Check dataset dir for current param_names_dir, as the performance given the param depends on the dataset.
-    #    assert(ensure_dir(os.path.join(param_name_results_dir, dataset_name)))
 
 def run(args):
     # Get experiment information from yaml file.
@@ -183,15 +168,17 @@ def run(args):
 
     # Run experiments.
     log.info("Run regression tests.")
+    stats = dict()
     for regression_param in regression_params:
-        stats = dict()
         # Redirect to param_name_value dir param_name = regression_param['name']
         param_name = regression_param['name']
+        stats[param_name] = dict()
         log.info("Run for regression parameter: %s" % param_name)
         for param_value in regression_param['values']:
             results_dir = os.path.join(regression_tests_dir, param_name, str(param_value))
             # Redirect to modified params_dir
             params_dir = os.path.join(results_dir, 'params')
+            stats[param_name][param_value] = dict()
             for dataset in datasets_to_run:
                 dataset_name = dataset['name']
                 log.info("\033[93mRun: %s = %f in dataset %s\033[00m" % (param_name, param_value, dataset_name))
@@ -206,28 +193,24 @@ def run(args):
                                 dataset['discard_n_start_poses'],
                                 dataset['discard_n_end_poses']):
                     raise Exception("\033[91m Dataset: ", dataset_name, " failed!! \033[00m")
-                stats[param_value] = dict()
+                stats[param_name][param_value][dataset_name] = dict()
                 for pipeline in pipelines_to_run:
                     results_file = os.path.join(results_dir, dataset_name, pipeline, "results.yaml")
-                    log.error(results_file)
                     if os.path.isfile(results_file):
-                        stats[param_value][pipeline] = yaml.load(open(results_file,'r'))
+                        stats[param_name][param_value][dataset_name][pipeline] = yaml.load(open(results_file,'r'))
                     else:
                         log.warning("Could not find results file: {}. Adding cross to boxplot...".format(results_file))
-                        stats[param_value][pipeline] = False
+                        stats[param_name][param_value][dataset_name][pipeline] = False
 
+    # Save all stats in regression tests root directory
+    with open(os.path.join(regression_tests_dir, "all_stats.yaml"), 'w') as outfile:
+        outfile.write(yaml.dump(stats))
 
-
-        # Compile results for current param_name
-        log.info("Drawing boxplot APE for regression test of param_name: %s" % param_name)
-        for dataset in datasets_to_run:
-            dataset_name = dataset['name']
-
-            log.info("Drawing regression simple APE boxplots for dataset: %s" % dataset_name)
-            plot_dir = os.path.join(regression_tests_dir, param_name, "results", dataset_name)
-            max_y = -1
-            draw_regression_simple_boxplot_APE(param_name, stats, plot_dir, max_y)
-        log.info("Finished regression test for param_name: %s" % param_name)
+    # Compile plots for all results, do that in jupyter notebook using plotly instead of here...
+    #plot_dir = os.path.join(regression_tests_dir, param_name, "results", dataset_name)
+    #max_y = -1
+    #draw_regression_simple_boxplot_APE(stats, plot_dir, max_y)
+    #log.info("Finished regression test for param_name: %s" % param_name)
 
     return True
 

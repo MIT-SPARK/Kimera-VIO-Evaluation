@@ -135,7 +135,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         traj_est = file_interface.read_swe_csv_trajectory(traj_est_path)
     except file_interface.FileInterfaceException as e:
         log.info(e)
-        raise Exception("\033[91mMissing ground truth csv.\033[99m")
+        raise Exception("\033[91mMissing vio output csv.\033[99m")
 
     evt.print_purple("Registering trajectories")
     traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
@@ -156,9 +156,10 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     data = (traj_ref, traj_est)
     ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
     ape_metric.process_data(data)
-    ape_statistics = ape_metric.get_all_statistics()
-    results["absolute_errors"] = ape_statistics
-    log.info("mean: %f" % ape_statistics["mean"])
+    ape_result = ape_metric.get_result()
+    results["absolute_errors"] = ape_result
+
+    log.info(ape_result.pretty_str(info=True))
 
     evt.print_purple("Calculating RPE translation part for plotting")
     rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
@@ -222,6 +223,8 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ymax = -1
         if dataset_name is not "":
             ymax = Y_MAX_APE_TRANS[dataset_name]
+
+        ape_statistics = ape_metric.get_all_statistics()
         plot.error_array(fig_1, ape_metric.error, statistics=ape_statistics,
                          name="APE translation", title=""#str(ape_metric)
                          , xlabel="Keyframe index [-]",
