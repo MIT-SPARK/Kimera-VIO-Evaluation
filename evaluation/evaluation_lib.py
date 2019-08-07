@@ -85,7 +85,6 @@ def aggregate_all_results(results_dir):
             results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
-            print(pipeline_name)
             # Get dataset name
             dataset_name = os.path.basename(os.path.split(root)[0])
             # Collect stats
