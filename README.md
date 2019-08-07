@@ -6,6 +6,8 @@ Code to evaluate and tune SPARK VIO pipeline.
 
 # Usage
 
+Run `./evaluation/main_evaluation.py` to get usage information.
+
 ```
 usage: main_evaluation.py [-h] [-r] [-a] [--plot]
                           [--plot_colormap_max PLOT_COLORMAP_MAX]
@@ -43,3 +45,4 @@ output options:
   --save_boxplots       Save boxplots?
   --save_results        Save results?
 ```
+
