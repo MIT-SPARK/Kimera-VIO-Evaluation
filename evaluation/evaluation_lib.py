@@ -53,30 +53,71 @@ Y_MAX_RPE_ROT = {
     "V2_03_difficult": 2.6
 }
 
-def aggregate_ape_results(list_of_datasets, list_of_pipelines, results_dir):
+def aggregate_all_results(results_dir):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
-    with results """
+    with results:
+        Args: 
+            - result_dir: path to the directory with results ordered as follows:
+               \* dataset_name:
+               |___\* pipeline_type:
+               |   |___results.yaml
+               |___\* pipeline_type:
+               |   |___results.yaml
+               \* dataset_name:
+               |___\* pipeline_type:
+               |   |___results.yaml
+               Basically all subfolders with a results.yaml will be examined.
+        Returns:
+            - stats: a nested dictionary with the statistics and results of all pipelines:
+                * First level ordered with dataset_name as keys:
+                * Second level ordered with pipeline_type as keys:
+                * Each stats[dataset_name][pipeline_type] value has:
+                    * absolute_errors: an evo Result type with trajectory and APE stats.
+                    * relative_errors: RPE stats.
+    """
+    import fnmatch
     # Load results.
-    log.info("Loading dataset results")
-
+    log.info("Aggregate dataset results.")
     # Aggregate all stats for each pipeline and dataset
     stats = dict()
-    for dataset_name in list_of_datasets:
-        dataset_dir = os.path.join(results_dir, dataset_name)
-        stats[dataset_name] = dict()
-        for pipeline_name in list_of_pipelines:
-            pipeline_dir = os.path.join(dataset_dir, pipeline_name)
-            # Get results.
-            results_file = os.path.join(pipeline_dir, 'results.yaml')
-            stats[dataset_name][pipeline_name] = yaml.load(open(results_file, 'r'))
-            log.info("Check stats from " + results_file)
+    for root, dirnames, filenames in os.walk(results_dir):
+        for results_filename in fnmatch.filter(filenames, 'results.yaml'):
+            results_filepath = os.path.join(root, results_filename)
+            # Get pipeline name
+            pipeline_name = os.path.basename(root)
+            print(pipeline_name)
+            # Get dataset name
+            dataset_name = os.path.basename(os.path.split(root)[0])
+            # Collect stats
+            if stats.get(dataset_name) is None:
+                stats[dataset_name] = dict()
+            stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'))
+            log.debug("Check stats from: " + results_filepath)
             check_stats(stats[dataset_name][pipeline_name])
+    return stats
 
+def aggregate_ape_results(results_dir):
+    """ Aggregate APE results and draw APE boxplot as well as write latex table
+    with results:
+        Args: 
+            - result_dir: path to the directory with results ordered as follows:
+               \* dataset_name:
+               |___\* pipeline_type:
+               |   |___results.yaml
+               |___\* pipeline_type:
+               |   |___results.yaml
+               \* dataset_name:
+               |___\* pipeline_type:
+               |   |___results.yaml
+               Basically all subfolders with a results.yaml will be examined.
+    """
+    stats = aggregate_all_results(results_dir)
+    # Draw APE boxplot
     log.info("Drawing APE boxplots.")
     evt.draw_ape_boxplots(stats, results_dir)
     # Write APE table
+    log.info("Writting APE latex table.")
     evt.write_latex_table(stats, results_dir)
-    # Write APE table without S pipeline
 
 def check_stats(stats):
     if not "relative_errors" in stats:
@@ -353,10 +394,10 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     * run_pipeline: whether to run the VIO to generate a new traj_est.csv.
     * analyse_vio: whether to analyse traj_est.csv or not.
     """
-    dataset_results_dir = results_dir + "/" + dataset_name + "/"
-    dataset_pipeline_result_dir = dataset_results_dir + "/" + pipeline_type + "/"
-    traj_ref_path = dataset_dir + "/" + dataset_name + "/mav0/state_groundtruth_estimate0/data.csv" # TODO make it not specific to EUROC
-    traj_es = dataset_results_dir + "/" + pipeline_type + "/" + "traj_es.csv"
+    dataset_results_dir = os.path.join(results_dir, dataset_name)
+    dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
+    traj_ref_path = os.path.join(dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
+    traj_es = os.path.join(dataset_results_dir, pipeline_type, "traj_es.csv")
     evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
         evt.print_green("Run pipeline: %s" % pipeline_type)
@@ -403,9 +444,9 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
     dataset_segments = dataset_properties['segments']
 
     ################### RUN PIPELINE ################################
-    pipeline_output_dir = results_dir + "/tmp_output/output/"
+    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output")
     evt.create_full_path_if_not_exists(pipeline_output_dir)
-    output_file = pipeline_output_dir + "/output_posesVIO.csv"
+    output_file = os.path.join(pipeline_output_dir, "output_posesVIO.csv")
     has_a_pipeline_failed = False
     if len(pipelines_to_run_list) == 0:
         log.warning("Not running pipeline...")
@@ -423,17 +464,19 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
         if not has_a_pipeline_failed:
             stats = dict()
             for pipeline_type in pipelines_to_run_list:
-                results = results_dir + "/" + dataset_name + "/" + pipeline_type + "/results.yaml"
+                results_dataset_dir = os.path.join(results_dir, dataset_name)
+                results = os.path.join(results_dataset_dir, pipeline_type, "results.yaml")
                 if not os.path.exists(results):
                     raise Exception("\033[91mCannot plot boxplots: missing results for %s pipeline \
-                                    and dataset: %s"%(pipeline_type, dataset_name) + "\033[99m")
+                                    and dataset: %s" % (pipeline_type, dataset_name) + "\033[99m \n \
+                                    Expected results here: %s" % results)
 
                 stats[pipeline_type]  = yaml.load(open(results,'r'))
                 log.info("Check stats %s in %s" % (pipeline_type, results))
                 check_stats(stats[pipeline_type])
 
             log.info("Drawing boxplots.")
-            evt.draw_rpe_boxplots(results_dir + "/" + dataset_name, stats, len(dataset_segments))
+            evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
         else:
             log.warning("A pipeline run has failed... skipping boxplot drawing.")
 

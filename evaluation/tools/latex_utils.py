@@ -2,6 +2,7 @@
 
 import os
 from evaluation.tools.math_utils import locate_min
+from evo.core import result
 
 def write_latex_table(stats, results_dir):
     """ Write latex table with median, mean and rmse from stats:
@@ -61,10 +62,11 @@ def write_latex_table(stats, results_dir):
         # mean_error_pos = []
         rmse_error_pos = []
         for _, pipeline_stats in sorted(pipeline_types.items()):
+            assert(isinstance(pipeline_stats["absolute_errors"], result.Result))
             # if pipeline_type is not "S": # Ignore S pipeline
-            median_error_pos.append(pipeline_stats["absolute_errors"]["median"])
+            median_error_pos.append(pipeline_stats["absolute_errors"].stats["median"])
             # mean_error_pos.append(pipeline_stats["absolute_errors"]["mean"])
-            rmse_error_pos.append(pipeline_stats["absolute_errors"]["rmse"])
+            rmse_error_pos.append(pipeline_stats["absolute_errors"].stats["rmse"])
 
         # Find winning pipeline
         _, median_idx_min = locate_min(median_error_pos)
@@ -81,10 +83,11 @@ def write_latex_table(stats, results_dir):
         one_line = start
         pipeline_idx = 0
         for _, pipeline_stats in sorted(pipeline_types.items()):
+            assert(isinstance(pipeline_stats["absolute_errors"], result.Result))
             # if pipeline_type is not "S": # Ignore S pipeline
-            median_error_pos = pipeline_stats["absolute_errors"]["median"] * 100 # as we report in cm
+            median_error_pos = pipeline_stats["absolute_errors"].stats["median"] * 100 # as we report in cm
             # mean_error_pos = pipeline_stats["absolute_errors"]["mean"] * 100 # as we report in cm
-            rmse_error_pos = pipeline_stats["absolute_errors"]["rmse"] * 100 # as we report in cm
+            rmse_error_pos = pipeline_stats["absolute_errors"].stats["rmse"] * 100 # as we report in cm
 
             # Bold for min median error
             if len(winners[dataset_name][0]) == 1 and pipeline_idx == winners[dataset_name][0][0]:

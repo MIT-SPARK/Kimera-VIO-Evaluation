@@ -8,6 +8,8 @@ from matplotlib.ticker import FuncFormatter
 
 from filesystem_utils import ensure_dir
 
+from evo.core import result
+
 def find_step_of_base(x, base):
     return base * 10**np.floor(np.log10(np.abs(float(x))))
 
@@ -269,11 +271,12 @@ def draw_ape_boxplots(stats, output_dir):
                 for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
                     if isinstance(pipeline_stats, dict):
                         # Find max value overall, to set max in y-axis
-                        max_e_pos = pipeline_stats["absolute_errors"]["max"]
+                        assert(isinstance(pipeline_stats["absolute_errors"], result.Result))
+                        # max_e_pos = pipeline_stats["absolute_errors"].stats["max"]
                         # if max_e_pos > final_max_e_pos:
                            # final_max_e_pos = max_e_pos
                         # Draw boxplot
-                        draw_boxplot(ax_pos, pipeline_stats["absolute_errors"],
+                        draw_boxplot(ax_pos, pipeline_stats["absolute_errors"].stats,
                                      [idx_pipeline_type + pos[idx_param_value]], idx_pipeline_type)
                     else:
                         # If pipeline_stats is not a dict, then it means the pipeline failed...
@@ -417,13 +420,14 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
         idx_pipeline_type = 0
         for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
             if isinstance(pipeline_stats, dict):
+                assert(isinstance(pipeline_stats["absolute_errors"], result.Result))
                 # Find max value overall, to set max in y-axis
-                max_e_pos = pipeline_stats["absolute_errors"]["max"]
+                max_e_pos = pipeline_stats["absolute_errors"].stats["max"]
                 if auto_scale:
                     if max_e_pos > final_max_e_pos:
                         final_max_e_pos = max_e_pos
                 # Draw boxplot
-                draw_boxplot(ax_pos, pipeline_stats["absolute_errors"],
+                draw_boxplot(ax_pos, pipeline_stats["absolute_errors"].stats,
                                 [idx_pipeline_type + pos[idx_param_value]], idx_pipeline_type)
             else:
                 # If pipeline_stats is not a dict, then it means the pipeline failed...

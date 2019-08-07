@@ -5,7 +5,7 @@ import glog as log
 import os
 import yaml
 
-from evaluation_lib import run_dataset
+from evaluation_lib import run_dataset, aggregate_ape_results
 
 def run(args):
     # Get experiment information from yaml file.
@@ -34,6 +34,8 @@ def run(args):
                            dataset['discard_n_end_poses']):
             log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
             successful_run = False
+
+    aggregate_ape_results(results_dir)
     return successful_run
 
 def parser():
