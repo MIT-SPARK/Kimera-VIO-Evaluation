@@ -22,10 +22,10 @@ def write_flags_params(param_filepath, param_name, param_value):
     Returns:
     """
     directory = os.path.dirname(param_filepath)
-    if not os.path.exists(directory):
-        raise Exception("\033[91mCould not find directory: \033[99m \n %s" % directory )
-    params_flagfile = open(param_filepath, "a+")
-    params_flagfile.write("--" + param_name + "=" + param_value)
+    assert(ensure_dir(directory))
+    params_flagfile = open(param_filepath, "w")
+    assert(os.path.exists(param_filepath))
+    params_flagfile.write("--" + param_name + "=" + str(param_value))
     params_flagfile.close()
 
 def write_yaml_params(param_filepath, param_name, param_value, default_flow_style):
@@ -99,13 +99,17 @@ def check_and_create_regression_test_structure(regression_tests_path, baseline_p
         assert(ensure_dir(param_name_dir))
 
         # Create/Check tmp_output folder
-        #tmp_output_dir = os.path.join(param_name_dir, "tmp_output/output")
-        #ensure_dir(tmp_output_dir)
+        tmp_output_dir = os.path.join(param_name_dir, "tmp_output/output")
+        ensure_dir(tmp_output_dir)
 
         for param_value in param_values:
             # Create or check param_value folder
             param_name_value_dir = os.path.join(param_name_dir, str(param_value))
             assert(ensure_dir(param_name_value_dir))
+
+            # Create/Check tmp_output folder
+            tmp_output_dir = os.path.join(param_name_value_dir, "tmp_output/output")
+            ensure_dir(tmp_output_dir)
 
             # Create params folder by copying from current baseline one.
             modified_baseline_params_dir = os.path.join(param_name_value_dir, "params")
@@ -191,7 +195,7 @@ def run(args):
                                 dataset['initial_frame'],
                                 dataset['final_frame'],
                                 dataset['discard_n_start_poses'],
-                                dataset['discard_n_end_poses']):
+                                dataset['discard_n_end_poses'], extra_flagfile_path='flags/override.flags'):
                     log.warning("A pipeline run has failed...")
                 stats[param_name][param_value][dataset_name] = dict()
                 for pipeline in pipelines_to_run:

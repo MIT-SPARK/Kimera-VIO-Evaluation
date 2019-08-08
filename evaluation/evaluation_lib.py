@@ -4,6 +4,8 @@ from __future__ import print_function
 import copy
 import os
 import yaml
+import math
+import subprocess
 import numpy as np
 import glog as log
 from evo.tools import plot
@@ -13,13 +15,14 @@ from shutil import copyfile, move, rmtree, copytree, copy2
 from evo.core import trajectory, sync, metrics
 import evaluation.tools as evt
 
+FIX_MAX_Y = True
 Y_MAX_APE_TRANS = {
     "MH_01_easy": 0.3,
     "MH_02_easy": 0.25,
     "MH_03_medium": 0.35,
     "MH_04_difficult": 0.5,
     "MH_05_difficult": 0.36,
-    "V1_01_easy": 0.170,
+    "V1_01_easy": 0.125,
     "V1_02_medium": 0.16,
     "V1_03_difficult": 0.4,
     "V2_01_easy": 0.175,
@@ -264,7 +267,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         # metric values
         fig_1 = plt.figure(figsize=(8, 8))
         ymax = -1
-        if dataset_name is not "":
+        if dataset_name is not "" and FIX_MAX_Y:
             ymax = Y_MAX_APE_TRANS[dataset_name]
 
         ape_statistics = ape_metric.get_all_statistics()
@@ -280,7 +283,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ax = plot.prepare_axis(fig_2, plot_mode)
         plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
         plot.traj_colormap(ax, traj_est, ape_metric.error, plot_mode,
-                           min_map=0.0, max_map=ymax,
+                           min_map=0.0, max_map=math.ceil(ape_statistics['max']*10)/10,
                            title="APE translation error mapped onto trajectory [m]")
         plot_collection.add_figure("APE_translation_trajectory_error", fig_2)
 
@@ -288,7 +291,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Trans
         ### metric values
         fig_3 = plt.figure(figsize=(8, 8))
-        if dataset_name is not "":
+        if dataset_name is not "" and FIX_MAX_Y:
             ymax = Y_MAX_RPE_TRANS[dataset_name]
         plot.error_array(fig_3, rpe_metric_trans.error, statistics=rpe_stats_trans,
                          name="RPE translation", title=""#str(rpe_metric_trans)
@@ -305,7 +308,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         traj_est_trans.reduce_to_ids(rpe_metric_trans.delta_ids)
         plot.traj(ax, plot_mode, traj_ref_trans, '--', 'gray', 'Reference')
         plot.traj_colormap(ax, traj_est_trans, rpe_metric_trans.error, plot_mode,
-                           min_map=0.0, max_map=ymax,
+                           min_map=0.0, max_map=math.ceil(rpe_stats_trans['max']*10)/10,
                            title="RPE translation error mapped onto trajectory [m]"
                           )
         plot_collection.add_figure("RPE_translation_trajectory_error", fig_4)
@@ -313,7 +316,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         ## Rot
         ### metric values
         fig_5 = plt.figure(figsize=(8, 8))
-        if dataset_name is not "":
+        if dataset_name is not "" and FIX_MAX_Y:
             ymax = Y_MAX_RPE_ROT[dataset_name]
         plot.error_array(fig_5, rpe_metric_rot.error, statistics=rpe_stats_rot,
                          name="RPE rotation error", title=""#str(rpe_metric_rot)
@@ -330,7 +333,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         traj_est_rot.reduce_to_ids(rpe_metric_rot.delta_ids)
         plot.traj(ax, plot_mode, traj_ref_rot, '--', 'gray', 'Reference')
         plot.traj_colormap(ax, traj_est_rot, rpe_metric_rot.error, plot_mode,
-                           min_map=0.0, max_map=ymax,
+                           min_map=0.0, max_map=math.ceil(rpe_stats_rot['max']*10)/10,
                            title="RPE rotation error mapped onto trajectory [deg]")
         plot_collection.add_figure("RPE_rotation_trajectory_error", fig_6)
 
@@ -341,22 +344,22 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         if save_plots:
             evt.print_green("Saving plots to: ")
             log.info(save_folder)
-            plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
+            # Config output format (pdf, eps, ...) using evo_config...
+            plot_collection.export(os.path.join(save_folder, "plots.eps"), False)
 
 # Run pipeline as a subprocess.
 def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
             extra_flagfile_path=""):
     """ Runs pipeline depending on the pipeline_type using a subprocess."""
-    import subprocess
     return subprocess.call("{} \
-                           --logtostderr=1 --colorlogtostderr=1 --log_prefix=0 \
+                           --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                            --dataset_path={}/{} --output_path={} \
                            --vio_params_path={}/{}/{} \
                            --tracker_params_path={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                           --flagfile={}/{}/{} --flagfile={}/{} \
                            --initial_k={} --final_k={} \
                            --log_output=True --minloglevel=3".format(
                                executable_path, dataset_dir, dataset_name, pipeline_output_dir,
@@ -367,13 +370,13 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                                params_dir, pipeline_type, "flags/VioBackEnd.flags",
                                params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
                                params_dir, pipeline_type, "flags/Visualizer3D.flags",
-                               params_dir, pipeline_type, extra_flagfile_path,
+                               params_dir, extra_flagfile_path,
                                initial_k, final_k), \
                            shell=True)
 
 def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
-                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k):
+                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path=''):
     """ 
     * executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
     * dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
@@ -400,13 +403,15 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     evt.create_full_path_if_not_exists(traj_es)
     if run_pipeline:
         evt.print_green("Run pipeline: %s" % pipeline_type)
+        # The override flags are used by the regression tests.
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
-                   pipeline_output_dir, pipeline_type, initial_k, final_k) == 0:
+                   pipeline_output_dir, pipeline_type, initial_k, final_k,
+                   extra_flagfile_path=extra_flagfile_path) == 0:
             evt.print_green("Successful pipeline run.")
             log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
                 (output_file, traj_es))
             copyfile(output_file, traj_es)
-            output_destination_dir = dataset_pipeline_result_dir + "/output/"
+            output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
             log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" % 
                 (pipeline_output_dir, output_destination_dir))
             try:
@@ -431,11 +436,10 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
                      discard_n_end_poses)
     return True
 
-# TODO(Toni): replace all string concats with os.path.join()
 def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, executable_path,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
-                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0):
+                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path=''):
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
@@ -455,7 +459,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
             pipeline_output_dir, pipeline_type, dataset_segments, save_results,
             plot, save_plots, output_file, run_pipeline, analyse_vio,
             discard_n_start_poses, discard_n_end_poses,
-            initial_k, final_k)
+            initial_k, final_k, extra_flagfile_path)
 
     # Save boxplots
     if save_boxplots:
