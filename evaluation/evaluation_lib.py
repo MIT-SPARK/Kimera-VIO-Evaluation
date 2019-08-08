@@ -284,7 +284,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
         plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
         plot.traj_colormap(ax, traj_est, ape_metric.error, plot_mode,
                            min_map=0.0, max_map=math.ceil(ape_statistics['max']*10)/10,
-                           title="APE translation error mapped onto trajectory [m]")
+                           title="ATE mapped onto trajectory [m]")
         plot_collection.add_figure("APE_translation_trajectory_error", fig_2)
 
         # RPE
