@@ -1,14 +1,23 @@
 # spark_vio_evaluation
 Code to evaluate and tune SPARK VIO pipeline.
 
+# Installation
+
+```bash
+git clone https://github.com/ToniRV/spark_vio_evaluation
+git checkout devel
+cd spark_vio_evaluation
+python setup.py develop
+```
+
 # Example Usage 
-./evaluation/main_evaluation.py -a --save_plots --save_results --save_boxplots experiments/example_euroc.yaml -r
+`./evaluation/main_evaluation.py -a --save_plots --save_results --save_boxplots experiments/example_euroc.yaml -r`
 
 # Usage
 
 Run `./evaluation/main_evaluation.py` to get usage information.
 
-```
+```bash
 usage: main_evaluation.py [-h] [-r] [-a] [--plot]
                           [--plot_colormap_max PLOT_COLORMAP_MAX]
                           [--plot_colormap_min PLOT_COLORMAP_MIN]
