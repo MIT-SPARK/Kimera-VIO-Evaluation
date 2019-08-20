@@ -7,77 +7,77 @@ datasets_to_run:
  - name: V1_01_easy
    segments: [1]
    pipelines: ['S']
-   discard_n_start_poses: 50
-   discard_n_end_poses: 50
+   discard_n_start_poses: 10
+   discard_n_end_poses: 10
    initial_frame: 100
-   final_frame: 2900
+   final_frame: 10000
  - name: V1_02_medium
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 200
-   final_frame: 600
+   initial_frame: 100
+   final_frame: 10000
  - name: V1_03_difficult
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 200
-   final_frame: 600
+   initial_frame: 100
+   final_frame: 10000
  - name: V2_01_easy
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 200
-   final_frame: 600
+   initial_frame: 100
+   final_frame: 10000
  - name: V2_02_medium
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 200
-   final_frame: 600
+   initial_frame: 100
+   final_frame: 10000
  - name: V2_03_difficult
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 200
-   final_frame: 600
+   initial_frame: 100
+   final_frame: 10000
  - name: MH_01_easy
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 200
-   final_frame: 600
+   final_frame: 10000
  - name: MH_02_easy
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 200
-   final_frame: 600
+   final_frame: 10000
  - name: MH_03_medium
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 200
-   final_frame: 600
+   final_frame: 10000
  - name: MH_04_difficult
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 200
-   final_frame: 600
+   final_frame: 10000
  - name: MH_05_difficult
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 200
-   final_frame: 600
+   final_frame: 10000
