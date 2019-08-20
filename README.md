@@ -47,14 +47,14 @@ dataset_dir: '$HOME/datasets/euroc'
 datasets_to_run:
  - name: V1_01_easy
    segments: [1, 5]
-   pipelines: ['S', 'SP', 'SPR']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 2100
  - name: MH_01_easy
    segments: [5, 10]
-   pipelines: ['S']
+   pipelines: ['S', 'SP', 'SPR']
    discard_n_start_poses: 0
    discard_n_end_poses: 10
    initial_frame: 100
@@ -68,6 +68,7 @@ The experiment yaml file specifies the following:
 - `params_dir`: the directory where to find the parameters to be used by SparkVIO.
 - `dataset_dir`: the path to the Euroc dataset.
 - `datasets_to_run`: specifies which Euroc datasets to run, with the following params:
+  - `name`: the name of the Euroc dataset to run. It must match exactly to the subfolders in your path to Euroc dataset.
   - `segments`: these are the distances btw poses to use when computing the Relative Pose Error (RPE) metric. If multiple are given, then RPE will be calculated for each given distance. For example, if `segments: [1, 5]`, RPE will be calculated for all 1 meter apart poses and plotted in a boxplot, same for all 5m apart poses, etc.
   - `pipelines`: this can only be `S`, `SP`, and/or `SPR`; the vanilla VIO corresponds to `S` (structureless factors only). If using the RegularVIO pipeline [1] then `SP` corresponds to using Structureless and Projection factors, while `SPR` makes use of Regularity factors as well.
   - `discard_n_X_poses`: discards `n` poses when aligning ground-truth and estimated trajectories.
