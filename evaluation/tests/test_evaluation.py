@@ -17,8 +17,6 @@ class TestMainEvaluation(TestCase):
         # Check that we have generated a results file.
         results_file = os.path.join(test_output_dir, 'results.yaml')
         self.assertTrue(os.path.isfile(results_file))
-        # Remove file so that we do not re-test and get a false negative...
-        os.remove(results_file)
 
         # Check that we have generated boxplots.
         boxplots_file = os.path.join(test_output_dir, '../traj_relative_errors_boxplots.eps')
@@ -41,3 +39,6 @@ class TestMainEvaluation(TestCase):
                 os.remove(plot_filepath)
             except:
                 raise Exception("Error while deleting file : ", plots_filepath)
+
+        # Remove file so that we do not re-test and get a false negative...
+        os.remove(results_file)
