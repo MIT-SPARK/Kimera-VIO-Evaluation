@@ -173,5 +173,9 @@ output options:
 
 Provided are jupyter notebooks for extra plotting.
 
+# Chart of implementation details:
+
+![SparkVIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
+
 # References
 [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
