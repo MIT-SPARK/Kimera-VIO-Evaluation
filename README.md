@@ -1,5 +1,5 @@
 # spark_vio_evaluation
-Code to evaluate and tune SPARK VIO pipeline (currently works only for [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) evaluation).
+Code to evaluate and tune SPARK VIO pipeline [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 This repository contains two main scripts:
 - `main_evaluation.py`: given an experiment yaml file with specifications, it runs SparkVIO pipeline to generate an estimated trajectory.
@@ -80,7 +80,25 @@ where, as explained below, the `-r` and `-a` flags run the VIO pipeline given in
 
 ## Regression Tests
 
-TODO
+The `regression_tests.py` script is in essence very similar to the `main_evaluation.py` script: it runs the VIO pipeline, computes error metrics, and displays results.
+The only difference is that its **experiment** yaml file expects two extra fields:
+- `regression_tests_dir`: the path where to store the tests results. This repo already provides a `regression_tests` folder for convenience.
+- `regression_parameters`: which specifies the VIO parameters to modify on each run.
+
+For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in 
+```yaml
+# Here goes the same as in a main_evaluation experiment file [...]
+# This is the path where to store the regression tests.
+regression_tests_dir: '$HOME/Code/spark_vio_evaluation/regression_tests'
+# Here goes the datasets_to_run
+# This is the list of parameters to regress, and the values to test.
+regression_parameters:
+  - name: 'smartNoiseSigma'
+    values: [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4]
+```
+
+Check the `experiments` folder for an example of a complete `regression_test.yaml` experiment file.
+
 
 # Usage
 
