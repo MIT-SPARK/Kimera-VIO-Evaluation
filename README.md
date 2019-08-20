@@ -11,7 +11,14 @@ python setup.py develop
 ```
 
 # Example Usage 
-`./evaluation/main_evaluation.py -a --save_plots --save_results --save_boxplots experiments/example_euroc.yaml -r`
+
+The script `main_evaluation.py` runs and evaluates the VIO performance by aligning estimated and ground-truth trajectories and computing the accumulated errors. It then saves plots showing its performance. 
+
+`./evaluation/main_evaluation.py experiments/example_euroc.yaml -r -a --save_plots --save_results --save_boxplots`
+
+where, as explained below, the r and a flags run and analyze the pipeline.
+
+You will have to specify the experiment yaml file which points to the SparkVIO executable and specifies which datasets to run.
 
 # Usage
 
