@@ -1,9 +1,3 @@
-experiment_label: 'euroc'
-
-settings:
-  run_benchmark: true
-  optional:
-
 # $WORKSPACE is a variable defined by Jenkins and sent through docker
 executable_path: '$WORKSPACE/build/stereoVIOEuroc'
 results_dir: '$WORKSPACE/spark_vio_evaluation/html/data'
