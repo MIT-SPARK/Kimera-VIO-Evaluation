@@ -5,6 +5,7 @@ import os
 import yaml
 import glog as log
 from shutil import rmtree, copytree, copy2
+from tqdm import tqdm
 
 from evaluation.tools.filesystem_utils import ensure_dir
 from evaluation.tools.plotter import draw_regression_simple_boxplot_APE
@@ -173,12 +174,12 @@ def run(args):
     # Run experiments.
     log.info("Run regression tests.")
     stats = dict()
-    for regression_param in regression_params:
+    for regression_param in tqdm(regression_params):
         # Redirect to param_name_value dir param_name = regression_param['name']
         param_name = regression_param['name']
         stats[param_name] = dict()
         log.info("Run for regression parameter: %s" % param_name)
-        for param_value in regression_param['values']:
+        for param_value in tqdm(regression_param['values'], desc=regression_param['name'], leave=False):
             results_dir = os.path.join(regression_tests_dir, param_name, str(param_value))
             # Redirect to modified params_dir
             params_dir = os.path.join(results_dir, 'params')
