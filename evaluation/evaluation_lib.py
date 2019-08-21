@@ -352,27 +352,43 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
             extra_flagfile_path=""):
     """ Runs pipeline depending on the pipeline_type using a subprocess."""
-    return subprocess.call("{} \
-                           --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
-                           --dataset_path={}/{} --output_path={} \
-                           --vio_params_path={}/{}/{} \
-                           --tracker_params_path={}/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                           --flagfile={}/{}/{} --flagfile={}/{} \
-                           --initial_k={} --final_k={} \
-                           --log_output=True --minloglevel=3".format(
-                               executable_path, dataset_dir, dataset_name, pipeline_output_dir,
-                               params_dir, pipeline_type, "regularVioParameters.yaml",
-                               params_dir, pipeline_type, "trackerParameters.yaml",
-                               params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
-                               params_dir, pipeline_type, "flags/Mesher.flags",
-                               params_dir, pipeline_type, "flags/VioBackEnd.flags",
-                               params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
-                               params_dir, pipeline_type, "flags/Visualizer3D.flags",
-                               params_dir, extra_flagfile_path,
-                               initial_k, final_k), \
-                           shell=True)
+    import threading
+    import time
+    import itertools, sys # just for spinner
+    spinner = itertools.cycle(['-', '/', '|', '\\'])
+    thread_return={'success': False}
+
+    def blackbox(thread_return):
+        thread_return['success'] = subprocess.call("{} \
+                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
+                            --dataset_path={}/{} --output_path={} \
+                            --vio_params_path={}/{}/{} \
+                            --tracker_params_path={}/{}/{} \
+                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                            --flagfile={}/{}/{} --flagfile={}/{} \
+                            --initial_k={} --final_k={} \
+                            --log_output=True --minloglevel=2".format(
+            executable_path, dataset_dir, dataset_name, pipeline_output_dir,
+            params_dir, pipeline_type, "regularVioParameters.yaml",
+            params_dir, pipeline_type, "trackerParameters.yaml",
+            params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
+            params_dir, pipeline_type, "flags/Mesher.flags",
+            params_dir, pipeline_type, "flags/VioBackEnd.flags",
+            params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
+            params_dir, pipeline_type, "flags/Visualizer3D.flags",
+            params_dir, extra_flagfile_path,
+            initial_k, final_k),
+            shell=True)
+
+    thread = threading.Thread(target=blackbox, args=(thread_return,))
+    thread.start()
+    while thread.is_alive():
+        sys.stdout.write(spinner.next() * 80)  # write the next character
+        sys.stdout.flush()                     # flush stdout buffer (actual character display)
+        sys.stdout.write('\b' * 80)                 # erase the last written char
+    thread.join()
+    return thread_return['success']
 
 def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
