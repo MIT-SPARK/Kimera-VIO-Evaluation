@@ -474,7 +474,11 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
                                     and dataset: %s" % (pipeline_type, dataset_name) + "\033[99m \n \
                                     Expected results here: %s" % results)
 
-                stats[pipeline_type]  = yaml.load(open(results,'r'))
+                try:
+                    stats[pipeline_type]  = yaml.load(open(results,'r'))
+                except yaml.YAMLError, exc:
+                    print("Error in results file:", exc)
+
                 log.info("Check stats %s in %s" % (pipeline_type, results))
                 check_stats(stats[pipeline_type])
 
