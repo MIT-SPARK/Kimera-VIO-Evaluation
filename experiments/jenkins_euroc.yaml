@@ -6,7 +6,7 @@ settings:
 
 build_dir: '$WORKSPACE/build'
 results_dir: '$WORKSPACE/spark_vio_evaluation/results'
-params_dir: '/root/spark_vio_evaluation/experiments/params'
+params_dir: '$WORKSPACE/params'
 dataset_dir: '/Datasets/euroc'
 
 datasets_to_run:
