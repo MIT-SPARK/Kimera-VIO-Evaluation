@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 from unittest import TestCase
+import os.path
 
 import evaluation as ev
-
-import os.path
 
 class TestMainEvaluation(TestCase):
     def test_default_functionality(self):
@@ -32,6 +31,7 @@ class TestMainEvaluation(TestCase):
                       'plots_RPE_translation.eps',
                       'plots_RPE_translation_trajectory_error.eps']
         for plot_filename in plots_list:
+            print("Checking plot with filename: %s" % plot_filename)
             plot_filepath = os.path.join(test_output_dir, plot_filename)
             self.assertTrue(os.path.isfile(plot_filepath))
             try:
