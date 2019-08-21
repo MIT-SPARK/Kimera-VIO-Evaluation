@@ -26,7 +26,7 @@ before_install:
 install:
   - |
     source .ci/set_pip_name.sh;
-    ${pip} install . --upgrade;
+    ${pip} install .;
 
 before_script:
   - |
