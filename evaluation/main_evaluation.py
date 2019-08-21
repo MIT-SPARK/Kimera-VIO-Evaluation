@@ -451,7 +451,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 # Run pipeline as a subprocess.
 def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
-            extra_flagfile_path=""):
+            extra_flagfile_path="", use_lcd=1):
     """ Runs pipeline depending on the pipeline_type"""
     import subprocess
     return subprocess.call("{}/stereoVIOEuroc \
@@ -459,21 +459,25 @@ def run_vio(build_dir, dataset_dir, dataset_name, params_dir,
                            --dataset_path={}/{} --output_path={} \
                            --vio_params_path={}/{}/{} \
                            --tracker_params_path={}/{}/{} \
+                           --lcd_params_path={}/{}/{} \
+                           --vocabulary_path={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                           --initial_k={} --final_k={} \
+                           --initial_k={} --final_k={} --use_lcd={} \
                            --log_output=True".format(
                                build_dir, dataset_dir, dataset_name, pipeline_output_dir,
                                params_dir, pipeline_type, "regularVioParameters.yaml",
                                params_dir, pipeline_type, "trackerParameters.yaml",
+                               params_dir, pipeline_type, "LCDParameters.yaml",
+                               build_dir,  "../",         "vocabulary/ORBvoc.yml",
                                params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
                                params_dir, pipeline_type, "flags/Mesher.flags",
                                params_dir, pipeline_type, "flags/VioBackEnd.flags",
                                params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
                                params_dir, pipeline_type, "flags/Visualizer3D.flags",
                                params_dir, pipeline_type, extra_flagfile_path,
-                               initial_k, final_k), \
+                               initial_k, final_k, use_lcd), \
                            shell=True)
 
 def process_vio(build_dir, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,

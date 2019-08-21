@@ -6,7 +6,7 @@ settings:
 
 build_dir: '$WORKSPACE/build'
 results_dir: '$WORKSPACE/spark_vio_evaluation/results'
-params_dir: '$WORKSPACE/params'
+params_dir: '/root/spark_vio_evaluation/experiments/params'
 dataset_dir: '/Datasets/euroc'
 
 datasets_to_run:
@@ -22,4 +22,3 @@ datasets_to_run:
    #pipelines: ['S', 'SPR']
    #discard_n_start_poses: 10
    #discard_n_end_poses: 10
-
