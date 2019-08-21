@@ -4,12 +4,13 @@ from __future__ import print_function
 import glog as log
 import os
 import yaml
+from tqdm import tqdm
 
 from evaluation_lib import run_dataset, aggregate_ape_results
 
 def run(args):
     # Get experiment information from yaml file.
-    experiment_params = yaml.load(args.experiments_path)
+    experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
 
     results_dir = os.path.expandvars(experiment_params['results_dir'])
     params_dir = os.path.expandvars(experiment_params['params_dir'])
@@ -20,7 +21,7 @@ def run(args):
     # Run experiments.
     log.info("Run experiments")
     successful_run = True
-    for dataset in datasets_to_run:
+    for dataset in tqdm(datasets_to_run):
         log.info("Run dataset: %s" % dataset['name'])
         pipelines_to_run = dataset['pipelines']
         if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
