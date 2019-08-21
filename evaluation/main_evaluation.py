@@ -32,7 +32,7 @@ def run(args):
                            dataset['initial_frame'],
                            dataset['final_frame'],
                            dataset['discard_n_start_poses'],
-                           dataset['discard_n_end_poses']):
+                           dataset['discard_n_end_poses'], verbose_sparkvio=args.verbose_sparkvio):
             log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
             successful_run = False
 
@@ -66,6 +66,8 @@ def parser():
                              help="Save boxplots?")
     output_opts.add_argument("--save_results", action="store_true",
                              help="Save results?")
+    output_opts.add_argument("-v", "--verbose_sparkvio", action="store_true",
+                             help="Make SparkVIO log all verbosity to console. Useful for debugging if a run failed.")
 
     main_parser = argparse.ArgumentParser(description="{}".format(basic_desc))
     sub_parsers = main_parser.add_subparsers(dest="subcommand")

@@ -141,6 +141,9 @@ output options:
   --save_plots          Save plots?
   --save_boxplots       Save boxplots?
   --save_results        Save results?
+  -v, --verbose_sparkvio
+                        Make SparkVIO log all verbosity to console. Useful
+                        for debugging if a run failed.
 ```
 
 
