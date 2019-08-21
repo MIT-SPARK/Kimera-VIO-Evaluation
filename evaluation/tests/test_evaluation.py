@@ -3,7 +3,7 @@
 from unittest import TestCase
 import os.path
 
-import evaluation as ev
+from .. import main_evaluation as ev
 
 class TestMainEvaluation(TestCase):
     def test_default_functionality(self):
