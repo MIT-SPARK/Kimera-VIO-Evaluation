@@ -26,7 +26,8 @@ before_install:
 install:
   - |
     source .ci/set_pip_name.sh;
-    ${pip} install .;
+    ${pip} install . --upgrade;
+    ${pip} install pyyaml==4.2b4;
 
 before_script:
   - |
