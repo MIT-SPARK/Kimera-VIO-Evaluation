@@ -37,6 +37,7 @@ before_script:
 script:
   - |
     ${pip} install pytest --upgrade;
+    pwd;
     pytest -sv;
 
 notifications:
