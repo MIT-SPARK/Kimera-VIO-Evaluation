@@ -491,7 +491,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
                                     Expected results here: %s" % results)
 
                 try:
-                    stats[pipeline_type]  = yaml.load(open(results,'r'))
+                    stats[pipeline_type]  = yaml.load(open(results,'r'), Loader=yaml.Loader)
                 except yaml.YAMLError, exc:
                     raise Exception("Error in results file:", exc)
 
