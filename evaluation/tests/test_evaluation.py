@@ -8,11 +8,11 @@ import evaluation as ev
 class TestMainEvaluation(TestCase):
     def test_default_functionality(self):
         parser = ev.parser()
-        args = parser.parse_args(['evaluation/tests/test_experiments/test_euroc.yaml', '-a',
+        args = parser.parse_args(['./evaluation/tests/test_experiments/test_euroc.yaml', '-a',
                                   '--save_results', '--save_plots', '--save_boxplots'])
         ev.run(args)
 
-        test_output_dir = 'evaluation/tests/test_results/V1_01_easy/S/'
+        test_output_dir = './evaluation/tests/test_results/V1_01_easy/S/'
         # Check that we have generated a results file.
         results_file = os.path.join(test_output_dir, 'results.yaml')
         self.assertTrue(os.path.isfile(results_file))
