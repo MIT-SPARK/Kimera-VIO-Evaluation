@@ -1,4 +1,7 @@
 # spark_vio_evaluation
+
+![](https://travis-ci.org/ToniRV/spark_vio_evaluation.svg?branch=master)
+
 Code to evaluate and tune SPARK VIO pipeline [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 This repository contains two main scripts:
