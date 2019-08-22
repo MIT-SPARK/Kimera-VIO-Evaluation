@@ -26,12 +26,12 @@ class TestMainEvaluation(TestCase):
         os.remove(boxplots_file)
 
         # Check that we have generated plots.
-        plots_list = ['plots.eps'
-                      #'plots_APE_translation_trajectory_error.eps',
-                      #'plots_RPE_rotation.eps',
-                      #'plots_RPE_rotation_trajectory_error.eps',
-                      #'plots_RPE_translation.eps',
-                      #'plots_RPE_translation_trajectory_error.eps'
+        plots_list = ['plots_APE_translation.eps'
+                      'plots_APE_translation_trajectory_error.eps',
+                      'plots_RPE_rotation.eps',
+                      'plots_RPE_rotation_trajectory_error.eps',
+                      'plots_RPE_translation.eps',
+                      'plots_RPE_translation_trajectory_error.eps'
                      ]
         for plot_filename in plots_list:
             plot_filepath = os.path.join(test_output_dir, plot_filename)
