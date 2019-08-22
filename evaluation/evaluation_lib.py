@@ -407,7 +407,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
         if not verbose_sparkvio:
             # If SparkVIO is not in verbose mode, the user might think the python script is hanging.
             # So, instead, display a spinner of 80 characters.
-            sys.stdout.write(spinner.next() * 80)  # write the next character
+            sys.stdout.write(next(spinner) * 80)  # write the next character
             sys.stdout.flush()                     # flush stdout buffer (actual character display)
             sys.stdout.write('\b' * 80)            # erase the last written char
         time.sleep(0.100) # Sleep 100ms while SparkVIO is running
