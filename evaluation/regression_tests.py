@@ -10,7 +10,7 @@ from tqdm import tqdm
 from evaluation.tools.filesystem_utils import ensure_dir
 from evaluation.tools.plotter import draw_regression_simple_boxplot_APE
 from evaluation.tools.utils import get_items
-from evaluation_lib import run_dataset
+from evaluation.evaluation_lib import run_dataset
 
 def write_flags_params(param_filepath, param_name, param_value):
     """ Write params to gflags file.
