@@ -180,5 +180,11 @@ Provided are jupyter notebooks for extra plotting.
 
 ![SparkVIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
 
+# Notes
+
+The behaviour for the plots depends also on `evo_config`.
+For example, in Jenkins we use the default evo_config which does not split plots.
+Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
+
 # References
 [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
