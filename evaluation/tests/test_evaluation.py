@@ -26,7 +26,7 @@ class TestMainEvaluation(TestCase):
         os.remove(boxplots_file)
 
         # Check that we have generated plots.
-        plots_list = ['plots_APE_translation.eps'
+        plots_list = ['plots_APE_translation.eps',
                       'plots_APE_translation_trajectory_error.eps',
                       'plots_RPE_rotation.eps',
                       'plots_RPE_rotation_trajectory_error.eps',
