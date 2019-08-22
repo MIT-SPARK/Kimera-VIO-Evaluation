@@ -346,6 +346,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
             log.info(save_folder)
             # Config output format (pdf, eps, ...) using evo_config...
             plot_collection.export(os.path.join(save_folder, "plots.eps"), False)
+            plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
 # Run pipeline as a subprocess.
 def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
