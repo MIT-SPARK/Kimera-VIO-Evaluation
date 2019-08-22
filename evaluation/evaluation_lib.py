@@ -495,7 +495,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
     dataset_segments = dataset_properties['segments']
 
     ################### RUN PIPELINE ################################
-    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output")
+    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output/")
     evt.create_full_path_if_not_exists(pipeline_output_dir)
     output_file = os.path.join(pipeline_output_dir, "output_posesVIO.csv")
     has_a_pipeline_failed = False
