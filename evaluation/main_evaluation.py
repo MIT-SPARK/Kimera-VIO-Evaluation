@@ -6,7 +6,7 @@ import os
 import yaml
 from tqdm import tqdm
 
-from .evaluation_lib import run_dataset, aggregate_ape_results
+from evaluation.evaluation_lib import run_dataset, aggregate_ape_results
 
 def run(args):
     # Get experiment information from yaml file.
