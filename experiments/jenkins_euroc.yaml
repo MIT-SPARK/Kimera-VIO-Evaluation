@@ -1,6 +1,6 @@
 # $WORKSPACE is a variable defined by Jenkins and sent through docker
 executable_path: '$WORKSPACE/build/stereoVIOEuroc'
-results_dir: '$WORKSPACE/spark_vio_evaluation/html/data'
+results_dir: '/root/spark_vio_evaluation/html/data'
 params_dir: '/root/spark_vio_evaluation/experiments/params'
 dataset_dir: '/Datasets/euroc'
 
