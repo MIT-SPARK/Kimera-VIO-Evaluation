@@ -39,22 +39,14 @@
                       'MH_03_medium',
                       'MH_04_difficult',
                       'MH_05_difficult'];
-      var plots = ['plots_APE_translation.pdf',
-                   'plots_APE_translation_trajectory_error.pdf',
-                   'plots_RPE_rotation.pdf',
-                   'plots_RPE_rotation_trajectory_error.pdf',
-                   'plots_RPE_translation.pdf',
-                   'plots_RPE_translation_trajectory_error.pdf'];
       for (x of datasets) {
         document.getElementById('myTab').insertAdjacentHTML('beforeend',
           '<li class="nav-item">\n' +
               '<a class="nav-link" id="' + x + '-tab" data-toggle="tab" href="#' + x + '" role="tab" aria-controls="' + x + '" aria-selected="false">'+ x + '</a>\n' +
           '</li>');
-        for (y of plots) {
-          document.getElementById('myTabContent').insertAdjacentHTML('beforeend',
-            '<div class="tab-pane fade" id="' + x + y + '" role="tabpanel" aria-labelledby="' + x + '-tab"></div>');
-          PDFObject.embed("data/" + x + "/S/" + y, "#" + x + y);
-        }
+        document.getElementById('myTabContent').insertAdjacentHTML('beforeend',
+          '<div class="tab-pane fade" id="' + x + '" role="tabpanel" aria-labelledby="' + x + '-tab"></div>');
+        PDFObject.embed("data/" + x + "/S/plots.pdf", "#" + x);
       }
     </script>
   </body>
