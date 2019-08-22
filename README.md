@@ -2,7 +2,7 @@
 
 ![](https://travis-ci.org/ToniRV/spark_vio_evaluation.svg?branch=master)
 
-Code to evaluate and tune SPARK VIO pipeline [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
+Code to evaluate and tune SPARK VIO pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 This repository contains two main scripts:
 - `main_evaluation.py`: given an experiment yaml file with specifications, it runs SparkVIO pipeline to generate an estimated trajectory.
