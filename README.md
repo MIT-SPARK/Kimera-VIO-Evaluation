@@ -185,7 +185,7 @@ Provided are jupyter notebooks for extra plotting.
 # Notes
 
 The behaviour for the plots depends also on `evo_config`.
-For example, in Jenkins we use the default 'evo_config' which does not split plots.
+For example, in Jenkins we use the default `evo_config` which does not split plots.
 Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
 
 # References
