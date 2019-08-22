@@ -11,8 +11,11 @@ It also displays or saves plots about its performance. All functionality is opti
 
 - `regression_tests.py`: runs SparkVIO with different parameters as specified in an experiment yaml file. It displays Absolute Translation Error (ATE) boxplots for each parameter setting to allow visual inspection of what set of parameters is performing well. Check parameters below for functionality.
 
-
 # Prerequisites
+
+- numpy
+- pyyaml
+- evo-1 // Fork from [evo](https://github.com/MichaelGrupp/evo)
 
 > We strongly recommend setting a new virtual environment to avoid conflicts with system-wide installations:
 > ```bash
@@ -21,24 +24,20 @@ It also displays or saves plots about its performance. All functionality is opti
 > source ./venv/bin/activate
 > ```
 
-Install dependencies:
-```bash
-pip install numpy pyyaml evo-1
-```
-
 # Installation
 ```bash
 git clone https://github.com/ToniRV/spark_vio_evaluation
 cd spark_vio_evaluation
+pip install .
 python setup.py develop
 ```
 
-# Example Usage 
+# Example Usage
 
 ## Main Evaluation
 
 The script `main_evaluation.py` runs and evaluates the VIO performance by aligning estimated and ground-truth trajectories and computing error metrics.
-It then saves plots showing its performance. 
+It then saves plots showing its performance.
 
 The script expects an **experiment** yaml file with the following syntax:
 ```yaml
@@ -89,7 +88,7 @@ The only difference is that its **experiment** yaml file expects two extra field
 - `regression_tests_dir`: the path where to store the tests results. This repo already provides a `regression_tests` folder for convenience.
 - `regression_parameters`: which specifies the VIO parameters to modify on each run.
 
-For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in 
+For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in
 ```yaml
 # Here goes the same as in a main_evaluation experiment file [...]
 # This is the path where to store the regression tests.
@@ -186,7 +185,7 @@ Provided are jupyter notebooks for extra plotting.
 # Notes
 
 The behaviour for the plots depends also on `evo_config`.
-For example, in Jenkins we use the default evo_config which does not split plots.
+For example, in Jenkins we use the default 'evo_config' which does not split plots.
 Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
 
 # References
