@@ -77,7 +77,7 @@ def parser():
 import argcomplete
 import sys
 if __name__ == '__main__':
-    log.setLevel("INFO")
+    log.setLevel("DEBUG")
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
