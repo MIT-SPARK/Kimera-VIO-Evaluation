@@ -23,8 +23,8 @@ def parser():
 
 def write_vio_results_summary(results, vio_results_summary_path):
     # Get APE.
-    ATE_mean = results['absolute_errors']['mean']
-    ATE_rmse = results['absolute_errors']['rmse']
+    ATE_mean = results['absolute_errors'].stats['mean']
+    ATE_rmse = results['absolute_errors'].stats['rmse']
     # Get RPE for smallest segments.
     #assert(len(results['relative_errors']) > 0)
     #RPE_mean = results['relative_errors'][0]['mean']

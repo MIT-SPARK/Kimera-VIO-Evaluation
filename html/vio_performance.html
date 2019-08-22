@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <title>VIO PERFORMANCE</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+  </head>
+  <body>
+    <p> Test </p>
+    <div class="graph" id="vio_performance"></div>
+    <div class="graph" id="test"></div>
+
+    <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
+    <script type="text/javascript" src="js/dygraph-1.1.1.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        new Dygraph(
+          document.getElementById("vio_performance"),
+          'data/V1_01_easy/S/traj_es.csv',
+          {
+            title: 'Estimated State Values',
+            ylabel: '[_]',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' },
+          }
+        );
+      });
+    </script>
+  </body>
+</html>
