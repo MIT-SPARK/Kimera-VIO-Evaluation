@@ -9,5 +9,5 @@ setup(name='spark_vio_evaluation',
       author_email='arosinol@mit.edu',
       license='MIT',
       packages=['evaluation', 'evaluation.tools'],
-      install_requires=['numpy', 'pyyaml==3.12', 'evo-1'],
+      install_requires=['numpy', 'glog', 'tqdm', 'pyyaml==4.2b4', 'evo-1'],
       zip_safe=False)

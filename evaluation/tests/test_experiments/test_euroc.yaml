@@ -1,13 +1,7 @@
-experiment_label: 'euroc'
-
-settings:
-  run_benchmark: true
-  dataset_first_frame: 100
-
-build_dir: '/home/tonirv/code/spark_vio/build'
-dataset_dir: 'evaluation/tests/test_results'
+executable_path: '/home/tonirv/code/spark_vio/build'
+dataset_dir: './evaluation/tests/test_results'
 params_dir: '/home/tonirv/code/spark_vio/params'
-results_dir: 'evaluation/tests/test_results'
+results_dir: './evaluation/tests/test_results'
 
 datasets_to_run:
  - name: V1_01_easy
