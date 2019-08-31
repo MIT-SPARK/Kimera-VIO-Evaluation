@@ -34,4 +34,4 @@ if __name__ == '__main__':
     if visualize_3d_mesh(args.path_to_ply):
         sys.exit(os.EX_OK)
     else:
-        raise Exception("Main evaluation run failed.")
+        raise Exception("Metric-Semantic Evaluation failed.")
