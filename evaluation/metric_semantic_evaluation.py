@@ -20,7 +20,6 @@ righthand_R_lefthand = np.array([[1, 0, 0],
                                  [0, 0, 1]])
 lefthand_R_righthand = np.transpose(righthand_R_lefthand)
 
-# [x, y, z] -> [z, -x, y].
 o3d_R_unity = np.array([[0, -1, 0],
                         [0, 0, 1],
                         [1, 0, 0]])
