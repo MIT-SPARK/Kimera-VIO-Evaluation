@@ -33,6 +33,7 @@ before_script:
     # no X server in TravisCI
     export MPLBACKEND=Agg;
     evo_config set plot_backend Agg;
+    evo_config set plot_split True;
 
 script:
   - |

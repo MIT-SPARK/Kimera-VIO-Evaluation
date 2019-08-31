@@ -346,19 +346,31 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
             log.info(save_folder)
             # Config output format (pdf, eps, ...) using evo_config...
             plot_collection.export(os.path.join(save_folder, "plots.eps"), False)
+            plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
 # Run pipeline as a subprocess.
 def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
-            extra_flagfile_path=""):
-    """ Runs pipeline depending on the pipeline_type using a subprocess."""
-    import threading
-    import time
-    import itertools, sys # just for spinner
-    spinner = itertools.cycle(['-', '/', '|', '\\'])
-    thread_return={'success': False}
+            extra_flagfile_path="", verbose_sparkvio=False):
+    """ Runs pipeline depending on the pipeline_type using a subprocess.
+    Args:
+        - executable_path: where the SparkVIO executable is.
+        - dataset_dir: where the Euroc dataset is.
+        - dataset_name: Euroc dataset to be run.
+        - params_dir: directory where the SparkVIO parameters are stored. Needs to follow
+            a convention: flagfiles must have the names below, same for yaml files.
+        - pipeline_output_dir: directory where to store output information from SparkVIO.
+        - pipeline_type: must be one of ['S', 'SP', 'SPR']
+        - initial_k: k_th frame where to start running SparkVIO
+        - final_k: k_th frame where to stop SparkVIO
+        - extra_flagfile_path: to be used in order to override other flags or add new ones.
+            Useful for regression tests when the param to be regressed is a gflag.
+        - verbose_sparkvio: whether to print the SparkVIO messages or not.
+            This is useful for debugging, but too verbose when you want to see APE/RPE results.
+    """
 
-    def blackbox(thread_return):
+    def spark_vio_thread(thread_return, minloglevel=0):
+        """ Function to run SparkVIO in another thread """
         thread_return['success'] = subprocess.call("{} \
                             --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                             --dataset_path={}/{} --output_path={} \
@@ -368,7 +380,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                             --flagfile={}/{}/{} --flagfile={}/{}/{} \
                             --flagfile={}/{}/{} --flagfile={}/{} \
                             --initial_k={} --final_k={} \
-                            --log_output=True --minloglevel=2".format(
+                            --log_output=True --minloglevel={}".format(
             executable_path, dataset_dir, dataset_name, pipeline_output_dir,
             params_dir, pipeline_type, "regularVioParameters.yaml",
             params_dir, pipeline_type, "trackerParameters.yaml",
@@ -378,39 +390,57 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
             params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
             params_dir, pipeline_type, "flags/Visualizer3D.flags",
             params_dir, extra_flagfile_path,
-            initial_k, final_k),
+            initial_k, final_k, minloglevel),
             shell=True)
 
-    thread = threading.Thread(target=blackbox, args=(thread_return,))
+    import threading
+    import time
+    import itertools, sys # just for spinner
+    spinner = itertools.cycle(['-', '/', '|', '\\'])
+    thread_return={'success': False}
+    minloglevel = 2 # Set SparkVIO verbosity level to ERROR
+    if verbose_sparkvio:
+        minloglevel = 0 # Set SparkVIO verbosity level to INFO
+    thread = threading.Thread(target=spark_vio_thread, args=(thread_return, minloglevel,))
     thread.start()
     while thread.is_alive():
-        sys.stdout.write(spinner.next() * 80)  # write the next character
-        sys.stdout.flush()                     # flush stdout buffer (actual character display)
-        sys.stdout.write('\b' * 80)                 # erase the last written char
+        if not verbose_sparkvio:
+            # If SparkVIO is not in verbose mode, the user might think the python script is hanging.
+            # So, instead, display a spinner of 80 characters.
+            sys.stdout.write(next(spinner) * 80)  # write the next character
+            sys.stdout.flush()                     # flush stdout buffer (actual character display)
+            sys.stdout.write('\b' * 80)            # erase the last written char
+        time.sleep(0.100) # Sleep 100ms while SparkVIO is running
     thread.join()
     return thread_return['success']
 
 def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
-                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path=''):
+                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path='',
+                verbose_sparkvio=False):
     """ 
-    * executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
-    * dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
-    * dataset_name: specific dataset to run.
-    * results_dir: directory where the results of the run will reside:
-        used as results_dir/dataset_name/S, results_dir/dataset_name/SP, results_dir/dataset_name/SPR
-        where each directory have traj_est.csv (the estimated trajectory), and plots if requested.
-    * params_dir: directory where the parameters for each pipeline reside:
-        used as params_dir/S, params_dir/SP, params_dir/SPR.
-    * pipeline_output_dir: where to store all output_* files produced by the pipeline.
-    * pipeline_type: type of pipeline to process (1: S, 2: SP, 3: SPR).
-    * SEGMENTS: segments for RPE boxplots.
-    * save_results: saves APE, and RPE per segment results of the run.
-    * plot: whether to plot the APE/RPE results or not.
-    * save_plots: saves plots of APE/RPE.
-    * output_file: the name of the trajectory estimate output of the vio which will then be copied as traj_est.csv.
-    * run_pipeline: whether to run the VIO to generate a new traj_est.csv.
-    * analyse_vio: whether to analyse traj_est.csv or not.
+    Args:
+        - executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
+        - dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
+        - dataset_name: specific dataset to run.
+        - results_dir: directory where the results of the run will reside:
+        -   used as results_dir/dataset_name/S, results_dir/dataset_name/SP, results_dir/dataset_name/SPR
+        -   where each directory have traj_est.csv (the estimated trajectory), and plots if requested.
+        - params_dir: directory where the parameters for each pipeline reside:
+        -   used as params_dir/S, params_dir/SP, params_dir/SPR.
+        - pipeline_output_dir: where to store all output_* files produced by the pipeline.
+        - pipeline_type: type of pipeline to process (1: S, 2: SP, 3: SPR).
+        - SEGMENTS: segments for RPE boxplots.
+        - save_results: saves APE, and RPE per segment results of the run.
+        - plot: whether to plot the APE/RPE results or not.
+        - save_plots: saves plots of APE/RPE.
+        - output_file: the name of the trajectory estimate output of the vio which will then be copied as traj_est.csv.
+        - run_pipeline: whether to run the VIO to generate a new traj_est.csv.
+        - analyse_vio: whether to analyse traj_est.csv or not.
+        - extra_flagfile_path: to be used in order to override other flags or add new ones.
+            Useful for regression tests when the param to be regressed is a gflag.
+        - verbose_sparkvio: whether to print the SparkVIO messages or not.
+            This is useful for debugging, but too verbose when you want to see APE/RPE results.
     """
     dataset_results_dir = os.path.join(results_dir, dataset_name)
     dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
@@ -422,7 +452,7 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
         # The override flags are used by the regression tests.
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
                    pipeline_output_dir, pipeline_type, initial_k, final_k,
-                   extra_flagfile_path=extra_flagfile_path) == 0:
+                   extra_flagfile_path, verbose_sparkvio) == 0:
             evt.print_green("Successful pipeline run.")
             log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
                 (output_file, traj_es))
@@ -452,10 +482,12 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
                      discard_n_end_poses)
     return True
 
+# TODO(Toni): we are passing all params all the time.... Make a class!!
 def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, executable_path,
                 run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
-                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path=''):
+                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path = '',
+                verbose_sparkvio = False):
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
@@ -463,7 +495,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
     dataset_segments = dataset_properties['segments']
 
     ################### RUN PIPELINE ################################
-    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output")
+    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output/")
     evt.create_full_path_if_not_exists(pipeline_output_dir)
     output_file = os.path.join(pipeline_output_dir, "output_posesVIO.csv")
     has_a_pipeline_failed = False
@@ -475,7 +507,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
             pipeline_output_dir, pipeline_type, dataset_segments, save_results,
             plot, save_plots, output_file, run_pipeline, analyse_vio,
             discard_n_start_poses, discard_n_end_poses,
-            initial_k, final_k, extra_flagfile_path)
+            initial_k, final_k, extra_flagfile_path, verbose_sparkvio)
 
     # Save boxplots
     if save_boxplots:
@@ -492,8 +524,8 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
 
                 try:
                     stats[pipeline_type]  = yaml.load(open(results,'r'), Loader=yaml.Loader)
-                except yaml.YAMLError, exc:
-                    raise Exception("Error in results file:", exc)
+                except yaml.YAMLError as e:
+                    raise Exception("Error in results file: ", e)
 
                 log.info("Check stats %s in %s" % (pipeline_type, results))
                 check_stats(stats[pipeline_type])
