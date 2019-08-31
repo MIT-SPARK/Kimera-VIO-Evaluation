@@ -18,7 +18,7 @@ class Mesh:
         vis.get_render_option().mesh_show_back_face = True
         self.add_to_vis(vis)
         mesh_frame = o3d.geometry.create_mesh_coordinate_frame(size=4,
-                                                            origin=[0, 0, 0])
+                                                               origin=[0, 0, 0])
         vis.add_geometry(mesh_frame)
         vis.run()
         vis.destroy_window()

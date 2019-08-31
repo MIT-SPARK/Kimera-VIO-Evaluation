@@ -30,6 +30,13 @@ ros_R_o3d = np.array([[1, 0, 0],
                       [0, 1, 0]])
 o3d_R_ros = np.transpose(ros_R_o3d)
 
+# Rviz however uses a complicated and non-intuitive workaround where the default coordinate convention of Ogre is used, but all Vectors and Quaternions coming from ROS and going back need to be converted using rviz::robotToOgre and rviz::ogreToRobot respectively (see rviz/common.h). Also, this is documented nowhere. What they do is basically this (though expressed more complicated in the source code):
+# ogreToRos(x,y,z) = (-z,-x,y)
+# rosToOgre(x,y,z) = (-y,z,-x)
+ros_R_ogre = np.array([[0,  0, -1],
+                       [-1, 0,  0],
+                       [0,  1,  0]])
+ogre_R_ros = np.transpose(ros_R_ogre)
 
 class MeshEvaluator:
     def __init__(self, est_mesh, gt_mesh):
