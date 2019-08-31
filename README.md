@@ -102,6 +102,10 @@ regression_parameters:
 
 Check the `experiments` folder for an example of a complete `regression_test.yaml` experiment file.
 
+Once the regression tests have finished running, you can visualize the results using the `plot_regression_tests.ipynb` jupyter notebook.
+The notebook will mainly pull the results from the root of the regression test results, save all statistics in a file `all_stats.yaml` and plot results.
+> Note that the notebook will reload the `all_stats.yaml` if it finds one instead of repulling all statistics from the results directory.
+> If you want the regression tests to query again the results dir, then remove the `all_stats.yaml` file at the root of results dir.
 
 # Usage
 
