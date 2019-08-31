@@ -5,11 +5,12 @@ import os
 import yaml
 import glog as log
 from shutil import rmtree, copytree, copy2
+from tqdm import tqdm
 
 from evaluation.tools.filesystem_utils import ensure_dir
 from evaluation.tools.plotter import draw_regression_simple_boxplot_APE
 from evaluation.tools.utils import get_items
-from evaluation_lib import run_dataset
+from evaluation.evaluation_lib import run_dataset
 
 def write_flags_params(param_filepath, param_name, param_value):
     """ Write params to gflags file.
@@ -132,9 +133,11 @@ def check_and_create_regression_test_structure(regression_tests_path, baseline_p
                                 os.path.join(root, file), param_name, param_value, True)
 
             # Modify gflags parameters
+            # Write empty override flags even if no changes to avoid complains...
+            write_flags_params(os.path.join(modified_baseline_params_dir, "override.flags"), '', '')
             if not is_param_name_written_in_yaml_file:
                 # Could not find param_name in vio_params nor tracker_params it must be a gflag:
-                write_flags_params(os.path.join(modified_baseline_params_dir, "flags/override.flags"),
+                write_flags_params(os.path.join(modified_baseline_params_dir, "override.flags"),
                                    param_name, param_value)
             #for extra_param_name, extra_param_value in extra_params_to_modify.items():
             #    if extra_param_name not in written_extra_param_names:
@@ -173,12 +176,12 @@ def run(args):
     # Run experiments.
     log.info("Run regression tests.")
     stats = dict()
-    for regression_param in regression_params:
+    for regression_param in tqdm(regression_params):
         # Redirect to param_name_value dir param_name = regression_param['name']
         param_name = regression_param['name']
         stats[param_name] = dict()
         log.info("Run for regression parameter: %s" % param_name)
-        for param_value in regression_param['values']:
+        for param_value in tqdm(regression_param['values'], desc=regression_param['name'], leave=False):
             results_dir = os.path.join(regression_tests_dir, param_name, str(param_value))
             # Redirect to modified params_dir
             params_dir = os.path.join(results_dir, 'params')
@@ -195,7 +198,7 @@ def run(args):
                                 dataset['initial_frame'],
                                 dataset['final_frame'],
                                 dataset['discard_n_start_poses'],
-                                dataset['discard_n_end_poses'], extra_flagfile_path='flags/override.flags'):
+                                dataset['discard_n_end_poses'], extra_flagfile_path='override.flags'):
                     log.warning("A pipeline run has failed...")
                 stats[param_name][param_value][dataset_name] = dict()
                 for pipeline in pipelines_to_run:

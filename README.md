@@ -1,5 +1,8 @@
 # spark_vio_evaluation
-Code to evaluate and tune SPARK VIO pipeline [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
+
+![](https://travis-ci.org/ToniRV/spark_vio_evaluation.svg?branch=master)
+
+Code to evaluate and tune SPARK VIO pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 This repository contains two main scripts:
 - `main_evaluation.py`: given an experiment yaml file with specifications, it runs SparkVIO pipeline to generate an estimated trajectory.
@@ -8,8 +11,11 @@ It also displays or saves plots about its performance. All functionality is opti
 
 - `regression_tests.py`: runs SparkVIO with different parameters as specified in an experiment yaml file. It displays Absolute Translation Error (ATE) boxplots for each parameter setting to allow visual inspection of what set of parameters is performing well. Check parameters below for functionality.
 
-
 # Prerequisites
+
+- numpy
+- pyyaml
+- evo-1 // Fork from [evo](https://github.com/MichaelGrupp/evo)
 
 > We strongly recommend setting a new virtual environment to avoid conflicts with system-wide installations:
 > ```bash
@@ -18,24 +24,20 @@ It also displays or saves plots about its performance. All functionality is opti
 > source ./venv/bin/activate
 > ```
 
-Install dependencies:
-```bash
-pip install numpy pyyaml evo-1
-```
-
 # Installation
 ```bash
 git clone https://github.com/ToniRV/spark_vio_evaluation
 cd spark_vio_evaluation
+pip install .
 python setup.py develop
 ```
 
-# Example Usage 
+# Example Usage
 
 ## Main Evaluation
 
 The script `main_evaluation.py` runs and evaluates the VIO performance by aligning estimated and ground-truth trajectories and computing error metrics.
-It then saves plots showing its performance. 
+It then saves plots showing its performance.
 
 The script expects an **experiment** yaml file with the following syntax:
 ```yaml
@@ -86,7 +88,7 @@ The only difference is that its **experiment** yaml file expects two extra field
 - `regression_tests_dir`: the path where to store the tests results. This repo already provides a `regression_tests` folder for convenience.
 - `regression_parameters`: which specifies the VIO parameters to modify on each run.
 
-For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in 
+For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in
 ```yaml
 # Here goes the same as in a main_evaluation experiment file [...]
 # This is the path where to store the regression tests.
@@ -100,6 +102,10 @@ regression_parameters:
 
 Check the `experiments` folder for an example of a complete `regression_test.yaml` experiment file.
 
+Once the regression tests have finished running, you can visualize the results using the `plot_regression_tests.ipynb` jupyter notebook.
+The notebook will mainly pull the results from the root of the regression test results, save all statistics in a file `all_stats.yaml` and plot results.
+> Note that the notebook will reload the `all_stats.yaml` if it finds one instead of repulling all statistics from the results directory.
+> If you want the regression tests to query again the results dir, then remove the `all_stats.yaml` file at the root of results dir.
 
 # Usage
 
@@ -141,6 +147,9 @@ output options:
   --save_plots          Save plots?
   --save_boxplots       Save boxplots?
   --save_results        Save results?
+  -v, --verbose_sparkvio
+                        Make SparkVIO log all verbosity to console. Useful
+                        for debugging if a run failed.
 ```
 
 
@@ -176,6 +185,12 @@ Provided are jupyter notebooks for extra plotting.
 # Chart of implementation details:
 
 ![SparkVIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
+
+# Notes
+
+The behaviour for the plots depends also on `evo_config`.
+For example, in Jenkins we use the default `evo_config` which does not split plots.
+Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
 
 # References
 [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.

@@ -46,5 +46,7 @@ regression_parameters:
   #  values: [0.0001, 0.001, 0.01]
   #- name: 'num_frames_vio_init'
   #  values: [10, 15, 20, 25, 30, 35]
-  - name: 'outlier_rejection_bundle_adjustment'
-    values: [10, 15, 20, 25, 30, 35, 40]
+  #- name: 'outlier_rejection_bundle_adjustment'
+  #  values: [10, 15, 20, 25, 30, 35, 40]
+  - name: 'autoInitialize'
+    values: [0, 1, 2]

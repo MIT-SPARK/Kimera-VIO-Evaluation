@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pylab import setp
 from matplotlib.ticker import FuncFormatter
 
-from filesystem_utils import ensure_dir
+from .filesystem_utils import ensure_dir
 
 from evo.core import result
 
@@ -229,7 +229,7 @@ def draw_ape_boxplots(stats, output_dir):
     colors = ['blue', 'black', 'green', 'red', 'mangenta', 'cyan', 'orange']
     if isinstance(stats, dict):
         n_param_values = len(stats)
-        n_pipeline_types = len(stats.values()[0])
+        n_pipeline_types = len(list(stats.values())[0])
         spacing = 1
 
         # Precompute position of boxplots in plot.
@@ -253,7 +253,7 @@ def draw_ape_boxplots(stats, output_dir):
         legend_handles = []
         # Draw legend.
         color_id = 0
-        for pipeline_type, pipeline_stats in sorted(stats.values()[0].items()):
+        for pipeline_type, pipeline_stats in sorted(list(stats.values())[0].items()):
             # The dummy plots are used to create the legends.
             dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
             legend_labels.append(pipeline_type)
@@ -373,7 +373,7 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
     n_param_values = len(stats)
     assert(n_param_values > 0)
 
-    n_pipeline_types = len(stats.values()[0])
+    n_pipeline_types = len(list(stats.values())[0])
     spacing = 1
 
     # Precompute position of boxplots in plot.
@@ -397,7 +397,7 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
     legend_handles = []
     # Draw legend.
     color_id = 0
-    for pipeline_type, pipeline_stats in sorted(stats.values()[0].items()): #inefficient in py2 but compatible py2 & 3
+    for pipeline_type, pipeline_stats in sorted(list(stats.values())[0].items()): #inefficient in py2 but compatible py2 & 3
         # The dummy plots are used to create the legends.
         dummy_plot_pos = ax_pos.plot([1,1], '-', color=colors[color_id])
         legend_labels.append(pipeline_type)
