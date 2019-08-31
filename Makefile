@@ -1,4 +1,4 @@
-.PHONY: help euroc_evaluation regression_tests
+.PHONY: help euroc_evaluation regression_tests metric_semantic
 
 help:
 	@evaluation/main_evaluation.py --help
@@ -8,3 +8,6 @@ euroc_evaluation:
 
 regression_tests:
 	@evaluation/regression_tests.py -r -a --save_results experiments/regression_test.yaml
+
+metric_semantic:
+	@evaluation/metric_semantic_evaluation.py ~/Downloads/tesse_multiscene_office1_3d_semantic_v4.ply ~/Downloads/tesse_semantics_2.ply
