@@ -88,7 +88,7 @@ if __name__ == '__main__':
     est_mesh = Mesh(args.path_to_est_ply)
     gt_mesh = Mesh(args.path_to_gt_ply)
     print("Transforming gt_mesh from Left Hand frame of reference (Unity) to Right Hand (ROS)")
-    #gt_mesh.transform_right(righthand_R_lefthand)
+    gt_mesh.transform_right(righthand_R_lefthand)
     print("Loading Estimated mesh...")
     mesh_eval = MeshEvaluator(gt_mesh, est_mesh)
     mesh_eval.visualize_meshes()
