@@ -36,6 +36,7 @@ class Mesh:
         print("")
 
     def transform_left(self, rotation_matrix):
+        # TODO(Toni): there is a transform method!!!
         assert(isinstance(rotation_matrix, np.ndarray))
         assert(np.size(rotation_matrix, 0) == 3)
         assert(np.size(rotation_matrix, 1) == 3)

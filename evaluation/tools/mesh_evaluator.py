@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
 import open3d as o3d
-import os
-import glog as log
 import numpy as np
 
 from evaluation.tools.mesh import Mesh
@@ -63,46 +59,3 @@ class MeshEvaluator:
     def align_meshes(self, guess_tf):
         """ Aligns both meshes using ICP given a good guess of what is the initial registration """
         print("Align...")
-
-
-if __name__ == '__main__':
-    import argcomplete
-    import sys
-
-    def parser():
-        import argparse
-        basic_desc = "Full evaluation of SPARK VIO pipeline (APE trans + RPE trans + RPE rot) metric app"
-
-        shared_parser = argparse.ArgumentParser(
-            add_help=True, description="{}".format(basic_desc))
-
-        input_opts = shared_parser.add_argument_group("input options")
-
-        input_opts.add_argument("path_to_gt_ply", help="Path to the ground-truth ply file with the mesh.",
-                                default="./gt_mesh.ply")
-        input_opts.add_argument("path_to_est_ply", help="Path to the estimated ply file with the mesh.",
-                                default="./est_mesh.ply")
-
-        main_parser = argparse.ArgumentParser(
-            description="{}".format(basic_desc))
-        sub_parsers = main_parser.add_subparsers(dest="subcommand")
-        sub_parsers.required = True
-        return shared_parser
-
-    log.setLevel("INFO")
-    parser = parser()
-    argcomplete.autocomplete(parser)
-    args = parser.parse_args()
-
-    print("Loading Ground-truth mesh...")
-    est_mesh = Mesh(args.path_to_est_ply)
- #    - 2 * np.asarray(est_mesh.mesh_o3d.vertices[1])
-    est_mesh.mesh_o3d.translate([0, -5, 0])
-    #est_mesh.visualize()
-    gt_mesh = Mesh(args.path_to_gt_ply)
-    print("Transforming gt_mesh from Left Hand frame of reference (Unity) to Right Hand (ROS)")
-    #gt_mesh.transform_left(enu_R_unity)
-    gt_mesh.transform_right(righthand_R_lefthand)
-    print("Loading Estimated mesh...")
-    mesh_eval = MeshEvaluator(gt_mesh, est_mesh)
-    mesh_eval.visualize_meshes()
