@@ -66,15 +66,15 @@ datasets_to_run:
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
-   initial_frame: 100
-   final_frame: 2600
+   initial_frame: 80
+   final_frame: 2400
  - name: MH_04_difficult
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
-   initial_frame: 200
-   final_frame: 1800
+   initial_frame: 250
+   final_frame: 1600
  - name: MH_05_difficult
    segments: [5]
    pipelines: ['S']
