@@ -41,5 +41,5 @@ class TestMainEvaluation(TestCase):
                 # Remove file so that we do not re-test and get a false negative...
                 os.remove(plot_filepath)
             except:
-                raise Exception("Error while deleting file : ", plots_filepath)
+                raise Exception("Error while deleting file : ", plot_filepath)
 
