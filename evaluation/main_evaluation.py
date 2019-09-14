@@ -12,6 +12,7 @@ def run(args):
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
 
+    build_dir = os.path.expandvars(experiment_params['build_dir'])
     results_dir = os.path.expandvars(experiment_params['results_dir'])
     params_dir = os.path.expandvars(experiment_params['params_dir'])
     dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
@@ -24,7 +25,7 @@ def run(args):
     for dataset in tqdm(datasets_to_run):
         log.info("Run dataset: %s" % dataset['name'])
         pipelines_to_run = dataset['pipelines']
-        if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
+        if not run_dataset(results_dir, params_dir, dataset_dir, build_dir, dataset, executable_path,
                            args.run_pipeline, args.analyse_vio,
                            args.plot, args.save_results,
                            args.save_plots, args.save_boxplots,

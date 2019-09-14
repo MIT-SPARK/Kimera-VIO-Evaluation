@@ -349,9 +349,9 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
             plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
 # Run pipeline as a subprocess.
-def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
+def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
-            extra_flagfile_path="", use_lcd=1, verbose_sparkvio=False):
+            extra_flagfile_path="", use_lcd=True, verbose_sparkvio=False):
     """ Runs pipeline depending on the pipeline_type using a subprocess.
     Args:
         - executable_path: where the SparkVIO executable is.
@@ -418,11 +418,11 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir,
     thread.join()
     return thread_return['success']
 
-def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, pipeline_output_dir,
+def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, build_dir, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
                 analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path='',
-                verbose_sparkvio=False):
-    """ 
+                use_lcd=True, verbose_sparkvio=False):
+    """
     Args:
         - executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
         - dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
@@ -455,19 +455,19 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
         evt.print_green("Run pipeline: %s" % pipeline_type)
         # The override flags are used by the regression tests.
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
-                   pipeline_output_dir, pipeline_type, initial_k, final_k,
-                   extra_flagfile_path, verbose_sparkvio) == 0:
+                   build_dir, pipeline_output_dir, pipeline_type, initial_k,
+                   final_k, extra_flagfile_path, use_lcd, verbose_sparkvio) == 0:
             evt.print_green("Successful pipeline run.")
-            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" % 
+            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
                 (output_file, traj_es))
             copyfile(output_file, traj_es)
             output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
-            log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" % 
+            log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
                 (pipeline_output_dir, output_destination_dir))
             try:
                 evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
             except:
-                log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" % 
+                log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" %
                     (pipeline_output_dir, output_destination_dir))
         else:
             log.error("Pipeline failed on dataset: " + dataset_name)
@@ -487,11 +487,11 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     return True
 
 # TODO(Toni): we are passing all params all the time.... Make a class!!
-def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, executable_path,
-                run_pipeline, analyse_vio,
+def run_dataset(results_dir, params_dir, dataset_dir, build_dir,
+                dataset_properties, executable_path, run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
                 initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path = '',
-                verbose_sparkvio = False):
+                use_lcd = True, verbose_sparkvio = False):
     """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
             and Structureless(S) + Projection(P) + Regular(R) factors \
             and then compiles a list of results """
@@ -508,10 +508,10 @@ def run_dataset(results_dir, params_dir, dataset_dir, dataset_properties, execut
     for pipeline_type in pipelines_to_run_list:
         has_a_pipeline_failed = not process_vio(
             executable_path, dataset_dir, dataset_name, results_dir, params_dir,
-            pipeline_output_dir, pipeline_type, dataset_segments, save_results,
-            plot, save_plots, output_file, run_pipeline, analyse_vio,
-            discard_n_start_poses, discard_n_end_poses,
-            initial_k, final_k, extra_flagfile_path, verbose_sparkvio)
+            build_dir, pipeline_output_dir, pipeline_type, dataset_segments,
+            save_results, plot, save_plots, output_file, run_pipeline,
+            analyse_vio, discard_n_start_poses, discard_n_end_poses,
+            initial_k, final_k, extra_flagfile_path, use_lcd, verbose_sparkvio)
 
     # Save boxplots
     if save_boxplots:
