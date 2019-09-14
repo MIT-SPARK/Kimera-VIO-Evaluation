@@ -16,6 +16,7 @@ It also displays or saves plots about its performance. All functionality is opti
 - numpy
 - pyyaml
 - evo-1 // Fork from [evo](https://github.com/MichaelGrupp/evo)
+- open3d-python
 
 > We strongly recommend setting a new virtual environment to avoid conflicts with system-wide installations:
 > ```bash
