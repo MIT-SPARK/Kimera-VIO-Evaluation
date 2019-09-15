@@ -18,6 +18,7 @@ def run(args):
     dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
     executable_path = os.path.expandvars(experiment_params['executable_path'])
     datasets_to_run = experiment_params['datasets_to_run']
+    use_lcd = experiment_params['use_lcd']
 
     # Run experiments.
     log.info("Run experiments")
@@ -33,7 +34,8 @@ def run(args):
                            dataset['initial_frame'],
                            dataset['final_frame'],
                            dataset['discard_n_start_poses'],
-                           dataset['discard_n_end_poses'], verbose_sparkvio=args.verbose_sparkvio):
+                           dataset['discard_n_end_poses'], use_lcd=use_lcd,
+                           verbose_sparkvio=args.verbose_sparkvio):
             log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
             successful_run = False
 

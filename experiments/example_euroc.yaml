@@ -3,6 +3,8 @@ results_dir: '$HOME/Code/spark_vio_evaluation/results'
 params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
 dataset_dir: '$HOME/datasets/euroc'
 
+use_lcd: true
+
 datasets_to_run:
  - name: V1_01_easy
    segments: [1]
@@ -18,5 +20,3 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 300
-
-
