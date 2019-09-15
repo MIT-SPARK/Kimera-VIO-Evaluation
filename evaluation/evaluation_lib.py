@@ -544,6 +544,258 @@ def run_analysis_pgo(traj_ref_path, traj_pgo_path, segments, save_results, displ
             plot_collection.export(os.path.join(save_folder, "plots_pgo.eps"), False)
             plot_collection.export(os.path.join(save_folder, "plots_pgo.pdf"), False)
 
+def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, save_results, display_plot, save_plots,
+                     save_folder, confirm_overwrite = False, dataset_name = "", discard_n_start_poses=0,
+                     discard_n_end_poses=0):
+    """ Run analysis on given trajectories, saves plots on given path for PGO:
+    :param traj_ref_path: path to the reference (ground truth) trajectory.
+    :param traj_pgo_path: path to the estimated PGO trajectory.
+    :param save_results: saves APE, and RPE per segment results.
+    :param save_plots: whether to save the plots.
+    :param save_folder: where to save the plots.
+    :param confirm_overwrite: whether to confirm overwriting plots or not.
+    :param dataset_name: optional param, to allow setting the same scale on different plots.
+    """
+    # Load trajectories.
+    import pandas as pd
+    import copy
+    from evo.tools import pandas_bridge, file_interface
+    traj_ref = None
+    try:
+        traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path) # TODO make it non-euroc specific.
+    except file_interface.FileInterfaceException as e:
+        raise Exception("\033[91mMissing ground truth csv! \033[93m {}.".format(e))
+
+    traj_ref_vio = copy.deepcopy(traj_ref)
+    traj_ref_pgo = copy.deepcopy(traj_ref)
+
+    traj_est_vio = None
+    try:
+        traj_est_vio = pandas_bridge.df_to_trajectory(
+            pd.read_csv(traj_es_path, sep=',', index_col=0))
+    except Exception as e:
+        log.info(e)
+        raise Exception("\033[91mMissing vio output csv.\033[99m")
+
+    traj_est_pgo = None
+    try:
+        traj_est_pgo = pandas_bridge.df_to_trajectory(
+            pd.read_csv(traj_pgo_path, sep=',', index_col=0))
+    except Exception as e:
+        log.info(e)
+        raise Exception("\033[91mMissing pgo output csv.\033[99m")
+
+    evt.print_purple("Registering trajectories")
+    traj_ref_vio, traj_est_vio = sync.associate_trajectories(traj_ref_vio, traj_est_vio)
+    traj_ref_pgo, traj_est_pgo = sync.associate_trajectories(traj_ref_pgo, traj_est_pgo)
+
+    evt.print_purple("Aligning trajectories")
+    traj_est_vio = trajectory.align_trajectory(traj_est_vio, traj_ref_vio, correct_scale = False,
+                                           discard_n_start_poses = int(discard_n_start_poses),
+                                           discard_n_end_poses = int(discard_n_end_poses))
+    traj_est_pgo = trajectory.align_trajectory(traj_est_pgo, traj_ref_pgo, correct_scale = False,
+                                           discard_n_start_poses = int(discard_n_start_poses),
+                                           discard_n_end_poses = int(discard_n_end_poses))
+
+    num_of_poses = traj_est_vio.num_poses
+    traj_est_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+    traj_ref_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+
+    num_of_poses = traj_est_pgo.num_poses
+    traj_est_pgo.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+    traj_ref_pgo.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+
+    # TODO(marcus): not messing with this 'results' stuff for pgo for now!
+    # First PGO results.
+    evt.print_purple("Calculating APE translation part of PGO trajectory")
+    data = (traj_ref_pgo, traj_est_pgo)
+    ape_metric_pgo = metrics.APE(metrics.PoseRelation.translation_part)
+    ape_metric_pgo.process_data(data)
+    ape_result_pgo = ape_metric_pgo.get_result()
+
+    # Now VIO only results.
+    results = dict()
+    evt.print_purple("Calculating APE translation part of VIO trajectory")
+    data = (traj_ref_vio, traj_est_vio)
+    ape_metric_vio = metrics.APE(metrics.PoseRelation.translation_part)
+    ape_metric_vio.process_data(data)
+    ape_result_vio = ape_metric_vio.get_result()
+    results["absolute_errors"] = ape_result_vio
+    log.info(ape_result_vio.pretty_str(info=True))
+
+    # TODO(Toni): Save RPE computation results rather than the statistics
+    # you can compute statistics later...
+    evt.print_purple("Calculating RPE translation part for plotting")
+    rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
+                                   1.0, metrics.Unit.frames, 0.0, False)
+    rpe_metric_trans.process_data(data)
+    rpe_stats_trans = rpe_metric_trans.get_all_statistics()
+    log.info("mean: %f" % rpe_stats_trans["mean"])
+
+    evt.print_purple("Calculating RPE rotation angle for plotting")
+    rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
+                                 1.0, metrics.Unit.frames, 1.0, False)
+    rpe_metric_rot.process_data(data)
+    rpe_stats_rot = rpe_metric_rot.get_all_statistics()
+    log.info("mean: %f" % rpe_stats_rot["mean"])
+
+    results["relative_errors"] = dict()
+    # Read segments file
+    for segment in segments:
+        results["relative_errors"][segment] = dict()
+        evt.print_purple("RPE analysis of segment: %d"%segment)
+        evt.print_lightpurple("Calculating RPE segment translation part")
+        rpe_segment_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
+                                       float(segment), metrics.Unit.meters, 0.01, True)
+        rpe_segment_metric_trans.process_data(data)
+        rpe_segment_stats_trans = rpe_segment_metric_trans.get_all_statistics()
+        results["relative_errors"][segment]["rpe_trans"] = rpe_segment_stats_trans
+        # print(rpe_segment_stats_trans)
+        # print("mean:", rpe_segment_stats_trans["mean"])
+
+        evt.print_lightpurple("Calculating RPE segment rotation angle")
+        rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
+                                     float(segment), metrics.Unit.meters, 0.01, True)
+        rpe_segment_metric_rot.process_data(data)
+        rpe_segment_stats_rot = rpe_segment_metric_rot.get_all_statistics()
+        results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
+        # print(rpe_segment_stats_rot)
+        # print("mean:", rpe_segment_stats_rot["mean"])
+
+    if save_results:
+        # Save results file
+        results_file = os.path.join(save_folder, 'results.yaml')
+        evt.print_green("Saving analysis results to: %s" % results_file)
+        with open(results_file,'w') as outfile:
+            if confirm_overwrite:
+                if evt.user.check_and_confirm_overwrite(results_file):
+                        outfile.write(yaml.dump(results, default_flow_style=False))
+                else:
+                    log.info("Not overwritting results.")
+            else:
+                outfile.write(yaml.dump(results, default_flow_style=False))
+
+    # For each segment in segments file
+    # Calculate rpe with delta = segment in meters with all-pairs set to True
+    # Calculate max, min, rmse, mean, median etc
+
+    # Plot boxplot, or those cumulative figures you see in evo (like demographic plots)
+    if display_plot or save_plots:
+        # First plot pgo stuff.
+
+        evt.print_green("Plotting PGO:")
+        log.info(dataset_name)
+        plot_collection = plot.PlotCollection("Example")
+        # metric values
+        fig_1 = plt.figure(figsize=(8, 8))
+        ymax = -1
+        if dataset_name is not "" and FIX_MAX_Y:
+            ymax = Y_MAX_APE_TRANS[dataset_name]
+
+        ape_statistics_pgo = ape_metric_pgo.get_all_statistics()
+        plot.error_array(fig_1, ape_metric_pgo.error, statistics=ape_statistics_pgo,
+                         name="APE translation of PGO trajectory", title=""#str(ape_metric)
+                         , xlabel="Keyframe index [-]",
+                         ylabel="APE translation [m]", y_min= 0.0, y_max=ymax)
+        plot_collection.add_figure("APE_translation_of_PGO_trajectory", fig_1)
+
+        # trajectory colormapped with error
+        fig_2 = plt.figure(figsize=(8, 8))
+        plot_mode = plot.PlotMode.xy
+        ax = plot.prepare_axis(fig_2, plot_mode)
+        plot.traj(ax, plot_mode, traj_ref_pgo, '--', 'gray', 'reference')
+        plot.traj(ax, plot_mode, traj_est_vio, '.', 'gray', 'vio without pgo')  # TODO(marcus): remove?
+        plot.traj_colormap(ax, traj_est_pgo, ape_metric_pgo.error, plot_mode,
+                           min_map=0.0, max_map=math.ceil(ape_statistics_pgo['max']*10)/10,
+                           title="ATE mapped onto PGO trajectory [m]")
+        plot_collection.add_figure("APE_translation_trajectory_error_of_PGO_trajectory", fig_2)
+
+        # Now plot VIO stuff.
+        evt.print_green("Plotting VIO:")
+        # metric values
+        fig_3 = plt.figure(figsize=(8, 8))
+        ymax = -1
+        if dataset_name is not "" and FIX_MAX_Y:
+            ymax = Y_MAX_APE_TRANS[dataset_name]
+
+        ape_statistics_vio = ape_metric_vio.get_all_statistics()
+        plot.error_array(fig_3, ape_metric_vio.error, statistics=ape_statistics_vio,
+                         name="APE translation", title=""#str(ape_metric)
+                         , xlabel="Keyframe index [-]",
+                         ylabel="APE translation [m]", y_min= 0.0, y_max=ymax)
+        plot_collection.add_figure("APE_translation", fig_3)
+
+        # trajectory colormapped with error
+        fig_4 = plt.figure(figsize=(8, 8))
+        plot_mode = plot.PlotMode.xy
+        ax = plot.prepare_axis(fig_4, plot_mode)
+        plot.traj(ax, plot_mode, traj_ref_vio, '--', 'gray', 'reference')
+        plot.traj_colormap(ax, traj_est_vio, ape_metric_vio.error, plot_mode,
+                           min_map=0.0, max_map=math.ceil(ape_statistics_vio['max']*10)/10,
+                           title="ATE mapped onto trajectory [m]")
+        plot_collection.add_figure("APE_translation_trajectory_error", fig_4)
+
+        # RPE
+        ## Trans
+        ### metric values
+        fig_5 = plt.figure(figsize=(8, 8))
+        if dataset_name is not "" and FIX_MAX_Y:
+            ymax = Y_MAX_RPE_TRANS[dataset_name]
+        plot.error_array(fig_5, rpe_metric_trans.error, statistics=rpe_stats_trans,
+                         name="RPE translation", title=""#str(rpe_metric_trans)
+                         , xlabel="Keyframe index [-]", ylabel="RPE translation [m]", y_max=ymax)
+        plot_collection.add_figure("RPE_translation", fig_5)
+
+        ### trajectory colormapped with error
+        fig_6 = plt.figure(figsize=(8, 8))
+        plot_mode = plot.PlotMode.xy
+        ax = plot.prepare_axis(fig_6, plot_mode)
+        traj_ref_trans = copy.deepcopy(traj_ref_vio)
+        traj_ref_trans.reduce_to_ids(rpe_metric_trans.delta_ids)
+        traj_est_trans = copy.deepcopy(traj_est_vio)
+        traj_est_trans.reduce_to_ids(rpe_metric_trans.delta_ids)
+        plot.traj(ax, plot_mode, traj_ref_trans, '--', 'gray', 'Reference')
+        plot.traj_colormap(ax, traj_est_trans, rpe_metric_trans.error, plot_mode,
+                           min_map=0.0, max_map=math.ceil(rpe_stats_trans['max']*10)/10,
+                           title="RPE translation error mapped onto trajectory [m]"
+                          )
+        plot_collection.add_figure("RPE_translation_trajectory_error", fig_6)
+
+        ## Rot
+        ### metric values
+        fig_7 = plt.figure(figsize=(8, 8))
+        if dataset_name is not "" and FIX_MAX_Y:
+            ymax = Y_MAX_RPE_ROT[dataset_name]
+        plot.error_array(fig_7, rpe_metric_rot.error, statistics=rpe_stats_rot,
+                         name="RPE rotation error", title=""#str(rpe_metric_rot)
+                         , xlabel="Keyframe index [-]", ylabel="RPE rotation [deg]", y_max=ymax)
+        plot_collection.add_figure("RPE_rotation", fig_7)
+
+        ### trajectory colormapped with error
+        fig_8 = plt.figure(figsize=(8, 8))
+        plot_mode = plot.PlotMode.xy
+        ax = plot.prepare_axis(fig_8, plot_mode)
+        traj_ref_rot = copy.deepcopy(traj_ref_vio)
+        traj_ref_rot.reduce_to_ids(rpe_metric_rot.delta_ids)
+        traj_est_rot = copy.deepcopy(traj_est_vio)
+        traj_est_rot.reduce_to_ids(rpe_metric_rot.delta_ids)
+        plot.traj(ax, plot_mode, traj_ref_rot, '--', 'gray', 'Reference')
+        plot.traj_colormap(ax, traj_est_rot, rpe_metric_rot.error, plot_mode,
+                           min_map=0.0, max_map=math.ceil(rpe_stats_rot['max']*10)/10,
+                           title="RPE rotation error mapped onto trajectory [deg]")
+        plot_collection.add_figure("RPE_rotation_trajectory_error", fig_8)
+
+        if display_plot:
+            evt.print_green("Displaying plots.")
+            plot_collection.show()
+
+        if save_plots:
+            evt.print_green("Saving plots to: ")
+            log.info(save_folder)
+            # Config output format (pdf, eps, ...) using evo_config...
+            plot_collection.export(os.path.join(save_folder, "plots.eps"), False)
+            plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
+
 # Run pipeline as a subprocess.
 def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
@@ -676,16 +928,23 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
         log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
                  % (dataset_results_dir, pipeline_type))
         evt.print_green("Starting analysis of pipeline: %s" % pipeline_type)
-        run_analysis(traj_ref_path, traj_es, SEGMENTS,
-                     save_results, plot, save_plots, dataset_pipeline_result_dir, False,
-                     dataset_name,
-                     discard_n_start_poses,
-                     discard_n_end_poses)
-        run_analysis_pgo(traj_ref_path, traj_pgo, SEGMENTS,
+
+        if use_lcd:
+            run_analysis_united(traj_ref_path, traj_es, traj_pgo, SEGMENTS,
+                                save_results, plot, save_plots, dataset_pipeline_result_dir , False,
+                                dataset_name, discard_n_start_poses, discard_n_end_poses)
+        else:
+            run_analysis(traj_ref_path, traj_es, SEGMENTS,
                          save_results, plot, save_plots, dataset_pipeline_result_dir, False,
                          dataset_name,
                          discard_n_start_poses,
                          discard_n_end_poses)
+        # run_analysis_pgo(traj_ref_path, traj_pgo, SEGMENTS,
+        #                  save_results, plot, save_plots, dataset_pipeline_result_dir, False,
+        #                  dataset_name,
+        #                  discard_n_start_poses,
+        #                  discard_n_end_poses)
+
     return True
 
 # TODO(Toni): we are passing all params all the time.... Make a class!!
