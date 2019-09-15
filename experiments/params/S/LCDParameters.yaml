@@ -2,10 +2,10 @@
 # LoopClosureDetector parameters:
 use_nss: 1
 alpha: 0.5
-min_temporal_matches: 4
-dist_local: 10
+min_temporal_matches: 1
+dist_local: 1
 max_db_results: 50
-min_nss_factor: 0.0001
+min_nss_factor: 0.05
 min_matches_per_group: 1
 max_intragroup_gap: 3
 max_distance_between_groups: 3
