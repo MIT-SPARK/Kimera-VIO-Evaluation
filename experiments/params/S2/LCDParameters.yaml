@@ -1,7 +1,7 @@
 %YAML:1.0
 # LoopClosureDetector parameters:
 use_nss: 1
-alpha: 0.0005
+alpha: 0.001
 min_temporal_matches: 1
 dist_local: 1
 max_db_results: 50
@@ -41,7 +41,7 @@ patch_sze: 31
 fast_threshold: 20
 
 pgo_rot_threshold: 0.005
-pgo_trans_threshold: 0.005
+pgo_trans_threshold: 0.001
 
 # geom_check_id options:
 #   0: NISTER
