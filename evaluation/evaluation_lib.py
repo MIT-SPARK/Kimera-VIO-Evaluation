@@ -59,7 +59,7 @@ Y_MAX_RPE_ROT = {
 def aggregate_all_results(results_dir):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
     with results:
-        Args: 
+        Args:
             - result_dir: path to the directory with results ordered as follows:
                \* dataset_name:
                |___\* pipeline_type:
@@ -101,7 +101,7 @@ def aggregate_all_results(results_dir):
 def aggregate_ape_results(results_dir):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
     with results:
-        Args: 
+        Args:
             - result_dir: path to the directory with results ordered as follows:
                \* dataset_name:
                |___\* pipeline_type:
@@ -797,7 +797,7 @@ def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, sa
             plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
 # Run pipeline as a subprocess.
-def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
+def run_vio(executable_path, dataset_dir, dataset_name, params_dir, vocabulary_path,
             pipeline_output_dir, pipeline_type, initial_k, final_k,
             extra_flagfile_path="", use_lcd=True, verbose_sparkvio=False):
     """ Runs pipeline depending on the pipeline_type using a subprocess.
@@ -825,7 +825,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
                             --vio_params_path={}/{}/{} \
                             --tracker_params_path={}/{}/{} \
                             --lcd_params_path={}/{}/{} \
-                            --vocabulary_path={}/{}/{} \
+                            --vocabulary_path={} \
                             --flagfile={}/{}/{} --flagfile={}/{}/{} \
                             --flagfile={}/{}/{} --flagfile={}/{}/{} \
                             --flagfile={}/{}/{} --flagfile={}/{} \
@@ -835,7 +835,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
             params_dir, pipeline_type, "regularVioParameters.yaml",
             params_dir, pipeline_type, "trackerParameters.yaml",
             params_dir, pipeline_type, "LCDParameters.yaml",
-            build_dir,  "../",         "vocabulary/ORBvoc.yml",
+            vocabulary_path,
             params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
             params_dir, pipeline_type, "flags/Mesher.flags",
             params_dir, pipeline_type, "flags/VioBackEnd.flags",
@@ -866,7 +866,7 @@ def run_vio(executable_path, dataset_dir, dataset_name, params_dir, build_dir,
     thread.join()
     return thread_return['success']
 
-def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, build_dir, pipeline_output_dir,
+def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, vocabulary_path, pipeline_output_dir,
                 pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
                 analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path='',
                 use_lcd=True, verbose_sparkvio=False):
@@ -904,7 +904,7 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
         evt.print_green("Run pipeline: %s" % pipeline_type)
         # The override flags are used by the regression tests.
         if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
-                   build_dir, pipeline_output_dir, pipeline_type, initial_k,
+                   vocabulary_path, pipeline_output_dir, pipeline_type, initial_k,
                    final_k, extra_flagfile_path, use_lcd, verbose_sparkvio) == 0:
             evt.print_green("Successful pipeline run.")
             log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
@@ -948,7 +948,7 @@ def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_
     return True
 
 # TODO(Toni): we are passing all params all the time.... Make a class!!
-def run_dataset(results_dir, params_dir, dataset_dir, build_dir,
+def run_dataset(results_dir, params_dir, dataset_dir, vocabulary_path,
                 dataset_properties, executable_path, run_pipeline, analyse_vio,
                 plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
                 initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path = '',
@@ -969,7 +969,7 @@ def run_dataset(results_dir, params_dir, dataset_dir, build_dir,
     for pipeline_type in pipelines_to_run_list:
         has_a_pipeline_failed = not process_vio(
             executable_path, dataset_dir, dataset_name, results_dir, params_dir,
-            build_dir, pipeline_output_dir, pipeline_type, dataset_segments,
+            vocabulary_path, pipeline_output_dir, pipeline_type, dataset_segments,
             save_results, plot, save_plots, output_file, run_pipeline,
             analyse_vio, discard_n_start_poses, discard_n_end_poses,
             initial_k, final_k, extra_flagfile_path, use_lcd, verbose_sparkvio)
