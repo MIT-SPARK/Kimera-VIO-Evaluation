@@ -84,7 +84,9 @@ if __name__ == '__main__':
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    if run(args):
-        sys.exit(os.EX_OK)
-    else:
+    try:
+        if run(args):
+            sys.exit(os.EX_OK)
+    except Exception as e:
+        print("error: ", e)
         raise Exception("Main evaluation run failed.")
