@@ -1,7 +1,6 @@
 #!/bin/bash
 --parallel_run=true
 --log_output=true
---parallel_run=true
 --backend_type=1
 --regular_vio_backend_modality=0
 --deterministic_random_number_generator=true

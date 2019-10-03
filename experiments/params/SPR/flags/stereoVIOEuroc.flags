@@ -1,4 +1,5 @@
 #!/bin/bash
+--parallel_run=true
 --log_output=false
 --backend_type=1
 --regular_vio_backend_modality=4

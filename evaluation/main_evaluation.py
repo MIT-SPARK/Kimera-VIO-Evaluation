@@ -12,11 +12,13 @@ def run(args):
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
 
+    vocabulary_path = os.path.expandvars(experiment_params['vocabulary_path'])
     results_dir = os.path.expandvars(experiment_params['results_dir'])
     params_dir = os.path.expandvars(experiment_params['params_dir'])
     dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
     executable_path = os.path.expandvars(experiment_params['executable_path'])
     datasets_to_run = experiment_params['datasets_to_run']
+    use_lcd = experiment_params['use_lcd']
 
     # Run experiments.
     log.info("Run experiments")
@@ -24,7 +26,7 @@ def run(args):
     for dataset in tqdm(datasets_to_run):
         log.info("Run dataset: %s" % dataset['name'])
         pipelines_to_run = dataset['pipelines']
-        if not run_dataset(results_dir, params_dir, dataset_dir, dataset, executable_path,
+        if not run_dataset(results_dir, params_dir, dataset_dir, vocabulary_path, dataset, executable_path,
                            args.run_pipeline, args.analyse_vio,
                            args.plot, args.save_results,
                            args.save_plots, args.save_boxplots,
@@ -32,7 +34,8 @@ def run(args):
                            dataset['initial_frame'],
                            dataset['final_frame'],
                            dataset['discard_n_start_poses'],
-                           dataset['discard_n_end_poses'], verbose_sparkvio=args.verbose_sparkvio):
+                           dataset['discard_n_end_poses'], use_lcd=use_lcd,
+                           verbose_sparkvio=args.verbose_sparkvio):
             log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
             successful_run = False
 
@@ -81,7 +84,9 @@ if __name__ == '__main__':
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    if run(args):
-        sys.exit(os.EX_OK)
-    else:
+    try:
+        if run(args):
+            sys.exit(os.EX_OK)
+    except Exception as e:
+        print("error: ", e)
         raise Exception("Main evaluation run failed.")
