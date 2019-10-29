@@ -555,7 +555,7 @@ def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, sa
     """
     # Load trajectories.
     import copy
-    from evo.tools, file_interface
+    from evo.tools import file_interface
     traj_ref = None
     try:
         traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path) # TODO make it non-euroc specific.
