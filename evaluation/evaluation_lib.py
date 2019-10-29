@@ -372,7 +372,7 @@ def run_analysis_pgo(traj_ref_path, traj_pgo_path, segments, save_results, displ
     try:
         traj_est = file_interface.read_pose_csv_trajectory(traj_est_path)
     except file_interface.FileInterfaceException as e:
-        rraise Exception("\033[91mMissing pgo output csv! \033[93m {}.".format(e))
+        raise Exception("\033[91mMissing pgo output csv! \033[93m {}.".format(e))
 
     evt.print_purple("Registering trajectories")
     traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
