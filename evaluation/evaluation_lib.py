@@ -175,7 +175,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
 
     traj_est = None
     try:
-        traj_est = file_interface.read_swe_csv_trajectory(traj_est_path)
+        traj_est = file_interface.read_euroc_csv_trajectory(traj_est_path)
     except file_interface.FileInterfaceException as e:
         log.info(e)
         raise Exception("\033[91mMissing vio output csv.\033[99m")
@@ -361,8 +361,7 @@ def run_analysis_pgo(traj_ref_path, traj_pgo_path, segments, save_results, displ
     :param dataset_name: optional param, to allow setting the same scale on different plots.
     """
     # Load trajectories.
-    import pandas as pd
-    from evo.tools import pandas_bridge, file_interface
+    from evo.tools import file_interface
     traj_ref = None
     try:
         traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path) # TODO make it non-euroc specific.
@@ -371,11 +370,9 @@ def run_analysis_pgo(traj_ref_path, traj_pgo_path, segments, save_results, displ
 
     traj_est = None
     try:
-        traj_est = pandas_bridge.df_to_trajectory(
-            pd.read_csv(traj_pgo_path, sep=',', index_col=0))
-    except Exception as e:
-        log.info(e)
-        raise Exception("\033[91mMissing pgo output csv.\033[99m")
+        traj_est = file_interface.read_pose_csv_trajectory(traj_est_path)
+    except file_interface.FileInterfaceException as e:
+        raise Exception("\033[91mMissing pgo output csv! \033[93m {}.".format(e))
 
     evt.print_purple("Registering trajectories")
     traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
@@ -557,9 +554,8 @@ def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, sa
     :param dataset_name: optional param, to allow setting the same scale on different plots.
     """
     # Load trajectories.
-    import pandas as pd
     import copy
-    from evo.tools import pandas_bridge, file_interface
+    from evo.tools import file_interface
     traj_ref = None
     try:
         traj_ref = file_interface.read_euroc_csv_trajectory(traj_ref_path) # TODO make it non-euroc specific.
@@ -571,19 +567,15 @@ def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, sa
 
     traj_est_vio = None
     try:
-        traj_est_vio = pandas_bridge.df_to_trajectory(
-            pd.read_csv(traj_es_path, sep=',', index_col=0))
-    except Exception as e:
-        log.info(e)
-        raise Exception("\033[91mMissing vio output csv.\033[99m")
+        traj_est_vio = file_interface.read_euroc_csv_trajectory(traj_es_path) # TODO make it non-euroc specific.
+    except file_interface.FileInterfaceException as e:
+        raise Exception("\033[91mMissing vio output csv! \033[93m {}.".format(e))
 
     traj_est_pgo = None
     try:
-        traj_est_pgo = pandas_bridge.df_to_trajectory(
-            pd.read_csv(traj_pgo_path, sep=',', index_col=0))
-    except Exception as e:
-        log.info(e)
-        raise Exception("\033[91mMissing pgo output csv.\033[99m")
+        traj_est_pgo = file_interface.read_pose_csv_trajectory(traj_pgo_path) # TODO make it non-euroc specific.
+    except file_interface.FileInterfaceException as e:
+        raise Exception("\033[91mMissing pgo output csv! \033[93m {}.".format(e))
 
     evt.print_purple("Registering trajectories")
     traj_ref_vio, traj_est_vio = sync.associate_trajectories(traj_ref_vio, traj_est_vio)
