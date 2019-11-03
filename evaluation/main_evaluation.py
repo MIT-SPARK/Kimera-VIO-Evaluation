@@ -6,40 +6,16 @@ import os
 import yaml
 from tqdm import tqdm
 
-from evaluation.evaluation_lib import run_dataset, aggregate_ape_results
+from evaluation.evaluation_lib import DatasetEvaluator, aggregate_ape_results
 
 def run(args):
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
-
-    vocabulary_path = os.path.expandvars(experiment_params['vocabulary_path'])
-    results_dir = os.path.expandvars(experiment_params['results_dir'])
-    params_dir = os.path.expandvars(experiment_params['params_dir'])
-    dataset_dir = os.path.expandvars(experiment_params['dataset_dir'])
-    executable_path = os.path.expandvars(experiment_params['executable_path'])
-    datasets_to_run = experiment_params['datasets_to_run']
-    use_lcd = experiment_params['use_lcd']
-
-    # Run experiments.
-    log.info("Run experiments")
-    successful_run = True
-    for dataset in tqdm(datasets_to_run):
-        log.info("Run dataset: %s" % dataset['name'])
-        pipelines_to_run = dataset['pipelines']
-        if not run_dataset(results_dir, params_dir, dataset_dir, vocabulary_path, dataset, executable_path,
-                           args.run_pipeline, args.analyse_vio,
-                           args.plot, args.save_results,
-                           args.save_plots, args.save_boxplots,
-                           pipelines_to_run,
-                           dataset['initial_frame'],
-                           dataset['final_frame'],
-                           dataset['discard_n_start_poses'],
-                           dataset['discard_n_end_poses'], use_lcd=use_lcd,
-                           verbose_sparkvio=args.verbose_sparkvio):
-            log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset['name'])
-            successful_run = False
-
-    aggregate_ape_results(results_dir)
+    # Create dataset evaluator: runs vio depending on given params and analyzes output.
+    dataset_evaluator = DatasetEvaluator(experiment_params, args)
+    successful_run = dataset_evaluator.evaluate_all()
+    # Aggregate results in results directory
+    aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
     return successful_run
 
 def parser():

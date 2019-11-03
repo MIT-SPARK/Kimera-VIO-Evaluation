@@ -1,4 +1,5 @@
 executable_path: '$HOME/VIO/build/stereoVIOEuroc'
+vocabulary_path: '$WORKSPACE/vocabulary/ORBvoc.yml'
 build_dir: '$HOME/VIO/build/'
 results_dir: '$HOME/spark_vio_evaluation/results'
 params_dir: '$HOME/spark_vio_evaluation/experiments/params'
@@ -14,6 +15,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 10
    final_frame: 10000
+   parallel_run: true
  - name: V1_02_medium
    segments: [5]
    pipelines: ['S2']
@@ -21,6 +23,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 50
    final_frame: 10000
+   parallel_run: true
  - name: V1_03_difficult
    segments: [5]
    pipelines: ['S2']
@@ -28,6 +31,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 10
    final_frame: 10000
+   parallel_run: true
  - name: V2_01_easy
    segments: [5]
    pipelines: ['S2']
@@ -35,6 +39,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 30
    final_frame: 10000
+   parallel_run: true
  - name: V2_02_medium
    segments: [5]
    pipelines: ['S2']
@@ -42,6 +47,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 50
    final_frame: 10000
+   parallel_run: true
  - name: V2_03_difficult
    segments: [5]
    pipelines: ['S2']
@@ -49,6 +55,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 40
    final_frame: 1800
+   parallel_run: true
  - name: MH_01_easy
    segments: [5]
    pipelines: ['S2']
@@ -56,6 +63,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 3500
+   parallel_run: true
  - name: MH_02_easy
    segments: [5]
    pipelines: ['S2']
@@ -63,6 +71,7 @@ datasets_to_run:
    discard_n_end_poses: 20
    initial_frame: 40
    final_frame: 10000
+   parallel_run: true
  - name: MH_03_medium
    segments: [5]
    pipelines: ['S2']
@@ -70,6 +79,7 @@ datasets_to_run:
    discard_n_end_poses: 20
    initial_frame: 60
    final_frame: 2400
+   parallel_run: true
  - name: MH_04_difficult
    segments: [5]
    pipelines: ['S2']
@@ -77,6 +87,7 @@ datasets_to_run:
    discard_n_end_poses: 20
    initial_frame: 300
    final_frame: 10000
+   parallel_run: true
  - name: MH_05_difficult
    segments: [5]
    pipelines: ['S2']
@@ -84,3 +95,4 @@ datasets_to_run:
    discard_n_end_poses: 0
    initial_frame: 200
    final_frame: 10000
+   parallel_run: true

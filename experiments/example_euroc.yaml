@@ -13,6 +13,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 300
+   parallel_run: false
  - name: MH_01_easy
    segments: [1]
    pipelines: ['S']
@@ -20,3 +21,4 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 300
+   parallel_run: true

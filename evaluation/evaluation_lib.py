@@ -788,213 +788,196 @@ def run_analysis_united(traj_ref_path, traj_es_path, traj_pgo_path, segments, sa
             plot_collection.export(os.path.join(save_folder, "plots.eps"), False)
             plot_collection.export(os.path.join(save_folder, "plots.pdf"), False)
 
-# Run pipeline as a subprocess.
-def run_vio(executable_path, dataset_dir, dataset_name, params_dir, vocabulary_path,
-            pipeline_output_dir, pipeline_type, initial_k, final_k,
-            extra_flagfile_path="", use_lcd=True, verbose_sparkvio=False):
-    """ Runs pipeline depending on the pipeline_type using a subprocess.
-    Args:
-        - executable_path: where the SparkVIO executable is.
-        - dataset_dir: where the Euroc dataset is.
-        - dataset_name: Euroc dataset to be run.
-        - params_dir: directory where the SparkVIO parameters are stored. Needs to follow
-            a convention: flagfiles must have the names below, same for yaml files.
-        - pipeline_output_dir: directory where to store output information from SparkVIO.
-        - pipeline_type: must be one of ['S', 'SP', 'SPR']
-        - initial_k: k_th frame where to start running SparkVIO
-        - final_k: k_th frame where to stop SparkVIO
-        - extra_flagfile_path: to be used in order to override other flags or add new ones.
-            Useful for regression tests when the param to be regressed is a gflag.
-        - verbose_sparkvio: whether to print the SparkVIO messages or not.
-            This is useful for debugging, but too verbose when you want to see APE/RPE results.
-    """
+from tqdm import tqdm
+class DatasetEvaluator:
+    def __init__(self, experiment_params, args, extra_flagfile_path = ''):
+        self.vocabulary_path = os.path.expandvars(experiment_params['vocabulary_path'])
+        self.results_dir     = os.path.expandvars(experiment_params['results_dir'])
+        self.params_dir      = os.path.expandvars(experiment_params['params_dir'])
+        self.dataset_dir     = os.path.expandvars(experiment_params['dataset_dir'])
+        self.executable_path = os.path.expandvars(experiment_params['executable_path'])
+        self.datasets_to_run = experiment_params['datasets_to_run']
+        self.use_lcd         = experiment_params['use_lcd']
 
-    def spark_vio_thread(thread_return, minloglevel=0):
-        """ Function to run SparkVIO in another thread """
-        thread_return['success'] = subprocess.call("{} \
-                            --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
-                            --dataset_path={}/{} --output_path={} \
-                            --vio_params_path={}/{}/{} \
-                            --tracker_params_path={}/{}/{} \
-                            --lcd_params_path={}/{}/{} \
-                            --vocabulary_path={} \
-                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                            --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                            --flagfile={}/{}/{} --flagfile={}/{} \
-                            --initial_k={} --final_k={} --use_lcd={} \
-                            --log_output=True --minloglevel={}".format(
-            executable_path, dataset_dir, dataset_name, pipeline_output_dir,
-            params_dir, pipeline_type, "regularVioParameters.yaml",
-            params_dir, pipeline_type, "trackerParameters.yaml",
-            params_dir, pipeline_type, "LCDParameters.yaml",
-            vocabulary_path,
-            params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
-            params_dir, pipeline_type, "flags/Mesher.flags",
-            params_dir, pipeline_type, "flags/VioBackEnd.flags",
-            params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
-            params_dir, pipeline_type, "flags/Visualizer3D.flags",
-            params_dir, extra_flagfile_path,
-            initial_k, final_k, use_lcd, minloglevel),
-            shell=True)
+        self.run_pipeline  = args.run_pipeline
+        self.analyse_vio   = args.analyse_vio
+        self.plot          = args.plot
+        self.save_results  = args.save_results
+        self.save_plots    = args.save_plots
+        self.save_boxplots = args.save_boxplots
+        self.verbose_vio   = args.verbose_sparkvio
 
-    import threading
-    import time
-    import itertools, sys # just for spinner
-    spinner = itertools.cycle(['-', '/', '|', '\\'])
-    thread_return={'success': False}
-    minloglevel = 2 # Set SparkVIO verbosity level to ERROR
-    if verbose_sparkvio:
-        minloglevel = 0 # Set SparkVIO verbosity level to INFO
-    thread = threading.Thread(target=spark_vio_thread, args=(thread_return, minloglevel,))
-    thread.start()
-    while thread.is_alive():
-        if not verbose_sparkvio:
-            # If SparkVIO is not in verbose mode, the user might think the python script is hanging.
-            # So, instead, display a spinner of 80 characters.
-            sys.stdout.write(next(spinner) * 80)  # write the next character
-            sys.stdout.flush()                     # flush stdout buffer (actual character display)
-            sys.stdout.write('\b' * 80)            # erase the last written char
-        time.sleep(0.100) # Sleep 100ms while SparkVIO is running
-    thread.join()
-    return thread_return['success']
+        self.extra_flagfile_path = extra_flagfile_path
 
-def process_vio(executable_path, dataset_dir, dataset_name, results_dir, params_dir, vocabulary_path, pipeline_output_dir,
-                pipeline_type, SEGMENTS, save_results, plot, save_plots, output_file, run_pipeline,
-                analyse_vio, discard_n_start_poses, discard_n_end_poses, initial_k, final_k, extra_flagfile_path='',
-                use_lcd=True, verbose_sparkvio=False):
-    """
-    Args:
-        - executable_path: path to the pipeline executable (i.e. `./build/spark_vio`).
-        - dataset_dir: directory of the dataset, must contain traj_gt.csv (the ground truth trajectory for analysis to work).
-        - dataset_name: specific dataset to run.
-        - results_dir: directory where the results of the run will reside:
-        -   used as results_dir/dataset_name/S, results_dir/dataset_name/SP, results_dir/dataset_name/SPR
-        -   where each directory have traj_est.csv (the estimated trajectory), and plots if requested.
-        - params_dir: directory where the parameters for each pipeline reside:
-        -   used as params_dir/S, params_dir/SP, params_dir/SPR.
-        - pipeline_output_dir: where to store all output_* files produced by the pipeline.
-        - pipeline_type: type of pipeline to process (1: S, 2: SP, 3: SPR).
-        - SEGMENTS: segments for RPE boxplots.
-        - save_results: saves APE, and RPE per segment results of the run.
-        - plot: whether to plot the APE/RPE results or not.
-        - save_plots: saves plots of APE/RPE.
-        - output_file: the name of the trajectory estimate output of the vio which will then be copied as traj_est.csv.
-        - run_pipeline: whether to run the VIO to generate a new traj_est.csv.
-        - analyse_vio: whether to analyse traj_est.csv or not.
-        - extra_flagfile_path: to be used in order to override other flags or add new ones.
-            Useful for regression tests when the param to be regressed is a gflag.
-        - verbose_sparkvio: whether to print the SparkVIO messages or not.
-            This is useful for debugging, but too verbose when you want to see APE/RPE results.
-    """
-    dataset_results_dir = os.path.join(results_dir, dataset_name)
-    dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
-    traj_ref_path = os.path.join(dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
-    traj_es = os.path.join(dataset_results_dir, pipeline_type, "traj_es.csv")
-    traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "output/output_lcd_optimized_traj.csv")
-    evt.create_full_path_if_not_exists(traj_es)
-    if run_pipeline:
-        evt.print_green("Run pipeline: %s" % pipeline_type)
-        # The override flags are used by the regression tests.
-        if run_vio(executable_path, dataset_dir, dataset_name, params_dir,
-                   vocabulary_path, pipeline_output_dir, pipeline_type, initial_k,
-                   final_k, extra_flagfile_path, use_lcd, verbose_sparkvio) == 0:
-            evt.print_green("Successful pipeline run.")
-            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
-                (output_file, traj_es))
-            copyfile(output_file, traj_es)
-            output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
-            log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
-                (pipeline_output_dir, output_destination_dir))
-            try:
-                evt.move_output_from_to(pipeline_output_dir, output_destination_dir)
-            except:
-                log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" %
-                    (pipeline_output_dir, output_destination_dir))
-        else:
-            log.error("Pipeline failed on dataset: " + dataset_name)
-            # Avoid writting results.yaml with analysis if the pipeline failed.
-            log.info("Not writting results.yaml")
-            return False
+        self.pipeline_output_dir = os.path.join(self.results_dir, "tmp_output/output/")
+        evt.create_full_path_if_not_exists(self.pipeline_output_dir)
+        self.output_file = os.path.join(self.pipeline_output_dir, "output_posesVIO.csv")
 
-    if analyse_vio:
-        log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
-                 % (dataset_results_dir, pipeline_type))
-        evt.print_green("Starting analysis of pipeline: %s" % pipeline_type)
+    def evaluate_all(self):
+        # Run experiments.
+        log.info("Run experiments")
+        successful_run = True
+        for dataset in tqdm(self.datasets_to_run):
+            log.info("Run dataset: %s" % dataset['name'])
+            if not self.__run_dataset(dataset):
+                log.info("\033[91m Dataset: %s failed!! \033[00m" %
+                         dataset['name'])
+                successful_run = False
+        return successful_run
 
-        if use_lcd:
-            run_analysis_united(traj_ref_path, traj_es, traj_pgo, SEGMENTS,
-                                save_results, plot, save_plots, dataset_pipeline_result_dir , False,
-                                dataset_name, discard_n_start_poses, discard_n_end_poses)
-        else:
-            run_analysis(traj_ref_path, traj_es, SEGMENTS,
-                         save_results, plot, save_plots, dataset_pipeline_result_dir, False,
-                         dataset_name,
-                         discard_n_start_poses,
-                         discard_n_end_poses)
-        # run_analysis_pgo(traj_ref_path, traj_pgo, SEGMENTS,
-        #                  save_results, plot, save_plots, dataset_pipeline_result_dir, False,
-        #                  dataset_name,
-        #                  discard_n_start_poses,
-        #                  discard_n_end_poses)
+    def __run_dataset(self, dataset):
+        """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
+                and Structureless(S) + Projection(P) + Regular(R) factors \
+                and then compiles a list of results """
+        dataset_name = dataset['name']
+        dataset_segments = dataset['segments']
 
-    return True
+        ################### RUN PIPELINE ################################
+        has_a_pipeline_failed = False
+        pipelines_to_run_list = dataset['pipelines']
+        if len(pipelines_to_run_list) == 0:
+            log.warning("Not running pipeline...")
+        for pipeline_type in pipelines_to_run_list:
+            # TODO shouldn't this break when a pipeline has failed? Not necessarily
+            # if we want to plot all pipelines except the failing ones.
+            has_a_pipeline_failed = not self.__process_vio(pipeline_type, dataset)
 
-# TODO(Toni): we are passing all params all the time.... Make a class!!
-def run_dataset(results_dir, params_dir, dataset_dir, vocabulary_path,
-                dataset_properties, executable_path, run_pipeline, analyse_vio,
-                plot, save_results, save_plots, save_boxplots, pipelines_to_run_list,
-                initial_k, final_k, discard_n_start_poses = 0, discard_n_end_poses = 0, extra_flagfile_path = '',
-                use_lcd = True, verbose_sparkvio = False):
-    """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
-            and Structureless(S) + Projection(P) + Regular(R) factors \
-            and then compiles a list of results """
-    dataset_name = dataset_properties['name']
-    dataset_segments = dataset_properties['segments']
+        # Save boxplots
+        if self.save_boxplots:
+            # TODO(Toni) is this really saving the boxplots?
+            if not has_a_pipeline_failed:
+                stats = dict()
+                for pipeline_type in pipelines_to_run_list:
+                    results_dataset_dir = os.path.join(self.results_dir, dataset_name)
+                    results = os.path.join(results_dataset_dir, pipeline_type, "results.yaml")
+                    if not os.path.exists(results):
+                        raise Exception("\033[91mCannot plot boxplots: missing results for %s pipeline \
+                                        and dataset: %s" % (pipeline_type, dataset_name) + "\033[99m \n \
+                                        Expected results here: %s" % results)
 
-    ################### RUN PIPELINE ################################
-    pipeline_output_dir = os.path.join(results_dir, "tmp_output/output/")
-    evt.create_full_path_if_not_exists(pipeline_output_dir)
-    output_file = os.path.join(pipeline_output_dir, "output_posesVIO.csv")
-    has_a_pipeline_failed = False
-    if len(pipelines_to_run_list) == 0:
-        log.warning("Not running pipeline...")
-    for pipeline_type in pipelines_to_run_list:
-        has_a_pipeline_failed = not process_vio(
-            executable_path, dataset_dir, dataset_name, results_dir, params_dir,
-            vocabulary_path, pipeline_output_dir, pipeline_type, dataset_segments,
-            save_results, plot, save_plots, output_file, run_pipeline,
-            analyse_vio, discard_n_start_poses, discard_n_end_poses,
-            initial_k, final_k, extra_flagfile_path, use_lcd, verbose_sparkvio)
+                    try:
+                        stats[pipeline_type]  = yaml.load(open(results,'r'), Loader=yaml.Loader)
+                    except yaml.YAMLError as e:
+                        raise Exception("Error in results file: ", e)
 
-    # Save boxplots
-    if save_boxplots:
-        # TODO(Toni) is this really saving the boxplots?
+                    log.info("Check stats %s in %s" % (pipeline_type, results))
+                    check_stats(stats[pipeline_type])
+
+                log.info("Drawing boxplots.")
+                evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
+            else:
+                log.warning("A pipeline run has failed... skipping boxplot drawing.")
+
         if not has_a_pipeline_failed:
-            stats = dict()
-            for pipeline_type in pipelines_to_run_list:
-                results_dataset_dir = os.path.join(results_dir, dataset_name)
-                results = os.path.join(results_dataset_dir, pipeline_type, "results.yaml")
-                if not os.path.exists(results):
-                    raise Exception("\033[91mCannot plot boxplots: missing results for %s pipeline \
-                                    and dataset: %s" % (pipeline_type, dataset_name) + "\033[99m \n \
-                                    Expected results here: %s" % results)
-
-                try:
-                    stats[pipeline_type]  = yaml.load(open(results,'r'), Loader=yaml.Loader)
-                except yaml.YAMLError as e:
-                    raise Exception("Error in results file: ", e)
-
-                log.info("Check stats %s in %s" % (pipeline_type, results))
-                check_stats(stats[pipeline_type])
-
-            log.info("Drawing boxplots.")
-            evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
+            evt.print_green("All pipeline runs were successful.")
         else:
-            log.warning("A pipeline run has failed... skipping boxplot drawing.")
+            log.error("A pipeline has failed!")
+        evt.print_green("Finished evaluation for dataset: " + dataset_name)
+        return not has_a_pipeline_failed
 
-    if not has_a_pipeline_failed:
-        evt.print_green("All pipeline runs were successful.")
-    else:
-        log.error("A pipeline has failed!")
-    evt.print_green("Finished evaluation for dataset: " + dataset_name)
-    return not has_a_pipeline_failed
+    def __process_vio(self, pipeline_type, dataset):
+        """
+        """
+        dataset_name = dataset["name"]
+        dataset_results_dir = os.path.join(self.results_dir, dataset_name)
+        dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
+        traj_ref_path = os.path.join(self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
+        traj_es = os.path.join(dataset_results_dir, pipeline_type, "traj_es.csv")
+        traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "output/output_lcd_optimized_traj.csv")
+        evt.create_full_path_if_not_exists(traj_es)
+        if self.run_pipeline:
+            evt.print_green("Run pipeline: %s" % pipeline_type)
+            # The override flags are used by the regression tests.
+            if self.__run_vio(dataset_name, pipeline_type,
+                              dataset["initial_frame"], dataset["final_frame"],
+                              dataset["parallel_run"]) == 0:
+                evt.print_green("Successful pipeline run.")
+                log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+                    (self.output_file, traj_es))
+                copyfile(self.output_file, traj_es)
+                output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
+                log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
+                    (self.pipeline_output_dir, output_destination_dir))
+                try:
+                    evt.move_output_from_to(self.pipeline_output_dir, output_destination_dir)
+                except:
+                    log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" %
+                        (self.pipeline_output_dir, output_destination_dir))
+            else:
+                log.error("Pipeline failed on dataset: " + dataset_name)
+                # Avoid writting results.yaml with analysis if the pipeline failed.
+                log.info("Not writting results.yaml")
+                return False
+
+        if self.analyse_vio:
+            log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
+                    % (dataset_results_dir, pipeline_type))
+            evt.print_green("Starting analysis of pipeline: %s" % pipeline_type)
+
+            discard_n_start_poses = dataset["discard_n_start_poses"]
+            discard_n_end_poses = dataset["discard_n_end_poses"]
+            segments = dataset["segments"]
+            if self.use_lcd:
+                run_analysis_united(traj_ref_path, traj_es, traj_pgo, segments,
+                                    dataset_pipeline_result_dir , False,
+                                    dataset_name, discard_n_start_poses, discard_n_end_poses)
+            else:
+                run_analysis(traj_ref_path, traj_es, segments,
+                            dataset_pipeline_result_dir, False,
+                            dataset_name, discard_n_start_poses, discard_n_end_poses)
+            # run_analysis_pgo(traj_ref_path, traj_pgo, segments,
+            #                  dataset_pipeline_result_dir, False,
+            #                  dataset_name, discard_n_start_poses, discard_n_end_poses)
+        return True
+
+    def __run_vio(self, dataset_name, pipeline_type, initial_frame, final_frame, parallel_run):
+        def kimera_vio_thread(thread_return, minloglevel=0):
+            """ Function to run Kimera-VIO in another thread """
+            thread_return['success'] = subprocess.call("{} \
+                                --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
+                                --dataset_path={}/{} --output_path={} \
+                                --vio_params_path={}/{}/{} \
+                                --tracker_params_path={}/{}/{} \
+                                --lcd_params_path={}/{}/{} \
+                                --vocabulary_path={} \
+                                --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                                --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                                --flagfile={}/{}/{} --flagfile={}/{} \
+                                --initial_k={} --final_k={} --use_lcd={} \
+                                --log_output=True --minloglevel={} \
+                                --parallel_run={}".format(
+                self.executable_path, self.dataset_dir, dataset_name, self.pipeline_output_dir,
+                self.params_dir, pipeline_type, "regularVioParameters.yaml",
+                self.params_dir, pipeline_type, "trackerParameters.yaml",
+                self.params_dir, pipeline_type, "LCDParameters.yaml",
+                self.vocabulary_path,
+                self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
+                self.params_dir, pipeline_type, "flags/Mesher.flags",
+                self.params_dir, pipeline_type, "flags/VioBackEnd.flags",
+                self.params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
+                self.params_dir, pipeline_type, "flags/Visualizer3D.flags",
+                self.params_dir, self.extra_flagfile_path,
+                initial_frame, final_frame, self.use_lcd, minloglevel,
+                parallel_run),
+                shell=True)
+
+        import threading
+        import time
+        import itertools, sys # just for spinner
+        spinner = itertools.cycle(['-', '/', '|', '\\'])
+        thread_return={'success': False}
+        minloglevel = 2 # Set Kimera-VIO verbosity level to ERROR
+        if self.verbose_vio:
+            minloglevel = 0 # Set Kimera-VIO verbosity level to INFO
+        thread = threading.Thread(target=kimera_vio_thread, args=(thread_return, minloglevel,))
+        thread.start()
+        while thread.is_alive():
+            if not self.verbose_vio:
+                # If Kimera-VIO is not in verbose mode, the user might think the python script is hanging.
+                # So, instead, display a spinner of 80 characters.
+                sys.stdout.write(next(spinner) * 80)  # write the next character
+                sys.stdout.flush()                     # flush stdout buffer (actual character display)
+                sys.stdout.write('\b' * 80)            # erase the last written char
+            time.sleep(0.100) # Sleep 100ms while Kimera-VIO is running
+        thread.join()
+        return thread_return['success']
