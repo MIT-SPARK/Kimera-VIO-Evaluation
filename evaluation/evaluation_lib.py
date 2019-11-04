@@ -213,6 +213,7 @@ def run_analysis(traj_ref_path, traj_est_path, segments, save_results, display_p
     log.info("mean: %f" % rpe_stats_trans["mean"])
 
     evt.print_purple("Calculating RPE rotation angle for plotting")
+
     rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                  1.0, metrics.Unit.frames, 1.0, False)
     rpe_metric_rot.process_data(data)
@@ -430,6 +431,7 @@ def run_analysis_pgo(traj_ref_path, traj_pgo_path, segments, save_results, displ
         evt.print_lightpurple("Calculating RPE segment rotation angle of PGO trajectory")
         rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                      float(segment), metrics.Unit.meters, 0.01, True)
+
         rpe_segment_metric_rot.process_data(data)
         rpe_segment_stats_rot = rpe_segment_metric_rot.get_all_statistics()
         results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
@@ -919,12 +921,14 @@ class DatasetEvaluator:
             segments = dataset["segments"]
             if self.use_lcd:
                 run_analysis_united(traj_ref_path, traj_es, traj_pgo, segments,
-                                    dataset_pipeline_result_dir , False,
+                                    self.save_results, self.plot, self.save_plots,
+                                    dataset_pipeline_result_dir, False,
                                     dataset_name, discard_n_start_poses, discard_n_end_poses)
             else:
                 run_analysis(traj_ref_path, traj_es, segments,
-                            dataset_pipeline_result_dir, False,
-                            dataset_name, discard_n_start_poses, discard_n_end_poses)
+                             self.save_results, self.plot, self.save_plots,
+                             dataset_pipeline_result_dir, False,
+                             dataset_name, discard_n_start_poses, discard_n_end_poses)
             # run_analysis_pgo(traj_ref_path, traj_pgo, segments,
             #                  dataset_pipeline_result_dir, False,
             #                  dataset_name, discard_n_start_poses, discard_n_end_poses)

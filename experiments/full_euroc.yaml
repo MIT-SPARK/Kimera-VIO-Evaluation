@@ -1,24 +1,23 @@
-executable_path: '$HOME/VIO/build/stereoVIOEuroc'
-vocabulary_path: '$WORKSPACE/vocabulary/ORBvoc.yml'
-build_dir: '$HOME/VIO/build/'
-results_dir: '$HOME/spark_vio_evaluation/results'
-params_dir: '$HOME/spark_vio_evaluation/experiments/params'
-dataset_dir: '$HOME/Downloads/Euroc'
+executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
+vocabulary_path: '$HOME/Code/spark_vio/vocabulary/ORBvoc.yml'
+results_dir: '$HOME/Code/spark_vio_evaluation/results'
+params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
+dataset_dir: '$HOME/datasets/euroc/EuRoC'
 
-use_lcd: true
+use_lcd: false
 
 datasets_to_run:
  - name: V1_01_easy
-   segments: [5]
-   pipelines: ['S2']
-   discard_n_start_poses: 10
-   discard_n_end_poses: 10
+   segments: [1]
+   pipelines: ['S']
+   discard_n_start_poses: 0
+   discard_n_end_poses: 0
    initial_frame: 10
-   final_frame: 10000
+   final_frame: 220
    parallel_run: true
  - name: V1_02_medium
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 50
@@ -26,7 +25,7 @@ datasets_to_run:
    parallel_run: true
  - name: V1_03_difficult
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 10
@@ -34,7 +33,7 @@ datasets_to_run:
    parallel_run: true
  - name: V2_01_easy
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 30
@@ -42,7 +41,7 @@ datasets_to_run:
    parallel_run: true
  - name: V2_02_medium
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 50
@@ -50,7 +49,7 @@ datasets_to_run:
    parallel_run: true
  - name: V2_03_difficult
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 40
@@ -58,7 +57,7 @@ datasets_to_run:
    parallel_run: true
  - name: MH_01_easy
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
@@ -66,7 +65,7 @@ datasets_to_run:
    parallel_run: true
  - name: MH_02_easy
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 40
@@ -74,7 +73,7 @@ datasets_to_run:
    parallel_run: true
  - name: MH_03_medium
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 60
@@ -82,7 +81,7 @@ datasets_to_run:
    parallel_run: true
  - name: MH_04_difficult
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 300
@@ -90,7 +89,7 @@ datasets_to_run:
    parallel_run: true
  - name: MH_05_difficult
    segments: [5]
-   pipelines: ['S2']
+   pipelines: ['S']
    discard_n_start_poses: 35
    discard_n_end_poses: 0
    initial_frame: 200

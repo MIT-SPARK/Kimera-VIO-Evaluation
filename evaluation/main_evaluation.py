@@ -13,10 +13,10 @@ def run(args):
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
     # Create dataset evaluator: runs vio depending on given params and analyzes output.
     dataset_evaluator = DatasetEvaluator(experiment_params, args)
-    successful_run = dataset_evaluator.evaluate_all()
+    dataset_evaluator.evaluate_all()
     # Aggregate results in results directory
     aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
-    return successful_run
+    return True 
 
 def parser():
     import argparse
