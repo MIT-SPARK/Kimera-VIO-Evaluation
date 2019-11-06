@@ -156,6 +156,7 @@ def check_stats(stats):
 
 
 from tqdm import tqdm
+""" DatasetRunner is used to run the pipeline on datasets """
 class DatasetRunner:
     def __init__(self, experiment_params, args, extra_flagfile_path = ''):
         self.vocabulary_path = os.path.expandvars(experiment_params['vocabulary_path'])
@@ -172,6 +173,7 @@ class DatasetRunner:
         evt.create_full_path_if_not_exists(self.pipeline_output_dir)
 
     def run_all(self):
+        """ Runs all datasets in experiments file. """
         # Run experiments.
         log.info("Run experiments")
         successful_run = True
@@ -184,9 +186,14 @@ class DatasetRunner:
         return successful_run
 
     def __run_dataset(self, dataset):
-        """ Evaluates pipeline using Structureless(S), Structureless(S) + Projection(P), \
-                and Structureless(S) + Projection(P) + Regular(R) factors \
-                and then compiles a list of results """
+        """ Run a single dataset from an experiments file and save all output. This is done
+            for every pipeline requested for the dataset.
+
+            Args:
+                dataset: a dataset to run as defined in the experiments yaml file.
+            
+            Returns: True if all pipelines for the dataset succeed, False otherwise.
+        """
         dataset_name = dataset['name']
         dataset_segments = dataset['segments']
 
@@ -212,6 +219,15 @@ class DatasetRunner:
         return not has_a_pipeline_failed
 
     def __run_vio(self, dataset, pipeline_type):
+        """ Performs subprocess call for a specific pipeline on a specific dataset.
+
+            Args:
+                dataset: a dataset to run as defined in the experiments yaml file.
+                pipeline_type: a pipeline representing a set of parameters to use, as
+                    defined in the experiments yaml file for the dataset in question.
+            
+            Returns: True if the thread exits successfully, False otherwise.
+        """
         def kimera_vio_thread(thread_return, minloglevel=0):
             """ Function to run Kimera-VIO in another thread """
             thread_return['success'] = subprocess.call("{} \
@@ -264,6 +280,7 @@ class DatasetRunner:
         return thread_return['success']
 
 
+""" DatasetEvaluator is used to evaluate performance of the pipeline on datasets """
 class DatasetEvaluator:
     def __init__(self, experiment_params, args):
         self.results_dir      = os.path.expandvars(experiment_params['results_dir'])
@@ -281,7 +298,8 @@ class DatasetEvaluator:
         self.output_file_pgo = os.path.join(self.pipeline_output_dir, "output_lcd_optimized_traj.csv")
 
     def evaluate_all(self):
-        """
+        """ Evaluate performance on every pipeline of every dataset defined in the experiments
+            yaml file.
         """
         # Run analysis.
         log.info("Run analysis for all experiments")
@@ -299,7 +317,15 @@ class DatasetEvaluator:
         return True
     
     def __evaluate_run(self, pipeline_type, dataset):
-        """
+        """ Evaluate performance of one pipeline of one dataset, as defined in the experiments 
+            yaml file. 
+
+            Args:
+                dataset: a dataset to run as defined in the experiments yaml file.
+                pipeline_type: a pipeline representing a set of parameters to use, as
+                    defined in the experiments yaml file for the dataset in question.
+            
+            Returns: True if the there are no exceptions during evaluation, False otherwise.
         """
         dataset_name = dataset["name"]
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
@@ -349,7 +375,19 @@ class DatasetEvaluator:
     def run_analysis(self, traj_ref_path, traj_vio_path, traj_pgo_path, segments, generate_pgo=False,
                      plot_vio_and_pgo=False, dataset_name="", confirm_overwrite=False,
                      discard_n_start_poses=0, discard_n_end_poses=0):
-        """
+        """ Analyze data from a set of trajectory csv files.
+
+            Args:
+                traj_ref_path: string representing filepath of the reference (ground-truth) trajectory.
+                traj_vio_path: string representing filepath of the vio estimated trajectory.
+                traj_pgo_path: string representing filepath of the pgo estimated trajectory.
+                segments: list of segments for RPE calculation, defined in the experiments yaml file.
+                generate_pgo: boolean; if True, analysis will generate results and plots for pgo trajectories.
+                plot_vio_and_pgo: if True, the plots will include both pgo and vio-only trajectories.
+                dataset_name: string representing the dataset's name
+                confirm_overwrite: boolean; if True, user wil be asked before ovewriting results files.
+                discard_n_start_poses: int representing number of poses to discard from start of analysis.
+                discard_n_end_poses: int representing the number of poses to discard from end of analysis.
         """
         import copy
         
@@ -485,7 +523,16 @@ class DatasetEvaluator:
         return [plot_collection, results_vio, results_pgo]
 
     def move_output_files(self, pipeline_type, dataset):
-        """
+        """ Copies trajectory csvs and moves all output files for a particular pipeline and dataset
+            from their temporary logging location during runtime to the evaluation location.
+
+            Args:
+                dataset: a dataset to run as defined in the experiments yaml file.
+                pipeline_type: a pipeline representing a set of parameters to use, as
+                    defined in the experiments yaml file for the dataset in question.
+            
+            Returns: A list containing two strings representing the filepaths of the vio and pgo csv
+                trajectories, in that order.
         """
         dataset_name = dataset["name"]
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
@@ -519,8 +566,17 @@ class DatasetEvaluator:
 
         return [traj_vio, traj_pgo]
 
-    def save_results_to_file(self, results, title, dataset_pipeline_result_dir, confirm_overwrite):
-        """
+    def save_results_to_file(self, results, title, dataset_pipeline_result_dir, confirm_overwrite=False):
+        """ Writes a result dictionary to file as a yaml file.
+
+            Args:
+                results: a dictionary containing ape, rpe rotation and rpe translation results and 
+                    statistics.
+                title: a string representing the filename without the '.yaml' extension.
+                dataset_pipeline_result_dir: a string representing the filepath for the location to
+                    save the results file.
+                confirm_overwrite: a boolean; if True, the user will be asked before overwriting existing
+                    results files.
         """
         results_file = os.path.join(dataset_pipeline_result_dir, title + '.yaml')
         evt.print_green("Saving analysis results to: %s" % results_file)
@@ -535,7 +591,12 @@ class DatasetEvaluator:
                 outfile.write(yaml.dump(results, default_flow_style=False))
 
     def save_plots_to_file(self, plot_collection, dataset_pipeline_result_dir):
-        """
+        """ Wrie plot collection to disk as both eps and pdf.
+
+            Args:
+                plot_collection: a PlotCollection containing all the plots to save to file.
+                dataset_pipeline_result_dir: a string representing the filepath for the location to
+                    which the plot files are saved.
         """
         # Config output format (pdf, eps, ...) using evo_config...
         eps_output_file_path = os.path.join(dataset_pipeline_result_dir, "plots.eps")
@@ -546,7 +607,16 @@ class DatasetEvaluator:
         plot_collection.export(pdf_output_file_path, False)
 
     def read_traj_files(self, traj_ref_path, traj_vio_path, traj_pgo_path, generate_pgo=False):
-        """
+        """ Outputs PoseTrajectory3D objects for csv trajectory files.
+
+            Args:
+                traj_ref_path: string representing filepath of the reference (ground-truth) trajectory.
+                traj_vio_path: string representing filepath of the vio estimated trajectory.
+                traj_pgo_path: string representing filepath of the pgo estimated trajectory.
+                generate_pgo: boolean; if True, analysis will generate results and plots for pgo trajectories.
+
+            Returns: A 3-tuple with the PoseTrajectory3D objects representing the reference trajectory, 
+                vio trajectory, and pgo trajectory in that order.
         """
         from evo.tools import file_interface
 
@@ -576,7 +646,15 @@ class DatasetEvaluator:
 
     def add_metric_plot(self, plot_collection, dataset_name, metric, fig_title="", 
                         plot_title="", metric_units=""):
-        """
+        """ Adds a metric plot to a plot collection.
+
+            Args:
+                plot_collection: a PlotCollection containing plots.
+                dataset_name: a string representing the name of the dataset being evaluated.
+                metric: an evo.core.metric object with statistics and information.
+                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
+                plot_title: a string representing the title of the plot.
+                metric_units: a string representing the units of the metric being plotted.
         """
         fig = plt.figure(figsize=(8, 8))
         ymax = -1
@@ -594,6 +672,17 @@ class DatasetEvaluator:
 
     def add_traj_colormap_ape(self, plot_collection, ape_metric, traj_ref, traj_est1, traj_est2=None,
                               fig_title="", plot_title=""):
+        """ Adds a trajectory colormap of ATE metrics to a plot collection.
+
+            Args:
+                plot_collection: a PlotCollection containing plots.
+                ape_metric: an evo.core.metric object with statistics and information for APE.
+                traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+                traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+                traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
+                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
+                plot_title: a string representing the title of the plot.
+        """
         fig = plt.figure(figsize=(8, 8))
         plot_mode = plot.PlotMode.xy
         ax = plot.prepare_axis(fig, plot_mode)
@@ -614,7 +703,16 @@ class DatasetEvaluator:
 
     def add_traj_colormap_rpe(self, plot_collection, rpe_metric, traj_ref, traj_est1, traj_est2=None,
                               fig_title="", plot_title=""):
-        """
+        """ Adds a trajectory colormap of RPE metrics to a plot collection.
+
+            Args:
+                plot_collection: a PlotCollection containing plots.
+                ape_metric: an evo.core.metric object with statistics and information for RPE.
+                traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+                traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+                traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
+                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
+                plot_title: a string representing the title of the plot.
         """
         fig = plt.figure(figsize=(8, 8))
         plot_mode = plot.PlotMode.xy
@@ -643,7 +741,17 @@ class DatasetEvaluator:
         plot_collection.add_figure(fig_title, fig)
 
     def calc_results(self, ape_metric, rpe_metric_trans, rpe_metric_rot, data, segments):
-        """
+        """ Create and return a dictionary containing stats and results for ATE, RRE and RTE for a datset.
+
+            Args:
+                ape_metric: an evo.core.metric object representing the ATE.
+                rpe_metric_trans: an evo.core.metric object representing the RTE.
+                rpe_metric_rot: an evo.core.metric object representing the RRE.
+                data: a 2-tuple with reference and estimated trajectories as PoseTrajectory3D objects
+                    in that order.
+                segments: a list of segments for RPE.
+
+            Returns: a dictionary containing all relevant results.
         """
         # Calculate APE results:
         results = dict()
@@ -685,7 +793,11 @@ class DatasetEvaluator:
         return results
 
     def save_boxplots_to_file(self, pipelines_to_run_list, dataset):
-        """
+        """ Writes boxplots for all pipelines of a given dataset to disk.
+
+            Args:
+                pipelines_to_run_list: a list containing all pipelines to run for a dataset.
+                dataset: a single dataset, as taken from the experiments yaml file.
         """
         dataset_name = dataset['name']
         dataset_segments = dataset['segments']
