@@ -6,6 +6,8 @@ dataset_dir: '$HOME/datasets/euroc'
 
 datasets_to_run:
  - name: V1_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -14,6 +16,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: false
  - name: MH_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 10

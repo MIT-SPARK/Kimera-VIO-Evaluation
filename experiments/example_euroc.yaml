@@ -1,20 +1,22 @@
-executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
-results_dir: '$HOME/Code/spark_vio_evaluation/results'
-params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
-dataset_dir: '$HOME/datasets/euroc'
-
-use_lcd: true
+executable_path: '$HOME/code/SparkVIO/build/stereoVIOEuroc'
+vocabulary_path: '$HOME/code/SparkVIO/vocabulary/ORBvoc.yml'
+results_dir: '$HOME/code/spark_vio_evaluation/results'
+params_dir: '$HOME/code/spark_vio_evaluation/experiments/params'
+dataset_dir: '$HOME/datasets/EuRoC'
 
 datasets_to_run:
- - name: V1_01_easy
-   segments: [1]
-   pipelines: ['S']
-   discard_n_start_poses: 10
-   discard_n_end_poses: 10
-   initial_frame: 100
-   final_frame: 300
-   parallel_run: false
+#  - name: V1_01_easy
+#    use_lcd: true
+#    segments: [1]
+#    pipelines: ['S']
+#    discard_n_start_poses: 10
+#    discard_n_end_poses: 10
+#    initial_frame: 100
+#    final_frame: 300
+#    parallel_run: false
  - name: MH_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: false
    segments: [1]
    pipelines: ['S']
    discard_n_start_poses: 0
