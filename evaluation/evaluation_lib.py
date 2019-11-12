@@ -353,15 +353,14 @@ class DatasetEvaluator:
 
         [plot_collection, results_vio, results_pgo] = self.run_analysis(
             traj_ref_path, traj_vio_path, traj_pgo_path, segments,
-            use_lcd, plot_vio_and_pgo, dataset_name, False, discard_n_start_poses,
+            use_lcd, plot_vio_and_pgo, dataset_name, discard_n_start_poses,
             discard_n_end_poses)
 
         if self.save_results:
-            # TODO(marcus): confirm_overwrite should be a parameter... it's also false right above...
             if results_vio is not None:
-                self.save_results_to_file(results_vio, "results_vio", dataset_pipeline_result_dir, False)
+                self.save_results_to_file(results_vio, "results_vio", dataset_pipeline_result_dir)
             if results_pgo is not None:
-                self.save_results_to_file(results_pgo, "results_pgo", dataset_pipeline_result_dir, False)
+                self.save_results_to_file(results_pgo, "results_pgo", dataset_pipeline_result_dir)
         
         if self.display_plots and plot_collection is not None:
             evt.print_green("Displaying plots.")
@@ -373,7 +372,7 @@ class DatasetEvaluator:
         return True
 
     def run_analysis(self, traj_ref_path, traj_vio_path, traj_pgo_path, segments, generate_pgo=False,
-                     plot_vio_and_pgo=False, dataset_name="", confirm_overwrite=False,
+                     plot_vio_and_pgo=False, dataset_name="",
                      discard_n_start_poses=0, discard_n_end_poses=0):
         """ Analyze data from a set of trajectory csv files.
 
@@ -385,7 +384,6 @@ class DatasetEvaluator:
                 generate_pgo: boolean; if True, analysis will generate results and plots for pgo trajectories.
                 plot_vio_and_pgo: if True, the plots will include both pgo and vio-only trajectories.
                 dataset_name: string representing the dataset's name
-                confirm_overwrite: boolean; if True, user wil be asked before ovewriting results files.
                 discard_n_start_poses: int representing number of poses to discard from start of analysis.
                 discard_n_end_poses: int representing the number of poses to discard from end of analysis.
         """
@@ -566,7 +564,7 @@ class DatasetEvaluator:
 
         return [traj_vio, traj_pgo]
 
-    def save_results_to_file(self, results, title, dataset_pipeline_result_dir, confirm_overwrite=False):
+    def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
         """ Writes a result dictionary to file as a yaml file.
 
             Args:
@@ -575,20 +573,12 @@ class DatasetEvaluator:
                 title: a string representing the filename without the '.yaml' extension.
                 dataset_pipeline_result_dir: a string representing the filepath for the location to
                     save the results file.
-                confirm_overwrite: a boolean; if True, the user will be asked before overwriting existing
-                    results files.
         """
         results_file = os.path.join(dataset_pipeline_result_dir, title + '.yaml')
         evt.print_green("Saving analysis results to: %s" % results_file)
         evt.create_full_path_if_not_exists(results_file)
         with open(results_file,'w') as outfile:
-            if confirm_overwrite:
-                if evt.user.check_and_confirm_overwrite(results_file):
-                        outfile.write(yaml.dump(results, default_flow_style=False))
-                else:
-                    log.info("Not overwritting results.")
-            else:
-                outfile.write(yaml.dump(results, default_flow_style=False))
+            outfile.write(yaml.dump(results, default_flow_style=False))
 
     def save_plots_to_file(self, plot_collection, dataset_pipeline_result_dir):
         """ Wrie plot collection to disk as both eps and pdf.
