@@ -16,46 +16,6 @@ from shutil import copyfile, move, rmtree, copytree, copy2
 from evo.core import trajectory, sync, metrics
 import evaluation.tools as evt
 
-FIX_MAX_Y = True
-Y_MAX_APE_TRANS = {
-    "MH_01_easy": 0.3,
-    "MH_02_easy": 0.25,
-    "MH_03_medium": 0.35,
-    "MH_04_difficult": 0.5,
-    "MH_05_difficult": 0.36,
-    "V1_01_easy": 0.125,
-    "V1_02_medium": 0.16,
-    "V1_03_difficult": 0.4,
-    "V2_01_easy": 0.175,
-    "V2_02_medium": 0.24,
-    "V2_03_difficult": 0.7
-}
-Y_MAX_RPE_TRANS = {
-    "MH_01_easy": 0.028,
-    "MH_02_easy": 0.025,
-    "MH_03_medium": 0.091,
-    "MH_04_difficult": 0.21,
-    "MH_05_difficult": 0.07,
-    "V1_01_easy": 0.03,
-    "V1_02_medium": 0.04,
-    "V1_03_difficult": 0.15,
-    "V2_01_easy": 0.04,
-    "V2_02_medium": 0.06,
-    "V2_03_difficult": 0.17
-}
-Y_MAX_RPE_ROT = {
-    "MH_01_easy": 0.4,
-    "MH_02_easy": 0.6,
-    "MH_03_medium": 0.35,
-    "MH_04_difficult": 1.0,
-    "MH_05_difficult": 0.3,
-    "V1_01_easy": 0.6,
-    "V1_02_medium": 1.5,
-    "V1_03_difficult": 1.25,
-    "V2_01_easy": 0.6,
-    "V2_02_medium": 1.0,
-    "V2_03_difficult": 2.6
-}
 
 def aggregate_all_results(results_dir):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
@@ -647,17 +607,12 @@ class DatasetEvaluator:
                 metric_units: a string representing the units of the metric being plotted.
         """
         fig = plt.figure(figsize=(8, 8))
-        ymax = -1
-        if dataset_name is not "" and FIX_MAX_Y:
-            ymax = Y_MAX_APE_TRANS[dataset_name]
-
         stats = metric.get_all_statistics()
 
         plot.error_array(fig, metric.error, statistics=stats,
                          name=plot_title, title=plot_title,
                          xlabel="Keyframe index [-]",
-                         ylabel=plot_title + " " + metric_units,
-                         y_min= 0.0, y_max=ymax)
+                         ylabel=plot_title + " " + metric_units)
         plot_collection.add_figure(fig_title, fig)
 
     def add_traj_colormap_ape(self, plot_collection, ape_metric, traj_ref, traj_est1, traj_est2=None,
