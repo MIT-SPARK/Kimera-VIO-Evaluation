@@ -251,6 +251,7 @@ class DatasetEvaluator:
         self.save_results  = args.save_results
         self.save_plots    = args.save_plots
         self.save_boxplots = args.save_boxplots
+        self.move_output   = args.run_pipeline
 
         self.pipeline_output_dir = os.path.join(self.results_dir, "tmp_output/output/")
         evt.create_full_path_if_not_exists(self.pipeline_output_dir)
@@ -300,7 +301,14 @@ class DatasetEvaluator:
         traj_ref_path = os.path.join(
             self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
 
-        traj_vio_path, traj_pgo_path = self.move_output_files(pipeline_type, dataset)
+        traj_vio_path = None
+        traj_pgo_path = None
+        if self.move_output:
+            traj_vio_path, traj_pgo_path = self.move_output_files(pipeline_type, dataset)
+        else:
+            traj_vio_path = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
+            traj_pgo_path = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
+
 
         # Analyze dataset:
         log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
