@@ -151,7 +151,7 @@ class DatasetRunner:
 
             Args:
                 dataset: a dataset to run as defined in the experiments yaml file.
-            
+
             Returns: True if all pipelines for the dataset succeed, False otherwise.
         """
         dataset_name = dataset['name']
@@ -169,12 +169,11 @@ class DatasetRunner:
             if pipeline_success:
                 evt.print_green("Successful pipeline run.")
             else:
-                has_a_pipeline_failed = False
+                log.error("Failed pipeline run!")
+                has_a_pipeline_failed = True
 
         if not has_a_pipeline_failed:
             evt.print_green("All pipeline runs were successful.")
-        else:
-            log.error("A pipeline has failed!")
         evt.print_green("Finished evaluation for dataset: " + dataset_name)
         return not has_a_pipeline_failed
 
@@ -185,12 +184,13 @@ class DatasetRunner:
                 dataset: a dataset to run as defined in the experiments yaml file.
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
-            
+
             Returns: True if the thread exits successfully, False otherwise.
         """
         def kimera_vio_thread(thread_return, minloglevel=0):
             """ Function to run Kimera-VIO in another thread """
-            thread_return['success'] = subprocess.call("{} \
+            # Subprocess returns 0 if Ok, any number bigger than 1 if not ok.
+            return_code = subprocess.call("{} \
                                 --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                                 --dataset_path={}/{} --output_path={} \
                                 --vio_params_path={}/{}/{} \
@@ -217,6 +217,11 @@ class DatasetRunner:
                 dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"], minloglevel,
                 dataset["parallel_run"]),
                 shell=True)
+            if return_code is 0:
+                thread_return['success'] = True
+            else:
+                thread_return['success'] = False
+
 
         import threading
         import time
@@ -271,21 +276,21 @@ class DatasetEvaluator:
                 if not self.__evaluate_run(pipeline_type, dataset):
                     log.error("Failed to evaluate dataset %s for pipeline %s. Exiting.")
                     raise Exception("Failed evaluation.")
-            
+
             if self.save_boxplots:
                 self.save_boxplots_to_file(pipelines_to_run_list, dataset)
 
         return True
-    
+
     def __evaluate_run(self, pipeline_type, dataset):
-        """ Evaluate performance of one pipeline of one dataset, as defined in the experiments 
-            yaml file. 
+        """ Evaluate performance of one pipeline of one dataset, as defined in the experiments
+            yaml file.
 
             Args:
                 dataset: a dataset to run as defined in the experiments yaml file.
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
-            
+
             Returns: True if the there are no exceptions during evaluation, False otherwise.
         """
         dataset_name = dataset["name"]
@@ -329,7 +334,7 @@ class DatasetEvaluator:
                 self.save_results_to_file(results_vio, "results_vio", dataset_pipeline_result_dir)
             if results_pgo is not None:
                 self.save_results_to_file(results_pgo, "results_pgo", dataset_pipeline_result_dir)
-        
+
         if self.display_plots and plot_collection is not None:
             evt.print_green("Displaying plots.")
             plot_collection.show()
@@ -356,7 +361,7 @@ class DatasetEvaluator:
                 discard_n_end_poses: int representing the number of poses to discard from end of analysis.
         """
         import copy
-        
+
         traj_ref, traj_est_vio, traj_est_pgo = self.read_traj_files(traj_ref_path, traj_vio_path,
                                                                     traj_pgo_path, generate_pgo)
 
@@ -496,7 +501,7 @@ class DatasetEvaluator:
                 dataset: a dataset to run as defined in the experiments yaml file.
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
-            
+
             Returns: A list containing two strings representing the filepaths of the vio and pgo csv
                 trajectories, in that order.
         """
@@ -536,7 +541,7 @@ class DatasetEvaluator:
         """ Writes a result dictionary to file as a yaml file.
 
             Args:
-                results: a dictionary containing ape, rpe rotation and rpe translation results and 
+                results: a dictionary containing ape, rpe rotation and rpe translation results and
                     statistics.
                 title: a string representing the filename without the '.yaml' extension.
                 dataset_pipeline_result_dir: a string representing the filepath for the location to
@@ -573,7 +578,7 @@ class DatasetEvaluator:
                 traj_pgo_path: string representing filepath of the pgo estimated trajectory.
                 generate_pgo: boolean; if True, analysis will generate results and plots for pgo trajectories.
 
-            Returns: A 3-tuple with the PoseTrajectory3D objects representing the reference trajectory, 
+            Returns: A 3-tuple with the PoseTrajectory3D objects representing the reference trajectory,
                 vio trajectory, and pgo trajectory in that order.
         """
         from evo.tools import file_interface
@@ -602,7 +607,7 @@ class DatasetEvaluator:
 
         return (traj_ref, traj_est_vio, traj_est_pgo)
 
-    def add_metric_plot(self, plot_collection, dataset_name, metric, fig_title="", 
+    def add_metric_plot(self, plot_collection, dataset_name, metric, fig_title="",
                         plot_title="", metric_units=""):
         """ Adds a metric plot to a plot collection.
 
@@ -716,7 +721,7 @@ class DatasetEvaluator:
         # TODO(Toni): Save RPE computation results rather than the statistics
         # you can compute statistics later...
         rpe_stats_trans = rpe_metric_trans.get_all_statistics()
-        # log.info("mean: %f" % rpe_stats_trans["mean"])        
+        # log.info("mean: %f" % rpe_stats_trans["mean"])
         rpe_stats_rot = rpe_metric_rot.get_all_statistics()
         # log.info("mean: %f" % rpe_stats_rot["mean"])
 
@@ -742,7 +747,7 @@ class DatasetEvaluator:
             results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
             # print(rpe_segment_stats_rot)
             # print("mean:", rpe_segment_stats_rot["mean"])
-        
+
         return results
 
     def save_boxplots_to_file(self, pipelines_to_run_list, dataset):
