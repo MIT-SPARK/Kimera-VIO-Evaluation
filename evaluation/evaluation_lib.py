@@ -715,15 +715,12 @@ class DatasetEvaluator:
         results = dict()
         ape_result = ape_metric.get_result()
         results["absolute_errors"] = ape_result
-        # log.info(ape_result.pretty_str(info=True))
 
         # Calculate RPE results:
         # TODO(Toni): Save RPE computation results rather than the statistics
         # you can compute statistics later...
         rpe_stats_trans = rpe_metric_trans.get_all_statistics()
-        # log.info("mean: %f" % rpe_stats_trans["mean"])
         rpe_stats_rot = rpe_metric_rot.get_all_statistics()
-        # log.info("mean: %f" % rpe_stats_rot["mean"])
 
         # Calculate RPE results of segments and save
         results["relative_errors"] = dict()
@@ -736,8 +733,6 @@ class DatasetEvaluator:
             rpe_segment_metric_trans.process_data(data)
             rpe_segment_stats_trans = rpe_segment_metric_trans.get_all_statistics()
             results["relative_errors"][segment]["rpe_trans"] = rpe_segment_stats_trans
-            # print(rpe_segment_stats_trans)
-            # print("mean:", rpe_segment_stats_trans["mean"])
 
             evt.print_lightpurple("Calculating RPE segment rotation angle")
             rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
@@ -745,8 +740,6 @@ class DatasetEvaluator:
             rpe_segment_metric_rot.process_data(data)
             rpe_segment_stats_rot = rpe_segment_metric_rot.get_all_statistics()
             results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
-            # print(rpe_segment_stats_rot)
-            # print("mean:", rpe_segment_stats_rot["mean"])
 
         return results
 
@@ -768,7 +761,8 @@ class DatasetEvaluator:
             if not os.path.exists(results_vio):
                 raise Exception("\033[91mCannot plot boxplots: missing results for %s pipeline \
                                 and dataset: %s" % (pipeline_type, dataset_name) + "\033[99m \n \
-                                Expected results here: %s" % results_vio)
+                                Expected results here: %s" % results_vio + "\033[99m \n \
+                                Ensure that `--save_results` is passed at commandline.")
 
             try:
                 stats[pipeline_type]  = yaml.load(open(results_vio,'r'), Loader=yaml.Loader)
