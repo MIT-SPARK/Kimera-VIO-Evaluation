@@ -131,6 +131,8 @@ class DatasetRunner:
 
         self.pipeline_output_dir = os.path.join(self.results_dir, "tmp_output/output/")
         evt.create_full_path_if_not_exists(self.pipeline_output_dir)
+        self.output_file_vio = os.path.join(self.pipeline_output_dir, "output_posesVIO.csv")
+        self.output_file_pgo = os.path.join(self.pipeline_output_dir, "output_lcd_optimized_traj.csv")
 
     def run_all(self):
         """ Runs all datasets in experiments file. """
@@ -242,7 +244,50 @@ class DatasetRunner:
                 sys.stdout.write('\b' * 80)            # erase the last written char
             time.sleep(0.100) # Sleep 100ms while Kimera-VIO is running
         thread.join()
+
+        # Move output files for future evaluation:
+        self.move_output_files(pipeline_type, dataset)
+
         return thread_return['success']
+
+    def move_output_files(self, pipeline_type, dataset):
+        """ Copies trajectory csvs and moves all output files for a particular pipeline and dataset
+            from their temporary logging location during runtime to the evaluation location.
+
+            Args:
+                dataset: a dataset to run as defined in the experiments yaml file.
+                pipeline_type: a pipeline representing a set of parameters to use, as
+                    defined in the experiments yaml file for the dataset in question.
+        """
+        dataset_name = dataset["name"]
+        dataset_results_dir = os.path.join(self.results_dir, dataset_name)
+        dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
+
+        traj_ref_path = os.path.join(self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
+
+        traj_vio = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
+        traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
+        evt.create_full_path_if_not_exists(traj_vio)
+        evt.create_full_path_if_not_exists(traj_pgo)
+
+        log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+            (self.output_file_vio, traj_vio))
+        copyfile(self.output_file_vio, traj_vio)
+
+        if dataset["use_lcd"]:
+            log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+                (self.output_file_pgo, traj_pgo))
+            copyfile(self.output_file_pgo, traj_pgo)
+
+        output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
+        log.info("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
+            (self.pipeline_output_dir, output_destination_dir))
+
+        try:
+            evt.move_output_from_to(self.pipeline_output_dir, output_destination_dir)
+        except:
+            log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" %
+                (self.pipeline_output_dir, output_destination_dir))
 
 
 """ DatasetEvaluator is used to evaluate performance of the pipeline on datasets """
@@ -256,12 +301,6 @@ class DatasetEvaluator:
         self.save_results  = args.save_results
         self.save_plots    = args.save_plots
         self.save_boxplots = args.save_boxplots
-        self.move_output   = args.run_pipeline
-
-        self.pipeline_output_dir = os.path.join(self.results_dir, "tmp_output/output/")
-        evt.create_full_path_if_not_exists(self.pipeline_output_dir)
-        self.output_file_vio = os.path.join(self.pipeline_output_dir, "output_posesVIO.csv")
-        self.output_file_pgo = os.path.join(self.pipeline_output_dir, "output_lcd_optimized_traj.csv")
 
     def evaluate_all(self):
         """ Evaluate performance on every pipeline of every dataset defined in the experiments
@@ -306,13 +345,8 @@ class DatasetEvaluator:
         traj_ref_path = os.path.join(
             self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
 
-        traj_vio_path = None
-        traj_pgo_path = None
-        if self.move_output:
-            traj_vio_path, traj_pgo_path = self.move_output_files(pipeline_type, dataset)
-        else:
-            traj_vio_path = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
-            traj_pgo_path = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
+        traj_vio_path = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
+        traj_pgo_path = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
 
 
         # Analyze dataset:
@@ -492,50 +526,6 @@ class DatasetEvaluator:
                                            "VIO RPE Rotation Error Mapped Onto Trajectory")
 
         return [plot_collection, results_vio, results_pgo]
-
-    def move_output_files(self, pipeline_type, dataset):
-        """ Copies trajectory csvs and moves all output files for a particular pipeline and dataset
-            from their temporary logging location during runtime to the evaluation location.
-
-            Args:
-                dataset: a dataset to run as defined in the experiments yaml file.
-                pipeline_type: a pipeline representing a set of parameters to use, as
-                    defined in the experiments yaml file for the dataset in question.
-
-            Returns: A list containing two strings representing the filepaths of the vio and pgo csv
-                trajectories, in that order.
-        """
-        dataset_name = dataset["name"]
-        dataset_results_dir = os.path.join(self.results_dir, dataset_name)
-        dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
-
-        traj_ref_path = os.path.join(self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
-
-        traj_vio = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
-        traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
-        evt.create_full_path_if_not_exists(traj_vio)
-        evt.create_full_path_if_not_exists(traj_pgo)
-
-        log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
-            (self.output_file_vio, traj_vio))
-        copyfile(self.output_file_vio, traj_vio)
-
-        if dataset["use_lcd"]:
-            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
-                (self.output_file_pgo, traj_pgo))
-            copyfile(self.output_file_pgo, traj_pgo)
-
-        output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
-        log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
-            (self.pipeline_output_dir, output_destination_dir))
-
-        try:
-            evt.move_output_from_to(self.pipeline_output_dir, output_destination_dir)
-        except:
-            log.fatal("\033[1mFailed copying output dir: \033[0m\n %s \n \033[1m to destination: %s \033[0m\n" %
-                (self.pipeline_output_dir, output_destination_dir))
-
-        return [traj_vio, traj_pgo]
 
     def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
         """ Writes a result dictionary to file as a yaml file.
