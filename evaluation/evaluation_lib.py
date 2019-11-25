@@ -270,17 +270,17 @@ class DatasetRunner:
         evt.create_full_path_if_not_exists(traj_vio)
         evt.create_full_path_if_not_exists(traj_pgo)
 
-        log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+        log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
             (self.output_file_vio, traj_vio))
         copyfile(self.output_file_vio, traj_vio)
 
         if dataset["use_lcd"]:
-            log.info("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+            log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
                 (self.output_file_pgo, traj_pgo))
             copyfile(self.output_file_pgo, traj_pgo)
 
         output_destination_dir = os.path.join(dataset_pipeline_result_dir, "output")
-        log.info("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
+        log.debug("\033[1mMoving output dir:\033[0m \n %s \n \033[1m to destination:\033[0m \n %s" %
             (self.pipeline_output_dir, output_destination_dir))
 
         try:
