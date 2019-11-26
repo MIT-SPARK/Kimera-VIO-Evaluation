@@ -3,20 +3,27 @@
 from __future__ import print_function
 import glog as log
 import os
-import yaml
+# import yaml
+from ruamel import yaml
 from tqdm import tqdm
 
-from evaluation.evaluation_lib import DatasetEvaluator, aggregate_ape_results
+from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
 def run(args):
     # Get experiment information from yaml file.
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
     # Create dataset evaluator: runs vio depending on given params and analyzes output.
-    dataset_evaluator = DatasetEvaluator(experiment_params, args)
-    dataset_evaluator.evaluate_all()
+    extra_flagfile_path = ""  # TODO(marcus): parse from experiments
+    # TODO(marcus): choose which of the following based on -r -a flags
+    if args.run_pipeline:
+        dataset_runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
+        dataset_runner.run_all()
+    if args.analyze_vio:
+        dataset_evaluator = DatasetEvaluator(experiment_params, args)
+        dataset_evaluator.evaluate_all()
     # Aggregate results in results directory
     aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
-    return True 
+    return True
 
 def parser():
     import argparse
@@ -34,8 +41,8 @@ def parser():
 
     evaluation_opts.add_argument("-r", "--run_pipeline", action="store_true",
                                  help="Run vio?")
-    evaluation_opts.add_argument("-a", "--analyse_vio", action="store_true",
-                                 help="Analyse vio, compute APE and RPE")
+    evaluation_opts.add_argument("-a", "--analyze_vio", action="store_true",
+                                 help="Analyze vio, compute APE and RPE")
 
     output_opts.add_argument(
         "--plot", action="store_true", help="show plot window",)

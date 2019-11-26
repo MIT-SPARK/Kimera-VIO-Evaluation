@@ -9,5 +9,5 @@ setup(name='spark_vio_evaluation',
       author_email='arosinol@mit.edu',
       license='MIT',
       packages=['evaluation', 'evaluation.tools'],
-      install_requires=['numpy', 'glog', 'tqdm', 'pyyaml==4.2b4', 'evo-1', 'open3d-python'],
+      install_requires=['numpy', 'glog', 'tqdm', 'ruamel.yaml', 'evo-1', 'open3d-python'],
       zip_safe=False)

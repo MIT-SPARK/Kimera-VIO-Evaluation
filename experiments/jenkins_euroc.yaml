@@ -9,6 +9,8 @@ use_lcd: false
 
 datasets_to_run:
  - name: V1_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -18,6 +20,8 @@ datasets_to_run:
    # Run VIO in parallel mode: faster but non-deterministic.
    parallel_run: false
  - name: V1_02_medium
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -26,6 +30,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: V1_03_difficult
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -34,6 +40,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: V2_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -42,6 +50,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: V2_02_medium
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -50,6 +60,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: V2_03_difficult
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -58,6 +70,8 @@ datasets_to_run:
    final_frame: 1800
    parallel_run: true
  - name: MH_01_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 10
@@ -66,6 +80,8 @@ datasets_to_run:
    final_frame: 3500
    parallel_run: true
  - name: MH_02_easy
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 20
@@ -74,6 +90,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: MH_03_medium
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 20
@@ -82,6 +100,8 @@ datasets_to_run:
    final_frame: 2400
    parallel_run: true
  - name: MH_04_difficult
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 20
@@ -90,6 +110,8 @@ datasets_to_run:
    final_frame: 10000
    parallel_run: true
  - name: MH_05_difficult
+   use_lcd: true
+   plot_vio_and_pgo: true
    segments: [5]
    pipelines: ['S']
    discard_n_start_poses: 35
