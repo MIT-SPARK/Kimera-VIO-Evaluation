@@ -195,8 +195,11 @@ class DatasetRunner:
             return_code = subprocess.call("{} \
                                 --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                                 --dataset_path={}/{} --output_path={} \
-                                --vio_params_path={}/{}/{} \
-                                --tracker_params_path={}/{}/{} \
+                                --left_cam_params_path={}/{}/{} \
+                                --right_cam_params_path={}/{}/{} \
+                                --imu_params_path={}/{}/{} \
+                                --backend_params_path={}/{}/{} \
+                                --frontend_params_path={}/{}/{} \
                                 --lcd_params_path={}/{}/{} \
                                 --vocabulary_path={} \
                                 --flagfile={}/{}/{} --flagfile={}/{}/{} \
@@ -206,6 +209,9 @@ class DatasetRunner:
                                 --log_output=True --minloglevel={} \
                                 --parallel_run={}".format(
                 self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
+                self.params_dir, pipeline_type, "LeftCameraParams.yaml",
+                self.params_dir, pipeline_type, "RightCameraParams.yaml",
+                self.params_dir, pipeline_type, "ImuParams.yaml",
                 self.params_dir, pipeline_type, "regularVioParameters.yaml",
                 self.params_dir, pipeline_type, "trackerParameters.yaml",
                 self.params_dir, pipeline_type, "LCDParameters.yaml",
