@@ -245,9 +245,9 @@ class DatasetRunner:
             if not self.verbose_vio:
                 # If Kimera-VIO is not in verbose mode, the user might think the python script is hanging.
                 # So, instead, display a spinner of 80 characters.
-                sys.stdout.write(next(spinner) * 80)  # write the next character
+                sys.stdout.write(next(spinner) * 10)  # write the next character
                 sys.stdout.flush()                     # flush stdout buffer (actual character display)
-                sys.stdout.write('\b' * 80)            # erase the last written char
+                sys.stdout.write('\b' * 10)            # erase the last written char
             time.sleep(0.100) # Sleep 100ms while Kimera-VIO is running
         thread.join()
 
