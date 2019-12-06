@@ -195,8 +195,11 @@ class DatasetRunner:
             return_code = subprocess.call("{} \
                                 --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                                 --dataset_path={}/{} --output_path={} \
-                                --vio_params_path={}/{}/{} \
-                                --tracker_params_path={}/{}/{} \
+                                --left_cam_params_path={}/{}/{} \
+                                --right_cam_params_path={}/{}/{} \
+                                --imu_params_path={}/{}/{} \
+                                --backend_params_path={}/{}/{} \
+                                --frontend_params_path={}/{}/{} \
                                 --lcd_params_path={}/{}/{} \
                                 --vocabulary_path={} \
                                 --flagfile={}/{}/{} --flagfile={}/{}/{} \
@@ -206,6 +209,9 @@ class DatasetRunner:
                                 --log_output=True --minloglevel={} \
                                 --parallel_run={}".format(
                 self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
+                self.params_dir, pipeline_type, "LeftCameraParams.yaml",
+                self.params_dir, pipeline_type, "RightCameraParams.yaml",
+                self.params_dir, pipeline_type, "ImuParams.yaml",
                 self.params_dir, pipeline_type, "regularVioParameters.yaml",
                 self.params_dir, pipeline_type, "trackerParameters.yaml",
                 self.params_dir, pipeline_type, "LCDParameters.yaml",
@@ -239,9 +245,9 @@ class DatasetRunner:
             if not self.verbose_vio:
                 # If Kimera-VIO is not in verbose mode, the user might think the python script is hanging.
                 # So, instead, display a spinner of 80 characters.
-                sys.stdout.write(next(spinner) * 80)  # write the next character
+                sys.stdout.write(next(spinner) * 10)  # write the next character
                 sys.stdout.flush()                     # flush stdout buffer (actual character display)
-                sys.stdout.write('\b' * 80)            # erase the last written char
+                sys.stdout.write('\b' * 10)            # erase the last written char
             time.sleep(0.100) # Sleep 100ms while Kimera-VIO is running
         thread.join()
 
