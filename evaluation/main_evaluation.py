@@ -15,12 +15,8 @@ def run(args):
     # Create dataset evaluator: runs vio depending on given params and analyzes output.
     extra_flagfile_path = ""  # TODO(marcus): parse from experiments
     # TODO(marcus): choose which of the following based on -r -a flags
-    if args.run_pipeline:
-        dataset_runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
-        dataset_runner.run_all()
-    if args.analyze_vio:
-        dataset_evaluator = DatasetEvaluator(experiment_params, args)
-        dataset_evaluator.evaluate_all()
+    dataset_evaluator = DatasetEvaluator(experiment_params, args, extra_flagfile_path)
+    dataset_evaluator.evaluate()
     # Aggregate results in results directory
     aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
     return True
@@ -67,9 +63,9 @@ if __name__ == '__main__':
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    try:
-        if run(args):
-            sys.exit(os.EX_OK)
-    except Exception as e:
-        print("error: ", e)
-        raise Exception("Main evaluation run failed.")
+    # try:
+    if run(args):
+        sys.exit(os.EX_OK)
+    # except Exception as e:
+    #     print("error: ", e)
+    #     raise Exception("Main evaluation run failed.")
