@@ -141,13 +141,13 @@ class DatasetRunner:
         successful_run = True
         for dataset in tqdm(self.datasets_to_run):
             log.info("Run dataset: %s" % dataset['name'])
-            if not self.__run_dataset(dataset):
+            if not self.run_dataset(dataset):
                 log.info("\033[91m Dataset: %s failed!! \033[00m" %
                          dataset['name'])
                 successful_run = False
         return successful_run
 
-    def __run_dataset(self, dataset):
+    def run_dataset(self, dataset):
         """ Run a single dataset from an experiments file and save all output. This is done
             for every pipeline requested for the dataset.
 
@@ -298,7 +298,7 @@ class DatasetRunner:
 
 """ DatasetEvaluator is used to evaluate performance of the pipeline on datasets """
 class DatasetEvaluator:
-    def __init__(self, experiment_params, args):
+    def __init__(self, experiment_params, args, extra_flagfile_path):
         self.results_dir      = os.path.expandvars(experiment_params['results_dir'])
         self.datasets_to_eval = experiment_params['datasets_to_run']
         self.dataset_dir      = os.path.expandvars(experiment_params['dataset_dir'])
@@ -307,6 +307,43 @@ class DatasetEvaluator:
         self.save_results  = args.save_results
         self.save_plots    = args.save_plots
         self.save_boxplots = args.save_boxplots
+        self.run_vio       = args.run_pipeline
+        self.analyze_vio   = args.analyze_vio
+
+        self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
+
+    def evaluate(self):
+        """ Run datasets if necessary, evaluate all. """
+        if self.run_vio and not self.analyze_vio:
+            return self.runner.run_all()
+        
+        elif not self.run_vio and self.analyze_vio:
+            return self.evaluate_all()
+
+        for dataset in tqdm(self.datasets_to_eval):
+            # Run the dataset if needed:
+            if self.run_vio:
+                successful_run = True
+                log.info("Run dataset: %s" % dataset['name'])
+                if not self.runner.run_dataset(dataset):
+                    log.info("\033[91m Dataset: %s failed!! \033[00m" %
+                            dataset['name'])
+                    raise Exception("Failed to run dataset %s." % dataset['name'])
+                
+            # Evaluate each dataset if needed:
+            if self.analyze_vio:
+                log.info("Evaluate dataset: %s" % dataset['name'])
+                pipelines_to_run_list = dataset['pipelines']
+                for pipeline_type in pipelines_to_run_list:
+                    if not self.__evaluate_run(pipeline_type, dataset):
+                        log.error("Failed to evaluate dataset %s for pipeline %s. Exiting."
+                                  % dataset['name'] % pipeline_type)
+                        raise Exception("Failed evaluation.")
+
+                if self.save_boxplots:
+                    self.save_boxplots_to_file(pipelines_to_run_list, dataset)
+
+        return True
 
     def evaluate_all(self):
         """ Evaluate performance on every pipeline of every dataset defined in the experiments
