@@ -5,8 +5,6 @@ results_dir: '$WORKSPACE/spark_vio_evaluation/html/data'
 params_dir: '/root/spark_vio_evaluation/experiments/params'
 dataset_dir: '/Datasets/euroc'
 
-use_lcd: false
-
 datasets_to_run:
  - name: V1_01_easy
    use_lcd: true
