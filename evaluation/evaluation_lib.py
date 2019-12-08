@@ -192,39 +192,41 @@ class DatasetRunner:
         def kimera_vio_thread(thread_return, minloglevel=0):
             """ Function to run Kimera-VIO in another thread """
             # Subprocess returns 0 if Ok, any number bigger than 1 if not ok.
-            return_code = subprocess.call("{} \
-                                --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
-                                --dataset_path={}/{} --output_path={} \
-                                --left_cam_params_path={}/{}/{} \
-                                --right_cam_params_path={}/{}/{} \
-                                --imu_params_path={}/{}/{} \
-                                --backend_params_path={}/{}/{} \
-                                --frontend_params_path={}/{}/{} \
-                                --lcd_params_path={}/{}/{} \
-                                --vocabulary_path={} \
-                                --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                                --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                                --flagfile={}/{}/{} --flagfile={}/{} \
-                                --initial_k={} --final_k={} --use_lcd={} \
-                                --log_output=True --minloglevel={} \
-                                --parallel_run={}".format(
-                self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
-                self.params_dir, pipeline_type, "LeftCameraParams.yaml",
-                self.params_dir, pipeline_type, "RightCameraParams.yaml",
-                self.params_dir, pipeline_type, "ImuParams.yaml",
-                self.params_dir, pipeline_type, "regularVioParameters.yaml",
-                self.params_dir, pipeline_type, "trackerParameters.yaml",
-                self.params_dir, pipeline_type, "LCDParameters.yaml",
-                self.vocabulary_path,
-                self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
-                self.params_dir, pipeline_type, "flags/Mesher.flags",
-                self.params_dir, pipeline_type, "flags/VioBackEnd.flags",
-                self.params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
-                self.params_dir, pipeline_type, "flags/Visualizer3D.flags",
-                self.params_dir, self.extra_flagfile_path,
-                dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"], minloglevel,
-                dataset["parallel_run"]),
-                shell=True)
+            command = "{} \
+                    --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
+                    --dataset_path={}/{} --output_path={} \
+                    --left_cam_params_path={}/{}/{} \
+                    --right_cam_params_path={}/{}/{} \
+                    --imu_params_path={}/{}/{} \
+                    --backend_params_path={}/{}/{} \
+                    --frontend_params_path={}/{}/{} \
+                    --lcd_params_path={}/{}/{} \
+                    --vocabulary_path={} \
+                    --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                    --flagfile={}/{}/{} --flagfile={}/{}/{} \
+                    --flagfile={}/{}/{} --flagfile={}/{} \
+                    --initial_k={} --final_k={} --use_lcd={} \
+                    --log_output=True --minloglevel={} \
+                    --parallel_run={}".format(
+                        self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
+                        self.params_dir, pipeline_type, "LeftCameraParams.yaml",
+                        self.params_dir, pipeline_type, "RightCameraParams.yaml",
+                        self.params_dir, pipeline_type, "ImuParams.yaml",
+                        self.params_dir, pipeline_type, "regularVioParameters.yaml",
+                        self.params_dir, pipeline_type, "trackerParameters.yaml",
+                        self.params_dir, pipeline_type, "LCDParameters.yaml",
+                        self.vocabulary_path,
+                        self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
+                        self.params_dir, pipeline_type, "flags/Mesher.flags",
+                        self.params_dir, pipeline_type, "flags/VioBackEnd.flags",
+                        self.params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
+                        self.params_dir, pipeline_type, "flags/Visualizer3D.flags",
+                        self.params_dir, self.extra_flagfile_path,
+                        dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"], minloglevel,
+                        dataset["parallel_run"])
+            # print("Starting Kimera-VIO with command:\n")
+            # print(command)
+            return_code = subprocess.call(command, shell=True)
             if return_code is 0:
                 thread_return['success'] = True
             else:
