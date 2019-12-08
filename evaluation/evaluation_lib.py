@@ -452,38 +452,8 @@ class DatasetEvaluator:
                                                    discard_n_start_poses = int(discard_n_start_poses),
                                                    discard_n_end_poses = int(discard_n_end_poses))
 
-        num_of_poses = traj_est_vio.num_poses
-        # We need to pick the lowest num_poses before doing any computation:
-        if traj_est_pgo is not None:
-            num_of_poses = min(num_of_poses, traj_est_pgo.num_poses)
-        traj_est_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
-        traj_ref_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
-
-        # Calculate all metrics:
-        data = (traj_ref_vio, traj_est_vio)
-        evt.print_purple("Calculating APE translation part for VIO")
-        ape_metric_vio = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_metric_vio.process_data(data)
-        evt.print_purple("Calculating RPE translation part for VIO")
-        rpe_metric_trans_vio = metrics.RPE(metrics.PoseRelation.translation_part,
-                                           1.0, metrics.Unit.frames, 0.0, False)
-        rpe_metric_trans_vio.process_data(data)
-        evt.print_purple("Calculating RPE rotation angle for VIO")
-        rpe_metric_rot_vio = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
-                                         1.0, metrics.Unit.frames, 1.0, False)
-        rpe_metric_rot_vio.process_data(data)
-
-        # Calculate results dictionary for vio and pgo trajectories if needed:
-        results_vio = self.calc_results(ape_metric_vio, rpe_metric_trans_vio,
-                                        rpe_metric_rot_vio, data, segments)
-
-
-        # We do the same for the pgo trajectory if needed:
+        # We do the same for the PGO trajectory if needed:
         traj_ref_pgo = None
-        ape_metric_pgo = None
-        rpe_metric_trans_pgo = None
-        rpe_metric_rot_pgo = None
-        results_pgo = None
         if traj_est_pgo is not None:
             traj_ref_pgo = copy.deepcopy(traj_ref)
             traj_ref_pgo, traj_est_pgo = sync.associate_trajectories(traj_ref_pgo, traj_est_pgo)
@@ -491,24 +461,26 @@ class DatasetEvaluator:
                                                        discard_n_start_poses = int(discard_n_start_poses),
                                                        discard_n_end_poses = int(discard_n_end_poses))
 
+        # We need to pick the lowest num_poses before doing any computation:
+        num_of_poses = traj_est_vio.num_poses
+        if traj_est_pgo is not None:
+            num_of_poses = min(num_of_poses, traj_est_pgo.num_poses)
             traj_est_pgo.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
             traj_ref_pgo.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
 
-            data = (traj_ref_pgo, traj_est_pgo)
-            evt.print_purple("Calculating APE translation part for PGO")
-            ape_metric_pgo = metrics.APE(metrics.PoseRelation.translation_part)
-            ape_metric_pgo.process_data(data)
-            evt.print_purple("Calculating RPE translation part for PGO")
-            rpe_metric_trans_pgo = metrics.RPE(metrics.PoseRelation.translation_part,
-                                               1.0, metrics.Unit.frames, 0.0, False)
-            rpe_metric_trans_pgo.process_data(data)
-            evt.print_purple("Calculating RPE rotation angle for PGO")
-            rpe_metric_rot_pgo = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
-                                             1.0, metrics.Unit.frames, 1.0, False)
-            rpe_metric_rot_pgo.process_data(data)
+        traj_est_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+        traj_ref_vio.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
 
-            results_pgo = self.calc_results(ape_metric_pgo, rpe_metric_trans_pgo,
-                                            rpe_metric_rot_pgo, data, segments)
+        # Calculate all metrics:
+        (ape_metric_vio, rpe_metric_trans_vio, rpe_metric_rot_vio, results_vio) = self.process_trajectory_data(traj_ref_vio, traj_est_vio, segments, True)
+
+        # We do the same for the pgo trajectory if needed:
+        ape_metric_pgo = None
+        rpe_metric_trans_pgo = None
+        rpe_metric_rot_pgo = None
+        results_pgo = None
+        if traj_est_pgo is not None:
+            (ape_metric_pgo, rpe_metric_trans_pgo, rpe_metric_rot_pgo, results_pgo) = self.process_trajectory_data(traj_ref_pgo, traj_est_pgo, segments, False)
 
         # Generate plots for return:
         plot_collection = None
@@ -569,6 +541,29 @@ class DatasetEvaluator:
                                            "VIO RPE Rotation Error Mapped Onto Trajectory")
 
         return [plot_collection, results_vio, results_pgo]
+
+    def process_trajectory_data(self, traj_ref, traj_est, segments, is_vio_traj=True):
+        """
+        """
+        suffix = "VIO" if is_vio_traj else "PGO"
+        data = (traj_ref, traj_est)
+
+        evt.print_purple("Calculating APE translation part for " + suffix)
+        ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
+        ape_metric.process_data(data)
+        evt.print_purple("Calculating RPE translation part for " + suffix)
+        rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
+                                           1.0, metrics.Unit.frames, 0.0, False)
+        rpe_metric_trans.process_data(data)
+        evt.print_purple("Calculating RPE rotation angle for " + suffix)
+        rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
+                                         1.0, metrics.Unit.frames, 1.0, False)
+        rpe_metric_rot.process_data(data)
+
+        results = self.calc_results(ape_metric, rpe_metric_trans,
+                                    rpe_metric_rot, data, segments)
+
+        return (ape_metric, rpe_metric_trans, rpe_metric_rot, results)
 
     def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
         """ Writes a result dictionary to file as a yaml file.
