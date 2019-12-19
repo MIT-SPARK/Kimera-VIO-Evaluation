@@ -6,6 +6,15 @@ import matplotlib.pyplot as plt
 from pylab import setp
 from matplotlib.ticker import FuncFormatter
 
+import plotly
+import plotly.express as px
+import plotly.graph_objects as go
+import chart_studio.plotly as py
+
+import glog as log
+import pandas as pd
+from datetime import datetime as date
+
 from .filesystem_utils import ensure_dir
 
 from evo.core import result
@@ -209,6 +218,66 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         "pgf.texsystem": SETTINGS.plot_texsystem
     }
     mpl.rcParams.update(rc_params)
+
+def plotly_boxplot(df):
+    tidy = df.set_index(['Dataset Name'])
+    tidy = tidy['ATE errors'].apply(lambda x: pd.Series(x)).stack().reset_index(level=1, drop=True).to_frame('ATE errors')
+    tidy.reset_index(level=['Dataset Name'], drop=False, inplace=True)
+    tidy.sort_values('Dataset Name', inplace=True)
+    fig = px.box(tidy, x='Dataset Name', y="ATE errors", points="all")
+
+    fig.update_layout(
+    title=go.layout.Title(
+        text="Kimera-VIO ATE Euroc dataset " + str(date.today())
+    ),
+    xaxis=go.layout.XAxis(
+        title=go.layout.xaxis.Title(
+            text='Datasets'
+        )
+    ),
+    yaxis=go.layout.YAxis(
+        title=go.layout.yaxis.Title(
+            text="ATE [m]"
+            ),
+        rangemode='tozero'
+        ),
+    template='plotly_white'
+    )
+    return fig
+
+def draw_ape_boxplots_plotly(stats, upload_plots_online = True):
+    """ Simplified boxplot plotting using plotly for APE boxplots:
+    See draw_ape_boxplots for the complicated version.
+    
+    Args:
+        - stats: vio statistics (see 'draw_ape_boxplots' function)
+        - upload_plots_online: if set to True it will publish plots online to plotly server.
+        (to publish online, you need to follow the instructions here: )
+        If False, it will just show the boxplot figure.
+    """
+
+    def listify_stats(stats):
+        """ Makes a list of lists out of the stats (for easy conversion into pandas dataframe) """
+        stats_list = []
+        for dataset_name in stats:
+            for pipeline in stats[dataset_name]:
+                result = stats[dataset_name][pipeline]
+                if result != False:
+                    result = result['absolute_errors'].np_arrays['error_array']
+                    stats_list.append([dataset_name, pipeline, result])
+        return stats_list
+
+    df = pd.DataFrame()
+    log.info("Creating dataframe stats.")
+    df = pd.DataFrame.from_records(listify_stats(stats))
+    df.columns = ['Dataset Name', 'Pipe Type', 'ATE errors']
+
+    figure = plotly_boxplot(df)
+
+    if upload_plots_online:
+        py.iplot(figure, filename=figure.layout.title.text + '.html', world_readable=True, auto_open=False)
+    else:
+        figure.show()
 
 def draw_ape_boxplots(stats, output_dir):
     """ Draw boxplots from stats:
