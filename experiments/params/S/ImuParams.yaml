@@ -1,4 +1,9 @@
 %YAML:1.0
+# Type of IMU preintegration:
+# 0: CombinedImuFactor
+# 1: ImuFactor
+imu_preintegration_type: 1
+
 # These are Euroc Dataset parameters
 # Sensor extrinsics wrt. the body-frame.
 T_BS:
@@ -20,5 +25,3 @@ accelerometer_random_walk: 3.0000e-3    # [ m / s^3 / sqrt(Hz) ].  ( accel bias 
 imu_integration_sigma: 1.0e-8
 imu_time_shift: 0.0
 n_gravity: [0.0, 0.0, -9.81]
-
-imu_preintegration_type: 0
