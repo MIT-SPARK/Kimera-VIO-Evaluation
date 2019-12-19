@@ -4,8 +4,11 @@ import os
 import sys
 import argparse
 import argcomplete
-import yaml
 import csv
+
+from ruamel import yaml
+
+import glog as log
 
 import evaluation.tools as evt
 
@@ -33,7 +36,7 @@ def write_vio_results_summary(results, vio_results_summary_path):
     evt.create_full_path_if_not_exists(vio_results_summary_path)
     # Write to CSV file.
     with open(vio_results_summary_path, 'w') as vio_results_summary_file:
-        print('Writing VIO summary results to: %s' % vio_results_summary_path)
+        log.info('Writing VIO summary results to: %s' % vio_results_summary_path)
         performance_metrics = ['ATE_mean', 'ATE_rmse']
         writer = csv.DictWriter(vio_results_summary_file, fieldnames=performance_metrics)
         writer.writeheader()
@@ -41,15 +44,22 @@ def write_vio_results_summary(results, vio_results_summary_path):
 
 def main(vio_results_path, vio_results_summary_path):
     # Read vio results yaml file.
-    print("Reading VIO results from: %s" % vio_results_path)
+    log.info("Reading VIO results from: %s" % vio_results_path)
     if os.path.exists(vio_results_path):
         with open(vio_results_path,'r') as input:
-            results = yaml.load(input)
+            results = yaml.load(input, Loader=yaml.Loader)
             write_vio_results_summary(results, vio_results_summary_path)
+        return true
+    else:
+        log.error("No VIO results found at: %s" % vio_results_path)
+        return false
+
 
 if __name__ == "__main__":
     parser = parser()
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    main(args.vio_results_path, args.vio_results_summary_path)
-    sys.exit(os.EX_OK)
+    if main(args.vio_results_path, args.vio_results_summary_path):
+        sys.exit(os.EX_OK)
+    else:
+        sys.exit(os.EX_IOERR)
