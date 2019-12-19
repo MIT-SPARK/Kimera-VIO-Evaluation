@@ -20,3 +20,5 @@ accelerometer_random_walk: 3.0000e-3    # [ m / s^3 / sqrt(Hz) ].  ( accel bias 
 imu_integration_sigma: 1.0e-8
 imu_time_shift: 0.0
 n_gravity: [0.0, 0.0, -9.81]
+
+imu_preintegration_type: 0
