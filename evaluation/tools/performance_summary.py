@@ -49,10 +49,10 @@ def main(vio_results_path, vio_results_summary_path):
         with open(vio_results_path,'r') as input:
             results = yaml.load(input, Loader=yaml.Loader)
             write_vio_results_summary(results, vio_results_summary_path)
-        return true
+        return True
     else:
         log.error("No VIO results found at: %s" % vio_results_path)
-        return false
+        return False
 
 
 if __name__ == "__main__":
