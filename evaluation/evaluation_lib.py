@@ -55,15 +55,15 @@ def aggregate_all_results(results_dir):
             if stats.get(dataset_name) is None:
                 stats[dataset_name] = dict()
 
-                try:
-                    stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
-                except yaml.YAMLError as e:
-                    raise Exception("Error in results_vio file: ", e)
-                except:
-                    log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
+            try:
+                stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
+            except yaml.YAMLError as e:
+                raise Exception("Error in results_vio file: ", e)
+            except:
+                log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
 
-                log.debug("Check stats from: " + results_filepath)
-                check_stats(stats[dataset_name][pipeline_name])
+            log.debug("Check stats from: " + results_filepath)
+            check_stats(stats[dataset_name][pipeline_name])
     return stats
 
 def aggregate_ape_results(results_dir):
