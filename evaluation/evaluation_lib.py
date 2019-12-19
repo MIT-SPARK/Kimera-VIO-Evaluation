@@ -54,9 +54,16 @@ def aggregate_all_results(results_dir):
             # Collect stats
             if stats.get(dataset_name) is None:
                 stats[dataset_name] = dict()
-            stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
-            log.debug("Check stats from: " + results_filepath)
-            check_stats(stats[dataset_name][pipeline_name])
+
+                try:
+                    stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
+                except yaml.YAMLError as e:
+                    raise Exception("Error in results_vio file: ", e)
+                except:
+                    log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
+
+                log.debug("Check stats from: " + results_filepath)
+                check_stats(stats[dataset_name][pipeline_name])
     return stats
 
 def aggregate_ape_results(results_dir):
@@ -78,6 +85,8 @@ def aggregate_ape_results(results_dir):
     # Draw APE boxplot
     log.info("Drawing APE boxplots.")
     evt.draw_ape_boxplots(stats, results_dir)
+    # Draw and upload APE boxplot online
+    evt.draw_ape_boxplots_plotly(stats, True)
     # Write APE table
     log.info("Writting APE latex table.")
     evt.write_latex_table(stats, results_dir)
@@ -198,6 +207,7 @@ class DatasetRunner:
                     --left_cam_params_path={}/{}/{} \
                     --right_cam_params_path={}/{}/{} \
                     --imu_params_path={}/{}/{} \
+                    --backend_type=0 \
                     --backend_params_path={}/{}/{} \
                     --frontend_params_path={}/{}/{} \
                     --lcd_params_path={}/{}/{} \
@@ -318,7 +328,7 @@ class DatasetEvaluator:
         """ Run datasets if necessary, evaluate all. """
         if self.run_vio and not self.analyze_vio:
             return self.runner.run_all()
-        
+
         elif not self.run_vio and self.analyze_vio:
             return self.evaluate_all()
 
@@ -331,7 +341,7 @@ class DatasetEvaluator:
                     log.info("\033[91m Dataset: %s failed!! \033[00m" %
                             dataset['name'])
                     raise Exception("Failed to run dataset %s." % dataset['name'])
-                
+
             # Evaluate each dataset if needed:
             if self.analyze_vio:
                 log.info("Evaluate dataset: %s" % dataset['name'])
@@ -420,6 +430,9 @@ class DatasetEvaluator:
 
         if self.save_plots and plot_collection is not None:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
+
+        if self.save_plots:
+            aggregate_ape_results(self.results_dir)
 
         return True
 
