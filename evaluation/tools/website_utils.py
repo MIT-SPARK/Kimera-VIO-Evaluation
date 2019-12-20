@@ -28,7 +28,7 @@ def write_boxplot_to_website(stats, results_dir):
 
     # Save html_div inside webiste template using Jinja2
     website_path = os.path.dirname(website.__file__)
-    template = env.get_template('vio_performance.html')
-    with open(os.path.join(website_path, "rendered_template.html"), "w") as output:
+    template = env.get_template('vio_performance_template.html')
+    with open(os.path.join(website_path, "vio_ape_euroc.html"), "w") as output:
         # Write modified template inside the website package.
         output.write(template.render(plotly=html_div))
