@@ -8,6 +8,6 @@ setup(name='spark_vio_evaluation',
       author='Antoni Rosinol',
       author_email='arosinol@mit.edu',
       license='MIT',
-      packages=['evaluation', 'evaluation.tools'],
+      packages=['evaluation', 'evaluation.tools', 'website'],
       install_requires=['numpy', 'glog', 'tqdm', 'ruamel.yaml', 'evo-1', 'open3d-python', 'plotly', 'chart_studio'],
       zip_safe=False)
