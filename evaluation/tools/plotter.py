@@ -195,8 +195,8 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         _ax_formatting(ax_pos, dummy_plots_pos, final_max_e_pos)
         _ax_formatting(ax_yaw, dummy_plots_yaw, final_max_e_yaw)
 
-        fig.savefig(os.path.join(output_dir, 'traj_relative_errors_boxplots.eps'),
-                    bbox_inches="tight", format="eps", dpi=1200)
+        fig.savefig(os.path.join(output_dir, 'traj_relative_errors_boxplots.pdf'),
+                    bbox_inches="tight", format="pdf", dpi=1200)
     else:
         raise Exception("\033[91mStats should be a dict: " + stats + "\033[99m")
 
@@ -400,8 +400,8 @@ def draw_ape_boxplots(stats, output_dir):
         final_max_e_pos += 0.02
         _ax_formatting(ax_pos, legend_handles, final_max_e_pos)
 
-        fig.savefig(os.path.join(output_dir, 'datasets_ape_boxplots.eps'),
-                    bbox_inches="tight", format="eps", dpi=1200)
+        fig.savefig(os.path.join(output_dir, 'datasets_ape_boxplots.pdf'),
+                    bbox_inches="tight", format="pdf", dpi=1200)
     else:
         raise Exception("\033[91mStats should be a dict: " + stats + "\033[99m")
 
@@ -551,8 +551,8 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
     _ax_formatting(ax_pos, legend_handles, final_max_e_pos)
 
     assert(ensure_dir(output_dir))
-    fig.savefig(os.path.join(output_dir, param_name + '_absolute_errors_boxplots.eps'),
-                bbox_inches="tight", format="eps", dpi=1200)
+    fig.savefig(os.path.join(output_dir, param_name + '_absolute_errors_boxplots.pdf'),
+                bbox_inches="tight", format="pdf", dpi=1200)
 
     # Restore plotting config.
     from evo.tools.settings import SETTINGS

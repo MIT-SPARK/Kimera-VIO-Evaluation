@@ -7,6 +7,10 @@ import os
 from ruamel import yaml
 from tqdm import tqdm
 
+# Ignore warnings from matplotlib...
+import warnings
+warnings.filterwarnings("ignore")
+
 from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
 def run(args):
