@@ -43,10 +43,10 @@ class WebsiteBuilder:
         # Save html_div inside website template using Jinja2
         with open(self.website_output_path, "w") as output:
             # Write modified template inside the website package.
-            output.write(self.template.render(boxplot=self.get_boxplot_as_html(stats),
-                                              dataset_plots=self.get_dataset_results_as_html(csv_results_path)))
+            output.write(self.template.render(boxplot=self.__get_boxplot_as_html(stats),
+                                              dataset_plots=self.__get_dataset_results_as_html(csv_results_path)))
 
-    def get_boxplot_as_html(self, stats):
+    def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html 
             Args:
             - stats: a nested dictionary with the statistics and results of all pipelines:
@@ -61,12 +61,14 @@ class WebsiteBuilder:
         # Generate plotly figure
         fig = draw_ape_boxplots_plotly(stats)
         # Get HTML code for the plotly figure
-        return self.get_fig_as_html(fig)
+        return self.__get_fig_as_html(fig)
 
-    def get_dataset_results_as_html(self, csv_results_path, show_figures=False):
+    def __get_dataset_results_as_html(self, csv_results_path, show_figures=False):
         """  Reads traj_vio.csv file with the following header:
                     #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
             And plots lines for each group of data: position, orientation, velocity...
+            Returns:
+            - HTML data for all plots
         """
         df = pd.read_csv(csv_results_path) 
 
@@ -74,46 +76,48 @@ class WebsiteBuilder:
 
         # Get VIO position
         y_ids = ['x', 'y', 'z']
-        fig = self.plot_multi_line(df, x_id, y_ids)
-        position_html = self.get_fig_as_html(fig)
+        fig = self.__plot_multi_line(df, x_id, y_ids)
+        position_html = self.__get_fig_as_html(fig)
         if show_figures:
             fig.show()
 
         # Get VIO orientation
         y_ids = ['qw', 'qx', 'qy', 'qz']
-        fig = self.plot_multi_line(df, x_id, y_ids)
-        orientation_html = self.get_fig_as_html(fig)
+        fig = self.__plot_multi_line(df, x_id, y_ids)
+        orientation_html = self.__get_fig_as_html(fig)
         if show_figures:
             fig.show()
 
         # Get VIO velocity
         y_ids = ['vx', 'vy', 'vz']
-        fig = self.plot_multi_line(df, x_id, y_ids)
-        vel_html = self.get_fig_as_html(fig)
+        fig = self.__plot_multi_line(df, x_id, y_ids)
+        vel_html = self.__get_fig_as_html(fig)
         if show_figures:
             fig.show()
 
         # Get VIO gyro bias
         y_ids = ['bgx', 'bgy', 'bgz']
-        fig = self.plot_multi_line(df, x_id, y_ids)
-        gyro_bias_html = self.get_fig_as_html(fig)
+        fig = self.__plot_multi_line(df, x_id, y_ids)
+        gyro_bias_html = self.__get_fig_as_html(fig)
         if show_figures:
             fig.show()
 
         # Get VIO accel bias
         y_ids = ['bax', 'bay', 'baz']
-        fig = self.plot_multi_line(df, x_id, y_ids)
-        accel_bias_html = self.get_fig_as_html(fig)
+        fig = self.__plot_multi_line(df, x_id, y_ids)
+        accel_bias_html = self.__get_fig_as_html(fig)
         if show_figures:
             fig.show()
 
-    def get_fig_as_html(self, fig):
+        return position_html + orientation_html + vel_html + gyro_bias_html + accel_bias_html
+
+    def __get_fig_as_html(self, fig):
         """ Gets a plotly figure and returns html string to embed in a website
         """
         return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
 
-    def plot_multi_line(self, df, x_id, y_ids):
+    def __plot_multi_line(self, df, x_id, y_ids):
         """
             Plots a multi line plotly plot from a pandas dataframe df, using 
             on the x axis the dataframe column with id `x_id` and using on the

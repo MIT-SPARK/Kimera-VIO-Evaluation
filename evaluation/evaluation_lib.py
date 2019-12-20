@@ -93,10 +93,6 @@ def aggregate_ape_results(results_dir):
     # Draw APE boxplot
     log.info("Drawing APE boxplots.")
     evt.draw_ape_boxplots(stats, results_dir)
-    # Draw and upload APE boxplot online
-    log.info("Writing website with boxplots.")
-    website_builder = evt.WebsiteBuilder()
-    website_builder.write_boxplot_to_website(stats)
     # Write APE table
     log.info("Writing APE latex table.")
     evt.write_latex_table(stats, results_dir)
@@ -411,7 +407,11 @@ class DatasetEvaluator:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
 
         if self.save_plots:
-            aggregate_ape_results(self.results_dir)
+            stats = aggregate_ape_results(self.results_dir)
+            # Draw and upload APE boxplot online
+            log.info("Writing website with boxplots.")
+            website_builder = evt.WebsiteBuilder()
+            website_builder.write_website(stats, traj_vio_path)
 
         return True
 
