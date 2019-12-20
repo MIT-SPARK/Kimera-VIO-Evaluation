@@ -15,23 +15,4 @@
       <!-- Raw results of VIO on a dataset: jinja2 uses this handle to add html data -->
       {{ dataset_plots|safe }}
     </div>
-    <div class="vio_performance" id="vio_performance"></div>
-
-    <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
-    <script type="text/javascript" src="js/dygraph-1.1.1.min.js"></script>
-    <script type="text/javascript">
-      $(document).ready(function () {
-        new Dygraph(
-          document.getElementById("vio_performance"),
-          'data/V1_01_easy/S/traj_vio.csv',
-          {
-            title: 'Estimated State Values',
-            ylabel: '[_]',
-            legend: 'always',
-            labelsDivStyles: { 'textAlign': 'right' },
-          }
-        );
-      });
-    </script>
-  </body>
 </html>
