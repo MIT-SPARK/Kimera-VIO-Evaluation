@@ -79,8 +79,10 @@ class WebsiteBuilder:
                             specs=[[{"type": "xy"}, {"type": "scene"}],
                                    [{"type": "xy"}, {"type": "xy"}],
                                    [{"type": "xy"}, {"type": "xy"}]],
-                            shared_xaxes=True,
-                            vertical_spacing=0.02)
+                            subplot_titles=("Position", "3D Trajectory", "Orientation",
+                             "Velocity", "Gyro Bias", "Accel Bias"),
+                            #shared_xaxes=True,
+                            vertical_spacing=0.05)
 
         fig.update_layout(title_text="Raw VIO output",
                           template='plotly_white')

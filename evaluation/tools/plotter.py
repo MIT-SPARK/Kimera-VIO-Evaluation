@@ -7,7 +7,6 @@ from pylab import setp
 from matplotlib.ticker import FuncFormatter
 
 import plotly
-import plotly.express as px
 import plotly.graph_objects as go
 import chart_studio.plotly as py
 
@@ -222,7 +221,8 @@ def plotly_boxplot(df):
     tidy = tidy['ATE errors'].apply(lambda x: pd.Series(x)).stack().reset_index(level=1, drop=True).to_frame('ATE errors')
     tidy.reset_index(level=['Dataset Name'], drop=False, inplace=True)
     tidy.sort_values('Dataset Name', inplace=True)
-    fig = px.box(tidy, x='Dataset Name', y="ATE errors", points="all")
+    fig = go.Figure()
+    fig.add_trace(go.Box(x=tidy['Dataset Name'], y=tidy['ATE errors'], boxpoints='all', boxmean=True))
 
     fig.update_layout(
     title=go.layout.Title(
