@@ -3,6 +3,7 @@ import os
 import pandas as pd 
 
 import plotly
+from plotly.subplots import make_subplots                
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -74,42 +75,90 @@ class WebsiteBuilder:
 
         x_id = '#timestamp'
 
+        fig = make_subplots(rows=3, cols=2,
+                            specs=[[{"type": "xy"}, {"type": "scene"}],
+                                   [{"type": "xy"}, {"type": "xy"}],
+                                   [{"type": "xy"}, {"type": "xy"}]],
+                            shared_xaxes=True,
+                            vertical_spacing=0.02)
+
+        fig.update_layout(title_text="Raw VIO output",
+                          template='plotly_white')
+
+        # Col 1
         # Get VIO position
         y_ids = ['x', 'y', 'z']
-        fig = self.__plot_multi_line(df, x_id, y_ids)
-        position_html = self.__get_fig_as_html(fig)
-        if show_figures:
-            fig.show()
+        row = 1
+        col = 1
+        self.__plot_multi_line(df, x_id, y_ids, fig, row, col)
 
         # Get VIO orientation
         y_ids = ['qw', 'qx', 'qy', 'qz']
-        fig = self.__plot_multi_line(df, x_id, y_ids)
-        orientation_html = self.__get_fig_as_html(fig)
-        if show_figures:
-            fig.show()
+        row = 2
+        col = 1
+        self.__plot_multi_line(df, x_id, y_ids, fig, row, col)
 
         # Get VIO velocity
         y_ids = ['vx', 'vy', 'vz']
-        fig = self.__plot_multi_line(df, x_id, y_ids)
-        vel_html = self.__get_fig_as_html(fig)
-        if show_figures:
-            fig.show()
+        row = 3
+        col = 1
+        self.__plot_multi_line(df, x_id, y_ids, fig, row, col)
+
+        # Col 2
+        # Plot 3D Trajectory
+        row = 1
+        col = 2
+        fig.add_trace(go.Scatter3d(x=df['x'], y=df['y'], z=df['z'],
+                                mode="lines+markers",
+                                marker=dict(size=5,
+                                            # set color to an array/list of desired values
+                                            color=df['#timestamp'],
+                                            colorscale='Viridis',   # choose a colorscale
+                                            opacity=0.8
+                                            )),
+                                row=row, col=col)
+        fig.update_layout(scene=dict(
+            annotations=[dict(
+                showarrow=False,
+                x=df['x'][0],
+                y=df['y'][0],
+                z=df['z'][0],
+                text="Start",
+                xanchor="left",
+                xshift=10,
+                opacity=0.9
+            ), dict(
+                showarrow=False,
+                x=df['x'].iloc[-1],
+                y=df['y'].iloc[-1],
+                z=df['z'].iloc[-1],
+                text="End",
+                xanchor="left",
+                xshift=10,
+                opacity=0.9
+            )],
+            xaxis_showspikes=False,
+            yaxis_showspikes=False,
+            aspectmode='manual',
+            aspectratio=dict(x=1, y=1, z=1))
+            )
 
         # Get VIO gyro bias
         y_ids = ['bgx', 'bgy', 'bgz']
-        fig = self.__plot_multi_line(df, x_id, y_ids)
-        gyro_bias_html = self.__get_fig_as_html(fig)
-        if show_figures:
-            fig.show()
+        row = 2
+        col = 2
+        self.__plot_multi_line(df, x_id, y_ids, fig, row, col)
 
         # Get VIO accel bias
         y_ids = ['bax', 'bay', 'baz']
-        fig = self.__plot_multi_line(df, x_id, y_ids)
-        accel_bias_html = self.__get_fig_as_html(fig)
+        row = 3
+        col = 2
+        self.__plot_multi_line(df, x_id, y_ids, fig, row, col)
+
         if show_figures:
             fig.show()
 
-        return position_html + orientation_html + vel_html + gyro_bias_html + accel_bias_html
+        return self.__get_fig_as_html(fig)
 
     def __get_fig_as_html(self, fig):
         """ Gets a plotly figure and returns html string to embed in a website
@@ -117,7 +166,7 @@ class WebsiteBuilder:
         return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
 
-    def __plot_multi_line(self, df, x_id, y_ids):
+    def __plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
         """
             Plots a multi line plotly plot from a pandas dataframe df, using 
             on the x axis the dataframe column with id `x_id` and using on the
@@ -128,6 +177,11 @@ class WebsiteBuilder:
             - x_id: column id in the pandas dataframe containing the data for the x axis.
             - y_ids: column id in the pandas dataframe containing the data for the y axis.
             This can have multiple entries.
+            
+            Optional Args:
+            - fig: plotly figure where to add the line plots, this allows updating figures.
+            - row: for multiplot figures, coordinates where to put the figure
+            - col: for multiplot figures, coordinates where to put the figure
 
             Returns:
             - Plotly figure handle
@@ -135,11 +189,12 @@ class WebsiteBuilder:
         # How to draw the lines
         mode = 'lines+markers'
 
-        fig = go.Figure()
+        if fig is None:
+            fig = go.Figure()
         assert(x_id in df)
         for y_id in y_ids:
             assert(y_id in df)
             fig.add_trace(go.Scatter(x=df[x_id], y=df[y_id],
-                                    mode=mode, name=y_id))
+                                    mode=mode, name=y_id), row=row, col=col)
         return fig
 
