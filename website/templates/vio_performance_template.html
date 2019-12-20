@@ -6,8 +6,14 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   </head>
   <body>
-    <div class="plotly" id="plotly">
-      {{ plotly|safe }}
+    <!-- Plotly plots -->
+    <div class="boxplot" id="boxplot">
+      <!-- Boxplot with ATE for Euroc dataset: jinja2 uses this handle to add html data -->
+      {{ boxplot|safe }}
+    </div>
+    <div class="dataset_plots" id="dataset_plots">
+      <!-- Raw results of VIO on a dataset: jinja2 uses this handle to add html data -->
+      {{ dataset_plots|safe }}
     </div>
     <div class="vio_performance" id="vio_performance"></div>
 

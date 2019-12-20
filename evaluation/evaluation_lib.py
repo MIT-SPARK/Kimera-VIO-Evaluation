@@ -63,7 +63,7 @@ def aggregate_all_results(results_dir):
                 log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
 
             log.debug("Check stats from: " + results_filepath)
-            check_stats(stats[dataset_name][pipeline_name])
+            evt.check_stats(stats[dataset_name][pipeline_name])
     return stats
 
 def aggregate_ape_results(results_dir):
@@ -95,43 +95,12 @@ def aggregate_ape_results(results_dir):
     evt.draw_ape_boxplots(stats, results_dir)
     # Draw and upload APE boxplot online
     log.info("Writing website with boxplots.")
-    evt.write_boxplot_to_website(stats, results_dir)
+    website_builder = evt.WebsiteBuilder()
+    website_builder.write_boxplot_to_website(stats)
     # Write APE table
     log.info("Writing APE latex table.")
     evt.write_latex_table(stats, results_dir)
     return stats
-
-def check_stats(stats):
-    if not "relative_errors" in stats:
-        log.error("Stats: ")
-        log.error(stats)
-        raise Exception("\033[91mWrong stats format: no relative_errors... \n"
-                        "Are you sure you runned the pipeline and "
-                        "saved the results? (--save_results).\033[99m")
-    else:
-        if len(stats["relative_errors"]) == 0:
-            raise Exception("\033[91mNo relative errors available... \n"
-                            "Are you sure you runned the pipeline and "
-                            "saved the results? (--save_results).\033[99m")
-
-        if not "rpe_rot" in list(stats["relative_errors"].values())[0]:
-            log.error("Stats: ")
-            log.error(stats)
-            raise Exception("\033[91mWrong stats format: no rpe_rot... \n"
-                            "Are you sure you runned the pipeline and "
-                            "saved the results? (--save_results).\033[99m")
-        if not "rpe_trans" in list(stats["relative_errors"].values())[0]:
-            log.error("Stats: ")
-            log.error(stats)
-            raise Exception("\033[91mWrong stats format: no rpe_trans... \n"
-                            "Are you sure you runned the pipeline and "
-                            "saved the results? (--save_results).\033[99m")
-    if not "absolute_errors" in stats:
-        log.error("Stats: ")
-        log.error(stats)
-        raise Exception("\033[91mWrong stats format: no absolute_errors... \n"
-                        "Are you sure you runned the pipeline and "
-                        "saved the results? (--save_results).\033[99m")
 
 
 from tqdm import tqdm
@@ -827,7 +796,7 @@ class DatasetEvaluator:
                 raise Exception("Error in results_vio file: ", e)
 
             log.info("Check stats %s in %s" % (pipeline_type, results_vio))
-            check_stats(stats[pipeline_type])
+            evt.check_stats(stats[pipeline_type])
 
         log.info("Drawing boxplots.")
         evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
