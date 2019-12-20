@@ -1,3 +1,6 @@
+# Remove website output
+website/vio_ape_euroc.html
+
 # Ignore macOS things
 .DS_Store
 
