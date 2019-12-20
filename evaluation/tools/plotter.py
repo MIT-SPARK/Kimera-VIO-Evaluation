@@ -118,7 +118,6 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         import seaborn as sns
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
         rc('text', usetex=False)
 
         fig = plt.figure(figsize=(6,6))
@@ -214,7 +213,6 @@ def draw_rpe_boxplots(output_dir, stats, n_segments):
         "lines.linewidth": SETTINGS.plot_linewidth,
         "text.usetex": SETTINGS.plot_usetex,
         "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
         "pgf.texsystem": SETTINGS.plot_texsystem
     }
     mpl.rcParams.update(rc_params)
@@ -316,7 +314,6 @@ def draw_ape_boxplots(stats, output_dir):
         import seaborn as sns
         sns.reset_orig()
         mpl.rcParams.update(mpl.rcParamsDefault)
-        rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
         rc('text', usetex=False)
 
         # Init axis
@@ -419,7 +416,6 @@ def draw_ape_boxplots(stats, output_dir):
         "lines.linewidth": SETTINGS.plot_linewidth,
         "text.usetex": SETTINGS.plot_usetex,
         "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
         "pgf.texsystem": SETTINGS.plot_texsystem
     }
     mpl.rcParams.update(rc_params)
@@ -460,7 +456,6 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
     import seaborn as sns
     sns.reset_orig()
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rc('font',**{'family':'serif','serif':['Cardo'],'size':16})
     rc('text', usetex=False)
 
     # Init axis
@@ -568,7 +563,6 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
         "lines.linewidth": SETTINGS.plot_linewidth,
         "text.usetex": SETTINGS.plot_usetex,
         "font.family": SETTINGS.plot_fontfamily,
-        "font.serif": ['Cardo'],
         "pgf.texsystem": SETTINGS.plot_texsystem
     }
     mpl.rcParams.update(rc_params)
