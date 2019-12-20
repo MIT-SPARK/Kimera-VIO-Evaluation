@@ -16,11 +16,11 @@ def write_boxplot_to_website(stats, results_dir):
     and writes a plotly boxplot in it using Jinja2.
     """
     # Generate plotly figure
-    figure = draw_ape_boxplots_plotly(stats, False)
+    figure = draw_ape_boxplots_plotly(stats)
     # Get HTML code for the plotly figure
     html_div = plotly.offline.plot(figure, include_plotlyjs=False, output_type='div')
 
-    # Initialize Jinja2 
+    # Initialize Jinja2
     env = Environment(
         loader=PackageLoader('website', 'templates'),
         autoescape=select_autoescape(['html', 'xml'])

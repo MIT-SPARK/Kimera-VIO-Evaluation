@@ -245,15 +245,18 @@ def plotly_boxplot(df):
     )
     return fig
 
-def draw_ape_boxplots_plotly(stats, upload_plots_online = True):
+def draw_ape_boxplots_plotly(stats, upload_plots_online = False, show_figure = False):
     """ Simplified boxplot plotting using plotly for APE boxplots:
     See draw_ape_boxplots for the complicated version.
-    
+
     Args:
         - stats: vio statistics (see 'draw_ape_boxplots' function)
         - upload_plots_online: if set to True it will publish plots online to plotly server.
         (to publish online, you need to follow the instructions here: )
         If False, it will just show the boxplot figure.
+        - show_figure: whether to display the figure or not
+    Returns:
+        - the handle to the plotly figure
     """
 
     def listify_stats(stats):
@@ -276,9 +279,8 @@ def draw_ape_boxplots_plotly(stats, upload_plots_online = True):
 
     if upload_plots_online:
         py.iplot(figure, filename=figure.layout.title.text + '.html', world_readable=True, auto_open=False)
-    else:
+    if show_figure:
         figure.show()
-    
     return figure
 
 def draw_ape_boxplots(stats, output_dir):
@@ -433,7 +435,7 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
                 - pipeline (pipeline type e.g. S, SP or SPR)
                     - results (which is actually -max, -min etc !OR! False if there are no results if the pipeline failed.
         output_dir:
-        max_y: 
+        max_y:
 
     Returns:
 
