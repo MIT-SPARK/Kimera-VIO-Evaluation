@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>VIO PERFORMANCE</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  </head>
+  <body>
+    <div class="vio_performance"     id="vio_performance"></div>
+    <iframe width="900" height="800" frameborder="0" scrolling="no" src="//plot.ly/~ToniRV/129.embed"></iframe>
+    <div class="plotly" id="plotly">
+      {{ plotly|safe }}
+    </div>
+
+    <script type="text/javascript" src="js/jquery-3.1.1.min.js"></script>
+    <script type="text/javascript" src="js/dygraph-1.1.1.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        new Dygraph(
+          document.getElementById("vio_performance"),
+          'data/V1_01_easy/S/traj_vio.csv',
+          {
+            title: 'Estimated State Values',
+            ylabel: '[_]',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' },
+          }
+        );
+      });
+    </script>
+  </body>
+</html>

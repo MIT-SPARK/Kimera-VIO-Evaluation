@@ -1,4 +1,1 @@
-# Ignore all pipeline results, but not this folder
-*
-*/
-!.gitignore
+./*

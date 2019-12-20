@@ -80,16 +80,26 @@ def aggregate_ape_results(results_dir):
                |___\* pipeline_type:
                |   |___results.yaml
                Basically all subfolders with a results.yaml will be examined.
+
+        Returns:
+            - stats: a nested dictionary with the statistics and results of all pipelines:
+                * First level ordered with dataset_name as keys:
+                * Second level ordered with pipeline_type as keys:
+                * Each stats[dataset_name][pipeline_type] value has:
+                    * absolute_errors: an evo Result type with trajectory and APE stats.
+                    * relative_errors: RPE stats.
     """
     stats = aggregate_all_results(results_dir)
     # Draw APE boxplot
     log.info("Drawing APE boxplots.")
     evt.draw_ape_boxplots(stats, results_dir)
     # Draw and upload APE boxplot online
-    evt.draw_ape_boxplots_plotly(stats, True)
+    log.info("Writing website with boxplots.")
+    evt.write_boxplot_to_website(stats, results_dir)
     # Write APE table
-    log.info("Writting APE latex table.")
+    log.info("Writing APE latex table.")
     evt.write_latex_table(stats, results_dir)
+    return stats
 
 def check_stats(stats):
     if not "relative_errors" in stats:

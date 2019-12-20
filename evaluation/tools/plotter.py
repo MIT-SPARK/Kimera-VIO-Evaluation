@@ -278,6 +278,8 @@ def draw_ape_boxplots_plotly(stats, upload_plots_online = True):
         py.iplot(figure, filename=figure.layout.title.text + '.html', world_readable=True, auto_open=False)
     else:
         figure.show()
+    
+    return figure
 
 def draw_ape_boxplots(stats, output_dir):
     """ Draw boxplots from stats:
