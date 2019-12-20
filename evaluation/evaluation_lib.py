@@ -606,21 +606,25 @@ class DatasetEvaluator:
         with open(results_file,'w') as outfile:
             outfile.write(yaml.dump(results, default_flow_style=False))
 
-    def save_plots_to_file(self, plot_collection, dataset_pipeline_result_dir):
+    def save_plots_to_file(self, plot_collection, dataset_pipeline_result_dir,
+                          save_pdf=True):
         """ Wrie plot collection to disk as both eps and pdf.
 
             Args:
-                plot_collection: a PlotCollection containing all the plots to save to file.
-                dataset_pipeline_result_dir: a string representing the filepath for the location to
+                - plot_collection: a PlotCollection containing all the plots to save to file.
+                - dataset_pipeline_result_dir: a string representing the filepath for the location to
                     which the plot files are saved.
+                - save_pdf: whether to save figures to pdf or eps format
         """
         # Config output format (pdf, eps, ...) using evo_config...
-        eps_output_file_path = os.path.join(dataset_pipeline_result_dir, "plots.eps")
-        pdf_output_file_path = os.path.join(dataset_pipeline_result_dir, "plots.pdf")
-        evt.print_green("Saving plots to: %s" % eps_output_file_path)
-        evt.print_green("Saving plots to: %s" % pdf_output_file_path)
-        plot_collection.export(eps_output_file_path, False)
-        plot_collection.export(pdf_output_file_path, False)
+        if save_pdf:
+            pdf_output_file_path = os.path.join(dataset_pipeline_result_dir, "plots.pdf")
+            evt.print_green("Saving plots to: %s" % pdf_output_file_path)
+            plot_collection.export(pdf_output_file_path, False)
+        else:
+            eps_output_file_path = os.path.join(dataset_pipeline_result_dir, "plots.eps")
+            evt.print_green("Saving plots to: %s" % eps_output_file_path)
+            plot_collection.export(eps_output_file_path, False)
 
     def read_traj_files(self, traj_ref_path, traj_vio_path, traj_pgo_path, generate_pgo=False):
         """ Outputs PoseTrajectory3D objects for csv trajectory files.
