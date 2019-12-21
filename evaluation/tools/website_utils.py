@@ -24,11 +24,15 @@ class WebsiteBuilder:
             autoescape=select_autoescape(['html', 'xml'])
         )
         # Get Website template html
-        self.template = self.env.get_template('vio_performance_template.html')
+        self.boxplot_template = self.env.get_template('vio_performance_template.html')
+        self.datasets_template = self.env.get_template('datasets_template.html')
         # Generate Website output path
-        self.website_output_path = os.path.join(os.path.dirname(website.__file__), "vio_ape_euroc.html")
+        self.website_output_path = os.path.dirname(website.__file__)
+        # We will store html snippets of each dataset indexed by dataset name in this 
+        # dictionary
+        self.datasets_html = dict()
 
-    def write_website(self, stats, csv_results_path):
+    def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
         specified in csv_results_path.
             Args:
@@ -38,14 +42,28 @@ class WebsiteBuilder:
                 * Each stats[dataset_name][pipeline_type] value has:
                     * absolute_errors: an evo Result type with trajectory and APE stats.
                     * relative_errors: RPE stats.
-            - csv_results_path: path to the csv raw results of the VIO pipeline with header:
-                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
         """
         # Save html_div inside website template using Jinja2
-        with open(self.website_output_path, "w") as output:
+        with open(os.path.join(self.website_output_path, "vio_ape_euroc.html"), "w") as output:
             # Write modified template inside the website package.
-            output.write(self.template.render(boxplot=self.__get_boxplot_as_html(stats),
-                                              dataset_plots=self.__get_dataset_results_as_html(csv_results_path)))
+            output.write(self.boxplot_template.render(boxplot=self.__get_boxplot_as_html(stats)))
+
+    def add_dataset_to_website(self, dataset_name, csv_results_path):
+        """ Writes dataset results specified in csv_results_path.
+        Call write_datasets_website to actually write this data in the website template.
+            Args:
+            - dataset_name: name of the dataset that the VIO stats come from.
+            - csv_results_path: path to the csv raw results of the VIO pipeline with header:
+                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
+                This is typically names `traj_vio.csv`
+        """
+        self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(dataset_name, csv_results_path)
+
+    def write_datasets_website(self):
+        """ Writes website using the collected data from calling add_dataset_to_website()"""
+        with open(os.path.join(self.website_output_path, "datasets.html"), "w") as output:
+            # Write modified template inside the website package.
+            output.write(self.datasets_template.render(datasets_html=self.datasets_html))
 
     def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html 
@@ -64,7 +82,7 @@ class WebsiteBuilder:
         # Get HTML code for the plotly figure
         return self.__get_fig_as_html(fig)
 
-    def __get_dataset_results_as_html(self, csv_results_path, show_figures=False):
+    def __get_dataset_results_as_html(self, dataset_name, csv_results_path, show_figures=False):
         """  Reads traj_vio.csv file with the following header:
                     #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
             And plots lines for each group of data: position, orientation, velocity...
@@ -81,10 +99,10 @@ class WebsiteBuilder:
                                    [{"type": "xy"}, {"type": "xy"}]],
                             subplot_titles=("Position", "3D Trajectory", "Orientation",
                              "Velocity", "Gyro Bias", "Accel Bias"),
-                            #shared_xaxes=True,
-                            vertical_spacing=0.05)
+                            shared_xaxes=True,
+                            vertical_spacing=0.1)
 
-        fig.update_layout(title_text="Raw VIO output",
+        fig.update_layout(title_text="Raw VIO Output for dataset: %s" % dataset_name ,
                           template='plotly_white')
 
         # Col 1

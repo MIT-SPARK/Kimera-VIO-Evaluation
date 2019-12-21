@@ -13,10 +13,10 @@
     <ul class="nav nav-tabs" id="myTab" role="tablist">
       {% for dataset_name, html_data in datasets_html.items() %}
         <li class="nav-item">
-          <a class="nav-link {% if {{ loop.index0 }} == 0 %}active{% else %}false{% endif %}"
+          <a class="nav-link {% if loop.index0 == 0 %}active{% else %}false{% endif %}"
              id="{{ dataset_name|safe }}-tab" data-toggle="tab" href="#{{ dataset_name|safe }}" role="tab"
              aria-controls="{{ dataset_name|safe }}"
-             aria-selected="{% if {{ loop.index0 }} == 0 %}true{% else %}false{% endif %}">
+             aria-selected="{% if loop.index0 == 0 %}true{% else %}false{% endif %}">
             {{ dataset_name|safe }}
           </a>
         </li>
@@ -25,7 +25,7 @@
 
     <div class="tab-content" id="myTabContent">
       {% for dataset_name, html_data in datasets_html.items() %}
-        <div class="tab-pane fade {% if {{ loop.index0 }} == 0 %}active show{% endif %}"
+        <div class="tab-pane fade {% if loop.index0 == 0 %}active show{% endif %}"
              id="{{ dataset_name|safe }}" role="tabpanel" aria-labelledby="{{ dataset_name|safe }}-tab">
           {{ html_data|safe }}
         </div>

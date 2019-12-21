@@ -299,57 +299,52 @@ class DatasetEvaluator:
 
         self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
 
+        # Class to write the results to the Jenkins website
+        self.website_builder = evt.WebsiteBuilder()
+
     def evaluate(self):
         """ Run datasets if necessary, evaluate all. """
         if self.run_vio and not self.analyze_vio:
             return self.runner.run_all()
-
         elif not self.run_vio and self.analyze_vio:
-            return self.evaluate_all()
+            log.info("Run analysis for all experiments")
+            for dataset in tqdm(self.datasets_to_eval):
+                self.evaluate_dataset(dataset)
+            return True
+        else:
+            for dataset in tqdm(self.datasets_to_eval):
+                # Run the dataset if needed:
+                if self.run_vio:
+                    successful_run = True
+                    log.info("Run dataset: %s" % dataset['name'])
+                    if not self.runner.run_dataset(dataset):
+                        log.info("\033[91m Dataset: %s failed!! \033[00m" %
+                                dataset['name'])
+                        raise Exception("Failed to run dataset %s." % dataset['name'])
 
-        for dataset in tqdm(self.datasets_to_eval):
-            # Run the dataset if needed:
-            if self.run_vio:
-                successful_run = True
-                log.info("Run dataset: %s" % dataset['name'])
-                if not self.runner.run_dataset(dataset):
-                    log.info("\033[91m Dataset: %s failed!! \033[00m" %
-                            dataset['name'])
-                    raise Exception("Failed to run dataset %s." % dataset['name'])
+                # Evaluate each dataset if needed:
+                if self.analyze_vio:
+                    self.evaluate_dataset(dataset)
 
-            # Evaluate each dataset if needed:
-            if self.analyze_vio:
-                log.info("Evaluate dataset: %s" % dataset['name'])
-                pipelines_to_run_list = dataset['pipelines']
-                for pipeline_type in pipelines_to_run_list:
-                    if not self.__evaluate_run(pipeline_type, dataset):
-                        log.error("Failed to evaluate dataset %s for pipeline %s. Exiting."
-                                  % dataset['name'] % pipeline_type)
-                        raise Exception("Failed evaluation.")
-
-                if self.save_boxplots:
-                    self.save_boxplots_to_file(pipelines_to_run_list, dataset)
-
-        return True
-
-    def evaluate_all(self):
-        """ Evaluate performance on every pipeline of every dataset defined in the experiments
-            yaml file.
-        """
-        # Run analysis.
-        log.info("Run analysis for all experiments")
-        for dataset in tqdm(self.datasets_to_eval):
-            log.info("Evaluate dataset: %s" % dataset['name'])
-            pipelines_to_run_list = dataset['pipelines']
-            for pipeline_type in pipelines_to_run_list:
-                if not self.__evaluate_run(pipeline_type, dataset):
-                    log.error("Failed to evaluate dataset %s for pipeline %s. Exiting.")
-                    raise Exception("Failed evaluation.")
-
-            if self.save_boxplots:
-                self.save_boxplots_to_file(pipelines_to_run_list, dataset)
+            if self.save_plots:
+                stats = aggregate_ape_results(self.results_dir)
+                self.website_builder.write_boxplot_website(stats)
+                self.website_builder.write_datasets_website()
 
         return True
+
+    def evaluate_dataset(self, dataset):
+        """ Evaluates VIO performance on given dataset """
+        log.info("Evaluate dataset: %s" % dataset['name'])
+        pipelines_to_run_list = dataset['pipelines']
+        for pipeline_type in pipelines_to_run_list:
+            if not self.__evaluate_run(pipeline_type, dataset):
+                log.error("Failed to evaluate dataset %s for pipeline %s. Exiting."
+                        % dataset['name'] % pipeline_type)
+                raise Exception("Failed evaluation.")
+
+        if self.save_boxplots:
+            self.save_boxplots_to_file(pipelines_to_run_list, dataset)
 
     def __evaluate_run(self, pipeline_type, dataset):
         """ Evaluate performance of one pipeline of one dataset, as defined in the experiments
@@ -377,7 +372,6 @@ class DatasetEvaluator:
 
         traj_vio_path = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
         traj_pgo_path = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
-
 
         # Analyze dataset:
         log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
@@ -407,11 +401,9 @@ class DatasetEvaluator:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
 
         if self.save_plots:
-            stats = aggregate_ape_results(self.results_dir)
             # Draw and upload APE boxplot online
             log.info("Writing website with boxplots.")
-            website_builder = evt.WebsiteBuilder()
-            website_builder.write_website(stats, traj_vio_path)
+            self.website_builder.add_dataset_to_website(dataset_name, traj_vio_path)
 
         return True
 
