@@ -98,7 +98,7 @@ class WebsiteBuilder:
                                    [{"type": "xy"}, {"type": "xy"}],
                                    [{"type": "xy"}, {"type": "xy"}]],
                             subplot_titles=("Position", "3D Trajectory", "Orientation",
-                             "Velocity", "Gyro Bias", "Accel Bias"),
+                             "Gyro Bias", "Velocity", "Accel Bias"),
                             shared_xaxes=True,
                             vertical_spacing=0.1)
 
