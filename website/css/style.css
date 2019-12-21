@@ -30,18 +30,14 @@ body, html {
 }
 .tab-pane {
   padding: 0px 0px; /* No padding, so pdf takes all place */
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* To fix plotly bug */
+.js-plotly-plot,
+.plot-container {
+  width: 100%;
   height: 100%;
 }
-
-#Home {background-color: red;}
-#News {background-color: green;}
-#Contact {background-color: blue;}
-#About {background-color: orange;}
-
-/* Style for dygraphs */
-.graph {
-  height:550px;
-  width:980px;
-  margin: 30px auto;
-}
-
