@@ -185,7 +185,6 @@ class WebsiteBuilder:
         """
         return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
 
-
     def __plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
         """
             Plots a multi line plotly plot from a pandas dataframe df, using 
