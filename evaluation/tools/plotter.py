@@ -637,12 +637,12 @@ def draw_frontend_timing(df, show_figure=False):
         - fig: a plotly figure handle
     """
     fig = go.Figure()
-    x = df_stats.index
-    fig.add_trace(go.Bar(name='featureDetectionTime', x=x, y=df_stats["featureDetectionTime"]))
-    fig.add_trace(go.Bar(name='featureTrackingTime', x=x, y=df_stats["featureTrackingTime"]))
-    fig.add_trace(go.Bar(name='monoRansacTime', x=x, y=df_stats["monoRansacTime"]))
-    fig.add_trace(go.Bar(name='stereoRansacTime', x=x, y=df_stats["stereoRansacTime"]))
-    fig.add_trace(go.Bar(name='featureSelectionTime', x=x, y=df_stats["featureSelectionTime"]))
+    x = df.index
+    fig.add_trace(go.Bar(name='featureDetectionTime', x=x, y=df["featureDetectionTime"]))
+    fig.add_trace(go.Bar(name='featureTrackingTime', x=x, y=df["featureTrackingTime"]))
+    fig.add_trace(go.Bar(name='monoRansacTime', x=x, y=df["monoRansacTime"]))
+    fig.add_trace(go.Bar(name='stereoRansacTime', x=x, y=df["stereoRansacTime"]))
+    fig.add_trace(go.Bar(name='featureSelectionTime', x=x, y=df["featureSelectionTime"]))
     fig.update_layout(barmode='stack', title_text='Frontend Timing')
     
     if show_figure:
