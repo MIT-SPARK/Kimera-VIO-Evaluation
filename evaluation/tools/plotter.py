@@ -8,6 +8,7 @@ from matplotlib.ticker import FuncFormatter
 
 import plotly
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import chart_studio.plotly as py
 
 import glog as log
@@ -566,3 +567,85 @@ def draw_regression_simple_boxplot_APE(param_name, stats, output_dir, max_y = -1
         "pgf.texsystem": SETTINGS.plot_texsystem
     }
     mpl.rcParams.update(rc_params)
+
+# PLOTTERS FOR FRONTEND STATS
+def draw_feature_tracking_stats(df, show_figure=False):
+    """ Draws a plotly bar plot from the csv file of the frontend (parsed as a pandas data frame df).
+    
+    Args:
+    - df: pandas dataframe with frontend stats (expects as columns: `nr_keypoints`, `nrTrackerFeatures`, `nrMonoInliers`)
+    - show_figure: optional param to show figure
+    
+    Returns:
+    - fig: a plotly figure handle
+    """
+    colors = ['green' if mono_status == "VALID" else 'crimson' for mono_status in df["mono_status"]]
+    x = df.index
+    fig = go.Figure(data=[
+        go.Bar(name='Keypoints Detected', x=x, y=df["nr_keypoints"]),
+        go.Bar(name='Tracked Features', x=x, y=df["nrTrackerFeatures"]),
+        go.Bar(name='Monocular Inliers', x=x, y=df["nrMonoInliers"], marker_color=colors,
+               hovertext=df["mono_status"], hovertemplate="Mono Inliers: %{y} <br>Mono Status: %{hovertext}")
+    ])
+    fig.update_layout(barmode='overlay', template='plotly_white')
+    
+    if show_figure:
+        fig.show()
+        
+    return fig
+
+def draw_mono_stereo_inliers_outliers(df, show_figure=False):
+    """ Draws a plotly bar plot from the csv file of the frontend (parsed as a pandas data frame df)
+    showing the rate of inliers/outliers for the mono/stereo tracks.
+    
+    Args:
+        - df: pandas dataframe with frontend stats (expects as columns: `nr_keypoints`, `nrTrackerFeatures`, `nrMonoInliers`)
+        - show_figure: optional param to show figure
+    
+    Returns:
+        - fig: a plotly figure handle
+    """
+
+    fig = make_subplots(rows=4, cols=1, shared_xaxes=True)
+    x = df.index
+    fig.add_trace(go.Bar(name='nrMonoPutatives', x=x, y=df["nrMonoPutatives"]), row=1, col=1)
+    fig.add_trace(go.Bar(name='nrMonoInliers', x=x, y=df["nrMonoInliers"]), row=1, col=1)
+    
+    fig.add_trace(go.Bar(name='nrStereoPutatives', x=x, y=df["nrStereoPutatives"]), row=2, col=1)
+    fig.add_trace(go.Bar(name='nrStereoInliers', x=x, y=df["nrStereoInliers"]), row=2, col=1)
+    
+    fig.add_trace(go.Bar(name='monoRansacIters', x=x, y=df["monoRansacIters"]), row=3, col=1)
+    
+    fig.add_trace(go.Bar(name='stereoRansacIters', x=x, y=df["stereoRansacIters"]), row=4, col=1)
+    
+    fig.update_layout(barmode='overlay')
+
+    if show_figure:
+        fig.show()
+
+    return fig
+
+def draw_frontend_timing(df, show_figure=False):
+    """ Draws a plotly bar plot from the csv file of the frontend (parsed as a pandas data frame df):
+    plot timing from frontend.
+    
+    Args:
+        - df: pandas dataframe with frontend stats (expects as columns: `nr_keypoints`, `nrTrackerFeatures`, `nrMonoInliers`)
+        - show_figure: optional param to show figure
+    
+    Returns:
+        - fig: a plotly figure handle
+    """
+    fig = go.Figure()
+    x = df.index
+    fig.add_trace(go.Bar(name='featureDetectionTime', x=x, y=df["featureDetectionTime"]))
+    fig.add_trace(go.Bar(name='featureTrackingTime', x=x, y=df["featureTrackingTime"]))
+    fig.add_trace(go.Bar(name='monoRansacTime', x=x, y=df["monoRansacTime"]))
+    fig.add_trace(go.Bar(name='stereoRansacTime', x=x, y=df["stereoRansacTime"]))
+    fig.add_trace(go.Bar(name='featureSelectionTime', x=x, y=df["featureSelectionTime"]))
+    fig.update_layout(barmode='stack', title_text='Frontend Timing')
+    
+    if show_figure:
+        fig.show()
+
+    return fig

@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from evaluation.tools import draw_ape_boxplots_plotly
+from evaluation.tools import *
 import website
 
 class WebsiteBuilder:
@@ -26,11 +26,13 @@ class WebsiteBuilder:
         # Get Website template html
         self.boxplot_template = self.env.get_template('vio_performance_template.html')
         self.datasets_template = self.env.get_template('datasets_template.html')
+        self.frontend_template = self.env.get_template('datasets_template.html')
         # Generate Website output path
         self.website_output_path = os.path.dirname(website.__file__)
         # We will store html snippets of each dataset indexed by dataset name in this 
         # dictionary
         self.datasets_html = dict()
+        self.frontend_html = dict()
 
     def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
@@ -53,17 +55,22 @@ class WebsiteBuilder:
         Call write_datasets_website to actually write this data in the website template.
             Args:
             - dataset_name: name of the dataset that the VIO stats come from.
-            - csv_results_path: path to the csv raw results of the VIO pipeline with header:
-                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
-                This is typically names `traj_vio.csv`
+            - csv_results_path: path to the directory where the csv results of the VIO pipeline are.
+                This is typically the directory where there is a `traj_vio.csv` file together with an
+                `output` directory where all the stats of the VIO are.
         """
-        self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(dataset_name, csv_results_path)
+        self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(
+            dataset_name, os.path.join(csv_results_path, "traj_vio.csv"))
+        self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
+            os.path.join(csv_results_path, "output/output_frontend_stats.csv"))
 
     def write_datasets_website(self):
         """ Writes website using the collected data from calling add_dataset_to_website()"""
+        # Write modified template inside the website package.
         with open(os.path.join(self.website_output_path, "datasets.html"), "w") as output:
-            # Write modified template inside the website package.
             output.write(self.datasets_template.render(datasets_html=self.datasets_html))
+        with open(os.path.join(self.website_output_path, "frontend.html"), "w") as output:
+            output.write(self.frontend_template.render(datasets_html=self.frontend_html))
 
     def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html 
@@ -180,11 +187,25 @@ class WebsiteBuilder:
 
         return self.__get_fig_as_html(fig)
 
+
+    def __get_frontend_results_as_html(self, csv_frontend_path, show_figures=False):
+        """  Reads output_frontend_stats.csv file with the following header:
+                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
+            And plots lines for each group of data: position, orientation, velocity...
+            Args:
+            - csv_frontend_path: path to the output_frontend_stats.csv file 
+            Returns:
+            - HTML data for all plots
+        """
+        df_stats = pd.read_csv(csv_frontend_path, sep=',', index_col=False)
+        fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
+        fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
+        return fig_html
+
     def __get_fig_as_html(self, fig):
         """ Gets a plotly figure and returns html string to embed in a website
         """
         return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-
 
     def __plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
         """
