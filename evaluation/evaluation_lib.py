@@ -370,8 +370,8 @@ class DatasetEvaluator:
         traj_ref_path = os.path.join(
             self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
 
-        traj_vio_path = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
-        traj_pgo_path = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
+        traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
+        traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
 
         # Analyze dataset:
         log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
@@ -402,8 +402,8 @@ class DatasetEvaluator:
 
         if self.save_plots:
             # Draw and upload APE boxplot online
-            log.info("Writing website with boxplots.")
-            self.website_builder.add_dataset_to_website(dataset_name, traj_vio_path)
+            log.info("Writing performance website for dataset: %s" % dataset_name)
+            self.website_builder.add_dataset_to_website(dataset_name, dataset_pipeline_result_dir)
 
         return True
 

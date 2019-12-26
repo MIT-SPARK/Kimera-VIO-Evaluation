@@ -1,6 +1,7 @@
 # Remove website output
 website/vio_ape_euroc.html
 website/datasets.html
+website/frontend.html
 
 # Ignore macOS things
 .DS_Store
