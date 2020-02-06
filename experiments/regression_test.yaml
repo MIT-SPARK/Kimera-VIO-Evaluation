@@ -1,7 +1,7 @@
 
-executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
-regression_tests_dir: '$HOME/Code/spark_vio_evaluation/regression_tests'
-params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
+executable_path: '$HOME/Code/Kimera-VIO/build/stereoVIOEuroc'
+regression_tests_dir: '$HOME/Code/Kimera-VIO-Evaluation/regression_tests'
+params_dir: '$HOME/Code/Kimera-VIO-Evaluation/experiments/params'
 dataset_dir: '$HOME/datasets/euroc'
 
 datasets_to_run:

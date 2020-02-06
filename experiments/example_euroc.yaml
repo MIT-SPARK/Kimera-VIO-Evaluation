@@ -1,7 +1,7 @@
-executable_path: '$HOME/code/SparkVIO/build/stereoVIOEuroc'
-vocabulary_path: '$HOME/code/SparkVIO/vocabulary/ORBvoc.yml'
-results_dir: '$HOME/code/spark_vio_evaluation/results'
-params_dir: '$HOME/code/spark_vio_evaluation/experiments/params'
+executable_path: '$HOME/code/Kimera-VIO/build/stereoVIOEuroc'
+vocabulary_path: '$HOME/code/Kimera-VIO/vocabulary/ORBvoc.yml'
+results_dir: '$HOME/code/Kimera-VIO_Evaluation/results'
+params_dir: '$HOME/code/Kimera-VIO_Evaluation/experiments/params'
 dataset_dir: '$HOME/datasets/EuRoC'
 
 datasets_to_run:
