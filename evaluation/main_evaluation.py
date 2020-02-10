@@ -3,7 +3,6 @@
 from __future__ import print_function
 import glog as log
 import os
-# import yaml
 from ruamel import yaml
 from tqdm import tqdm
 
@@ -48,6 +47,8 @@ def parser():
         "--plot", action="store_true", help="show plot window",)
     output_opts.add_argument("--save_plots", action="store_true",
                              help="Save plots?")
+    output_opts.add_argument("--write_website", action="store_true",
+                             help="Write website with results?")
     output_opts.add_argument("--save_boxplots", action="store_true",
                              help="Save boxplots?")
     output_opts.add_argument("--save_results", action="store_true",

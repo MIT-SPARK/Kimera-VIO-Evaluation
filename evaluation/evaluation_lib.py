@@ -3,17 +3,19 @@
 from __future__ import print_function
 import copy
 import os
-# import yaml
 from ruamel import yaml
 import math
 import subprocess
 import numpy as np
 import glog as log
-from evo.tools import plot
 import matplotlib.pyplot as plt
 from shutil import copyfile, move, rmtree, copytree, copy2
 
+import pandas as pd
+
 from evo.core import trajectory, sync, metrics
+from evo.tools import plot, pandas_bridge
+
 import evaluation.tools as evt
 
 
@@ -256,8 +258,6 @@ class DatasetRunner:
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
         dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
 
-        traj_ref_path = os.path.join(self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
-
         traj_vio = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
         traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
         evt.create_full_path_if_not_exists(traj_vio)
@@ -293,6 +293,7 @@ class DatasetEvaluator:
         self.display_plots = args.plot
         self.save_results  = args.save_results
         self.save_plots    = args.save_plots
+        self.write_website = args.write_website
         self.save_boxplots = args.save_boxplots
         self.run_vio       = args.run_pipeline
         self.analyze_vio   = args.analyze_vio
@@ -315,7 +316,6 @@ class DatasetEvaluator:
             for dataset in tqdm(self.datasets_to_eval):
                 # Run the dataset if needed:
                 if self.run_vio:
-                    successful_run = True
                     log.info("Run dataset: %s" % dataset['name'])
                     if not self.runner.run_dataset(dataset):
                         log.info("\033[91m Dataset: %s failed!! \033[00m" %
@@ -326,7 +326,7 @@ class DatasetEvaluator:
                 if self.analyze_vio:
                     self.evaluate_dataset(dataset)
 
-            if self.save_plots:
+            if self.write_website:
                 stats = aggregate_ape_results(self.results_dir)
                 self.website_builder.write_boxplot_website(stats)
                 self.website_builder.write_datasets_website()
@@ -351,7 +351,7 @@ class DatasetEvaluator:
             yaml file.
 
             Args:
-                dataset: a dataset to run as defined in the experiments yaml file.
+                dataset: a dataset to evaluate as defined in the experiments yaml file.
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
 
@@ -367,8 +367,9 @@ class DatasetEvaluator:
             log.error("\033[1mCannot plot PGO results if 'use_lcd' is set to False:\033[0m")
             plot_vio_and_pgo = False
 
+        # TODO make it not specific to EUROC
         traj_ref_path = os.path.join(
-            self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv") # TODO make it not specific to EUROC
+            self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv")
 
         traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
         traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
@@ -400,7 +401,7 @@ class DatasetEvaluator:
         if self.save_plots and plot_collection is not None:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
 
-        if self.save_plots:
+        if self.write_website:
             # Draw and upload APE boxplot online
             log.info("Writing performance website for dataset: %s" % dataset_name)
             self.website_builder.add_dataset_to_website(dataset_name, dataset_pipeline_result_dir)
@@ -611,7 +612,7 @@ class DatasetEvaluator:
         # Read estimated vio trajectory file:
         traj_est_vio = None
         try:
-            traj_est_vio = file_interface.read_euroc_csv_trajectory(traj_vio_path)
+            traj_est_vio = pandas_bridge.df_to_trajectory(pd.read_csv(traj_vio_path, sep=',', index_col=0))
         except file_interface.FileInterfaceException as e:
             raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
 
@@ -619,7 +620,7 @@ class DatasetEvaluator:
         traj_est_pgo = None
         if generate_pgo:
             try:
-                traj_est_pgo = file_interface.read_pose_csv_trajectory(traj_pgo_path)
+                traj_est_pgo = pandas_bridge.df_to_trajectory(pd.read_csv(traj_pgo_path, sep=',', index_col=0))
             except file_interface.FileInterfaceException as e:
                 raise Exception("\033[91mMissing pgo estimated output csv! \033[93m {}.".format(e))
 

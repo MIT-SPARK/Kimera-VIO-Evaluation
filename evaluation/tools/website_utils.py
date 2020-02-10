@@ -1,9 +1,9 @@
 import os
 
-import pandas as pd 
+import pandas as pd
 
 import plotly
-from plotly.subplots import make_subplots                
+from plotly.subplots import make_subplots
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -29,7 +29,7 @@ class WebsiteBuilder:
         self.frontend_template = self.env.get_template('datasets_template.html')
         # Generate Website output path
         self.website_output_path = os.path.dirname(website.__file__)
-        # We will store html snippets of each dataset indexed by dataset name in this 
+        # We will store html snippets of each dataset indexed by dataset name in this
         # dictionary
         self.datasets_html = dict()
         self.frontend_html = dict()
@@ -73,7 +73,7 @@ class WebsiteBuilder:
             output.write(self.frontend_template.render(datasets_html=self.frontend_html))
 
     def __get_boxplot_as_html(self, stats):
-        """ Returns a plotly boxplot in html 
+        """ Returns a plotly boxplot in html
             Args:
             - stats: a nested dictionary with the statistics and results of all pipelines:
                 * First level ordered with dataset_name as keys:
@@ -96,7 +96,7 @@ class WebsiteBuilder:
             Returns:
             - HTML data for all plots
         """
-        df = pd.read_csv(csv_results_path) 
+        df = pd.read_csv(csv_results_path)
 
         x_id = '#timestamp'
 
@@ -193,7 +193,7 @@ class WebsiteBuilder:
                     #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
             And plots lines for each group of data: position, orientation, velocity...
             Args:
-            - csv_frontend_path: path to the output_frontend_stats.csv file 
+            - csv_frontend_path: path to the output_frontend_stats.csv file
             Returns:
             - HTML data for all plots
         """
@@ -209,7 +209,7 @@ class WebsiteBuilder:
 
     def __plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
         """
-            Plots a multi line plotly plot from a pandas dataframe df, using 
+            Plots a multi line plotly plot from a pandas dataframe df, using
             on the x axis the dataframe column with id `x_id` and using on the
             the y axis the dataframe columnS specified in the array of ids `y_ids`
 
@@ -218,7 +218,7 @@ class WebsiteBuilder:
             - x_id: column id in the pandas dataframe containing the data for the x axis.
             - y_ids: column id in the pandas dataframe containing the data for the y axis.
             This can have multiple entries.
-            
+
             Optional Args:
             - fig: plotly figure where to add the line plots, this allows updating figures.
             - row: for multiplot figures, coordinates where to put the figure
