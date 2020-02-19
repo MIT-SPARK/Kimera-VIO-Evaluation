@@ -1,7 +1,7 @@
 
 executable_path: '$HOME/Code/Kimera-VIO/build/stereoVIOEuroc'
 regression_tests_dir: '$HOME/Code/Kimera-VIO-Evaluation/regression_tests'
-params_dir: '$HOME/Code/Kimera-VIO-Evaluation/experiments/params'
+params_dir: '$HOME/Code/Kimera-VIO/params'
 dataset_dir: '$HOME/datasets/euroc'
 
 datasets_to_run:
@@ -9,7 +9,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [1]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
@@ -19,7 +19,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [1]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100

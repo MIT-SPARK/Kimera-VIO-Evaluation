@@ -2,7 +2,7 @@
 executable_path: '$WORKSPACE/build/stereoVIOEuroc'
 vocabulary_path: '$WORKSPACE/vocabulary/ORBvoc.yml'
 results_dir: '$WORKSPACE/Kimera-VIO-Evaluation/website/data'
-params_dir: '/root/Kimera-VIO-Evaluation/experiments/params'
+params_dir: '$WORKSPACE/params'
 dataset_dir: '/Datasets/euroc'
 
 datasets_to_run:
@@ -10,7 +10,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 10
@@ -21,7 +21,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 50
@@ -31,7 +31,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 10
@@ -41,7 +41,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 30
@@ -51,7 +51,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 50
@@ -61,7 +61,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 40
@@ -71,7 +71,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
@@ -81,7 +81,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 40
@@ -91,7 +91,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 60
@@ -101,7 +101,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 20
    discard_n_end_poses: 20
    initial_frame: 300
@@ -111,7 +111,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 35
    discard_n_end_poses: 0
    initial_frame: 200
