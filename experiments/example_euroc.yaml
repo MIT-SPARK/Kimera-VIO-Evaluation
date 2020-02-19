@@ -1,7 +1,7 @@
-executable_path: '$HOME/code/Kimera-VIO/build/stereoVIOEuroc'
-vocabulary_path: '$HOME/code/Kimera-VIO/vocabulary/ORBvoc.yml'
-results_dir: '$HOME/code/Kimera-VIO_Evaluation/results'
-params_dir: '$HOME/code/Kimera-VIO_Evaluation/experiments/params'
+executable_path: '$HOME/Code/Kimera-VIO/build/stereoVIOEuroc'
+vocabulary_path: '$HOME/Code/Kimera-VIO/vocabulary/ORBvoc.yml'
+results_dir: '$HOME/Code/Kimera-VIO_Evaluation/results'
+params_dir: '$HOME/Code/Kimera-VIO/params'
 dataset_dir: '$HOME/datasets/EuRoC'
 
 datasets_to_run:
@@ -9,7 +9,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [1]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 0
    discard_n_end_poses: 0
    initial_frame: 10
@@ -19,7 +19,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
@@ -29,7 +29,7 @@ datasets_to_run:
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
-   pipelines: ['S']
+   pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
    initial_frame: 100
