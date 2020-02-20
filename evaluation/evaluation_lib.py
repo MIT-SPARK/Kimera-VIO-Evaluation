@@ -192,6 +192,18 @@ class DatasetRunner:
                     --flagfile={}/{}/{} --flagfile={}/{}/{} \
                     --flagfile={}/{}/{} --flagfile={}/{}/{} \
                     --flagfile={}/{}/{} --flagfile={}/{} \
+                    --visualize=false \
+                    --visualize_lmk_type=false \
+                    --visualize_mesh=false \
+                    --visualize_mesh_with_colored_polygon_clusters=false \
+                    --visualize_point_cloud=false \
+                    --visualize_convex_hull=false \
+                    --visualize_plane_constraints=false \
+                    --visualize_planes=false \
+                    --visualize_plane_label=false \
+                    --visualize_semantic_mesh=false \
+                    --visualize_mesh_in_frustum=false \
+                    --viz_type=0 \
                     --initial_k={} --final_k={} --use_lcd={} \
                     --log_output=True --minloglevel={} \
                     --parallel_run={}".format(
