@@ -13,7 +13,7 @@ from evaluation.tools import *
 import website
 
 class WebsiteBuilder:
-    def __init__(self):
+    def __init__(self, website_output_path):
         """ Reads a template html website inside the `templates` directory of
         a `website` python package (that's why we call `import website`, which
         is a package of this project), and writes down html code with plotly figures.
@@ -28,7 +28,7 @@ class WebsiteBuilder:
         self.datasets_template = self.env.get_template('datasets_template.html')
         self.frontend_template = self.env.get_template('datasets_template.html')
         # Generate Website output path
-        self.website_output_path = os.path.dirname(website.__file__)
+        self.website_output_path = website_output_path
         # We will store html snippets of each dataset indexed by dataset name in this
         # dictionary
         self.datasets_html = dict()

@@ -313,7 +313,7 @@ class DatasetEvaluator:
         self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
 
         # Class to write the results to the Jenkins website
-        self.website_builder = evt.WebsiteBuilder()
+        self.website_builder = evt.WebsiteBuilder(self.results_dir)
 
     def evaluate(self):
         """ Run datasets if necessary, evaluate all. """
