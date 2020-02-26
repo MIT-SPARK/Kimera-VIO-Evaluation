@@ -203,7 +203,7 @@ class DatasetRunner:
                     --visualize_plane_label=false \
                     --visualize_semantic_mesh=false \
                     --visualize_mesh_in_frustum=false \
-                    --viz_type=0 \
+                    --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
                     --log_output=True --minloglevel={} \
                     --parallel_run={}".format(
