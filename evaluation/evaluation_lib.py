@@ -181,13 +181,7 @@ class DatasetRunner:
             command = "{} \
                     --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
                     --dataset_path={}/{} --output_path={} \
-                    --left_cam_params_path={}/{}/{} \
-                    --right_cam_params_path={}/{}/{} \
-                    --imu_params_path={}/{}/{} \
-                    --backend_type=0 \
-                    --backend_params_path={}/{}/{} \
-                    --frontend_params_path={}/{}/{} \
-                    --lcd_params_path={}/{}/{} \
+                    --params_folder_path={}/{} \
                     --vocabulary_path={} \
                     --flagfile={}/{}/{} --flagfile={}/{}/{} \
                     --flagfile={}/{}/{} --flagfile={}/{}/{} \
@@ -205,15 +199,9 @@ class DatasetRunner:
                     --visualize_mesh_in_frustum=false \
                     --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
-                    --log_output=True --minloglevel={} \
-                    --parallel_run={}".format(
+                    --log_output=True --minloglevel={} ".format(
                         self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
-                        self.params_dir, pipeline_type, "LeftCameraParams.yaml",
-                        self.params_dir, pipeline_type, "RightCameraParams.yaml",
-                        self.params_dir, pipeline_type, "ImuParams.yaml",
-                        self.params_dir, pipeline_type, "regularVioParameters.yaml",
-                        self.params_dir, pipeline_type, "trackerParameters.yaml",
-                        self.params_dir, pipeline_type, "LCDParameters.yaml",
+                        self.params_dir, pipeline_type,
                         self.vocabulary_path,
                         self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
                         self.params_dir, pipeline_type, "flags/Mesher.flags",
