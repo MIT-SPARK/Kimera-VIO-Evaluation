@@ -52,7 +52,7 @@ class WebsiteBuilder:
             # Write modified template inside the website package.
             output.write(self.boxplot_template.render(boxplot=self.__get_boxplot_as_html(stats)))
 
-    def add_dataset_to_website(self, dataset_name, csv_results_path):
+    def add_dataset_to_website(self, dataset_name, pipeline_type, csv_results_path):
         """ Writes dataset results specified in csv_results_path.
         Call write_datasets_website to actually write this data in the website template.
             Args:
@@ -67,7 +67,9 @@ class WebsiteBuilder:
             os.path.join(csv_results_path, "output/output_frontend_stats.csv"))
         # The performance html just needs the path to the plots.pdf file. Have a look at the 
         # corresponding html template in website/templates and find the usage of `pdf_path`.
-        self.performance_html[dataset_name] = os.path.join(csv_results_path, "plots.pdf")
+        # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
+        # website at the same level than where the dataset_name directories are.
+        self.performance_html[dataset_name] = os.path.join(dataset_name, pipeline_type, "plots.pdf")
 
     def write_datasets_website(self):
         """ Writes website using the collected data from calling add_dataset_to_website()"""
@@ -197,31 +199,14 @@ class WebsiteBuilder:
 
     def __get_frontend_results_as_html(self, csv_frontend_path, show_figures=False):
         """  Reads output_frontend_stats.csv file with the following header:
-                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
-            And plots lines for each group of data: position, orientation, velocity...
+            #timestamp_lkf, mono_status, stereo_status, nr_keypoints, nrDetectedFeatures, nrTrackerFeatures, nrMonoInliers, nrMonoPutatives, nrStereoInliers, nrStereoPutatives, monoRansacIters, stereoRansacIters, nrValidRKP, nrNoLeftRectRKP, nrNoRightRectRKP, nrNoDepthRKP, nrFailedArunRKP, featureDetectionTime, featureTrackingTime, monoRansacTime, stereoRansacTime, featureSelectionTime, extracted_corners, need_n_corners
+            And plots the frontend data.
             Args:
             - csv_frontend_path: path to the output_frontend_stats.csv file
             Returns:
             - HTML data for all plots
         """
         df_stats = pd.read_csv(csv_frontend_path, sep=',', index_col=False)
-        fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
-        fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
-        return fig_html
-
-    def __get_performance_results_as_html(self, csv_performance_path, show_figures=False):
-        """  Reads output_performance_stats.csv file with the following header:
-                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
-            And plots lines for each group of data: position, orientation, velocity...
-            Args:
-            - csv_performance_path: path to the output_performance_stats.csv file
-            Returns:
-            - HTML data for all plots
-        """
-
-        'PDFObject.embed("data/" + %s + "/S/plots.pdf", "#" + x);'
-
-        df_stats = pd.read_csv(csv_performance_path, sep=',', index_col=False)
         fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
         fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
         return fig_html

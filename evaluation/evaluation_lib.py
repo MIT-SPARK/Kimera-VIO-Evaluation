@@ -397,7 +397,7 @@ class DatasetEvaluator:
         if self.write_website:
             # Draw and upload APE boxplot online
             log.info("Writing performance website for dataset: %s" % dataset_name)
-            self.website_builder.add_dataset_to_website(dataset_name, dataset_pipeline_result_dir)
+            self.website_builder.add_dataset_to_website(dataset_name, pipeline_type, dataset_pipeline_result_dir)
 
         return True
 
