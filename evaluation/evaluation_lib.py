@@ -305,31 +305,24 @@ class DatasetEvaluator:
 
     def evaluate(self):
         """ Run datasets if necessary, evaluate all. """
-        if self.run_vio and not self.analyze_vio:
-            return self.runner.run_all()
-        elif not self.run_vio and self.analyze_vio:
-            log.info("Run analysis for all experiments")
-            for dataset in tqdm(self.datasets_to_eval):
+        for dataset in tqdm(self.datasets_to_eval):
+            # Run the dataset if needed:
+            if self.run_vio:
+                log.info("Run dataset: %s" % dataset['name'])
+                if not self.runner.run_dataset(dataset):
+                    log.info("\033[91m Dataset: %s failed!! \033[00m" %
+                            dataset['name'])
+                    raise Exception("Failed to run dataset %s." % dataset['name'])
+
+            # Evaluate each dataset if needed:
+            if self.analyze_vio:
                 self.evaluate_dataset(dataset)
-            return True
-        else:
-            for dataset in tqdm(self.datasets_to_eval):
-                # Run the dataset if needed:
-                if self.run_vio:
-                    log.info("Run dataset: %s" % dataset['name'])
-                    if not self.runner.run_dataset(dataset):
-                        log.info("\033[91m Dataset: %s failed!! \033[00m" %
-                                dataset['name'])
-                        raise Exception("Failed to run dataset %s." % dataset['name'])
 
-                # Evaluate each dataset if needed:
-                if self.analyze_vio:
-                    self.evaluate_dataset(dataset)
-
-            if self.write_website:
-                stats = aggregate_ape_results(self.results_dir)
-                self.website_builder.write_boxplot_website(stats)
-                self.website_builder.write_datasets_website()
+        if self.write_website:
+            log.info("Writing full website.")
+            stats = aggregate_ape_results(self.results_dir)
+            self.website_builder.write_boxplot_website(stats)
+            self.website_builder.write_datasets_website()
 
         return True
 

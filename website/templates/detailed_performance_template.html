@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <title>EUROC PERFORMANCE PLOTS</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  </head>
+  <body>
+
+    <!-- Nav Bar -->
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      {% for dataset_name, pdf_path in datasets_pdf_path.items() %}
+        <li class="nav-item">
+          <a class="nav-link {% if loop.index0 == 0 %}active{% endif %}"
+             onclick="simulateResize()"
+             id="{{ dataset_name|safe }}-tab" data-toggle="tab" href="#{{ dataset_name|safe }}" role="tab"
+             aria-controls="{{ dataset_name|safe }}"
+             aria-selected="{% if loop.index0 == 0 %}true{% else %}false{% endif %}">
+            {{ dataset_name|safe }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Actual content -->
+    <div class="tab-content" id="myTabContent">
+      {% for dataset_name, pdf_path in datasets_pdf_path.items() %}
+        <div class="tab-pane fade {% if loop.index0 == 0 %}active show{% endif %}"
+             id="{{ dataset_name|safe }}" role="tabpanel" aria-labelledby="{{ dataset_name|safe }}-tab">
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- This is to get around the bug of plotly not resizing its figures when
+    clicking the navbar (perhaps because we use Bootstrap?) -->
+    <script>
+      function simulateResize() {
+        window.dispatchEvent(new Event('resize'));
+      }
+    </script>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.1.1/pdfobject.min.js"></script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+      {% for dataset_name, pdf_path in datasets_pdf_path.items() %}
+        PDFObject.embed("{{ pdf_path|safe }}", "#{{ dataset_name|safe }}");
+      {% endfor %}
+    </script>
+    </body>
+</html>

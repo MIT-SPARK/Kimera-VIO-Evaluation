@@ -27,12 +27,14 @@ class WebsiteBuilder:
         self.boxplot_template = self.env.get_template('vio_performance_template.html')
         self.datasets_template = self.env.get_template('datasets_template.html')
         self.frontend_template = self.env.get_template('datasets_template.html')
+        self.performance_template = self.env.get_template('detailed_performance_template.html')
         # Generate Website output path
         self.website_output_path = website_output_path
         # We will store html snippets of each dataset indexed by dataset name in this
         # dictionary
         self.datasets_html = dict()
         self.frontend_html = dict()
+        self.performance_html = dict()
 
     def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
@@ -63,6 +65,9 @@ class WebsiteBuilder:
             dataset_name, os.path.join(csv_results_path, "traj_vio.csv"))
         self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
             os.path.join(csv_results_path, "output/output_frontend_stats.csv"))
+        # The performance html just needs the path to the plots.pdf file. Have a look at the 
+        # corresponding html template in website/templates and find the usage of `pdf_path`.
+        self.performance_html[dataset_name] = os.path.join(csv_results_path, "plots.pdf")
 
     def write_datasets_website(self):
         """ Writes website using the collected data from calling add_dataset_to_website()"""
@@ -71,6 +76,8 @@ class WebsiteBuilder:
             output.write(self.datasets_template.render(datasets_html=self.datasets_html))
         with open(os.path.join(self.website_output_path, "frontend.html"), "w") as output:
             output.write(self.frontend_template.render(datasets_html=self.frontend_html))
+        with open(os.path.join(self.website_output_path, "detailed_performance.html"), "w") as output:
+            output.write(self.performance_template.render(datasets_pdf_path=self.performance_html))
 
     def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html
@@ -198,6 +205,23 @@ class WebsiteBuilder:
             - HTML data for all plots
         """
         df_stats = pd.read_csv(csv_frontend_path, sep=',', index_col=False)
+        fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
+        fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
+        return fig_html
+
+    def __get_performance_results_as_html(self, csv_performance_path, show_figures=False):
+        """  Reads output_performance_stats.csv file with the following header:
+                    #timestamp	x	y	z	qw	qx	qy	qz	vx	vy	vz	bgx	bgy	bgz	bax	bay	baz
+            And plots lines for each group of data: position, orientation, velocity...
+            Args:
+            - csv_performance_path: path to the output_performance_stats.csv file
+            Returns:
+            - HTML data for all plots
+        """
+
+        'PDFObject.embed("data/" + %s + "/S/plots.pdf", "#" + x);'
+
+        df_stats = pd.read_csv(csv_performance_path, sep=',', index_col=False)
         fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
         fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
         return fig_html
