@@ -143,7 +143,6 @@ class DatasetRunner:
             Returns: True if all pipelines for the dataset succeed, False otherwise.
         """
         dataset_name = dataset['name']
-        dataset_segments = dataset['segments']
 
         has_a_pipeline_failed = False
         pipelines_to_run_list = dataset['pipelines']
