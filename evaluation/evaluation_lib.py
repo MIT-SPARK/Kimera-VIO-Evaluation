@@ -117,6 +117,7 @@ class DatasetRunner:
 
         self.pipeline_output_dir = os.path.join(self.results_dir, "tmp_output/output/")
         evt.create_full_path_if_not_exists(self.pipeline_output_dir)
+        self.output_file_gt = os.path.join(self.pipeline_output_dir, "output_gt_poses.csv")
         self.output_file_vio = os.path.join(self.pipeline_output_dir, "output_posesVIO.csv")
         self.output_file_pgo = os.path.join(self.pipeline_output_dir, "output_lcd_optimized_traj.csv")
 
@@ -198,7 +199,7 @@ class DatasetRunner:
                     --visualize_mesh_in_frustum=false \
                     --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
-                    --log_output=True --minloglevel={} ".format(
+                    --log_output=True --log_euroc_gt_data=True --minloglevel={} ".format(
                         self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
                         self.params_dir, pipeline_type,
                         self.vocabulary_path,
@@ -249,18 +250,27 @@ class DatasetRunner:
             from their temporary logging location during runtime to the evaluation location.
 
             Args:
-                dataset: a dataset to run as defined in the experiments yaml file.
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
+                dataset: a dataset to run as defined in the experiments yaml file.
         """
         dataset_name = dataset["name"]
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
         dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
 
-        traj_vio = os.path.join(dataset_results_dir, pipeline_type, "traj_vio.csv")
-        traj_pgo = os.path.join(dataset_results_dir, pipeline_type, "traj_pgo.csv")
+        # Generate paths to the relevant csv files
+        traj_gt = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
+        traj_vio = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
+        traj_pgo = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
+
+        # Create full path directories
+        evt.create_full_path_if_not_exists(traj_gt)
         evt.create_full_path_if_not_exists(traj_vio)
         evt.create_full_path_if_not_exists(traj_pgo)
+
+        log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
+            (self.output_file_gt, traj_gt))
+        copyfile(self.output_file_gt, traj_gt)
 
         log.debug("\033[1mCopying output file: \033[0m \n %s \n \033[1m to results file:\033[0m\n %s" %
             (self.output_file_vio, traj_vio))
@@ -359,10 +369,7 @@ class DatasetEvaluator:
             log.error("\033[1mCannot plot PGO results if 'use_lcd' is set to False:\033[0m")
             plot_vio_and_pgo = False
 
-        # TODO make it not specific to EUROC
-        traj_ref_path = os.path.join(
-            self.dataset_dir, dataset_name, "mav0/state_groundtruth_estimate0/data.csv")
-
+        traj_ref_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
         traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
         traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
 
