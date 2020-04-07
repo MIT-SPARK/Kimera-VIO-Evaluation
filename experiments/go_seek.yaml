@@ -1,0 +1,6 @@
+results_dir: '$HOME/Downloads/logs'
+plot_vio_and_pgo: true
+segments: []
+pipelines: ['kimera_vio_logs/Tesse']
+discard_n_start_poses: 0
+discard_n_end_poses: 0
