@@ -64,7 +64,7 @@ class WebsiteBuilder:
         self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(
             dataset_name, os.path.join(csv_results_path, "traj_vio.csv"))
         self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
-            os.path.join(csv_results_path, "output/output_frontend_stats.csv"))
+            os.path.join(csv_results_path, "output_frontend_stats.csv"))
         # The performance html just needs the path to the plots.pdf file. Have a look at the 
         # corresponding html template in website/templates and find the usage of `pdf_path`.
         # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
