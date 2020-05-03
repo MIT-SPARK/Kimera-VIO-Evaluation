@@ -397,6 +397,7 @@ class DatasetEvaluator:
         """
         import copy
 
+        # Mind that traj_est_pgo might be None
         traj_ref, traj_est_vio, traj_est_pgo = self.read_traj_files(traj_ref_path, traj_vio_path, traj_pgo_path)
 
         # We copy to distinguish from the pgo version that may be created
@@ -541,7 +542,7 @@ class DatasetEvaluator:
         try:
             traj_ref = pandas_bridge.df_to_trajectory(pd.read_csv(traj_ref_path, sep=',', index_col=0))
         except FileNotFoundError as e:
-            raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
+            raise Exception("\033[91mMissing ground-truth output csv! \033[93m {}.".format(e))
 
         # Read estimated vio trajectory file:
         traj_est_vio = None
@@ -551,7 +552,6 @@ class DatasetEvaluator:
             raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
 
         # Read estimated pgo trajectory file:
-        # TODO(TONI): ... just parse pgo if the file is there, no need for extra bool flags.
         traj_est_pgo = None
         try:
             traj_est_pgo = pandas_bridge.df_to_trajectory(pd.read_csv(traj_pgo_path, sep=',', index_col=0))

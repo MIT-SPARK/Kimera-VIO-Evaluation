@@ -26,7 +26,7 @@ def find_submissions(results_dir):
             |   |___\* Tesse
             |       |___ traj_vio.csv
             |___\* other_logs...
-            |   | 
+            |   |
 
         Args: results_dir path to the `logs` directory (see filesystem above)
 
