@@ -202,7 +202,7 @@ class DatasetRunner:
                     --visualize_mesh_in_frustum=false \
                     --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
-                    --log_output=True --log_euroc_gt_data=True --minloglevel={} ".format(
+                    --minloglevel={} ".format(
                         self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
                         self.params_dir, pipeline_type,
                         self.vocabulary_path,
