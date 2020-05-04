@@ -320,7 +320,7 @@ class DatasetEvaluator:
         pipelines_to_evaluate_list = dataset['pipelines']
         for pipeline_type in pipelines_to_evaluate_list:
             if not self.__evaluate_run(pipeline_type, dataset):
-                log.error("Failed to evaluate dataset %s for pipeline %s. Exiting."
+                log.error("Failed to evaluate dataset %s for pipeline %s."
                         % dataset['name'] % pipeline_type)
                 raise Exception("Failed evaluation.")
 
@@ -344,7 +344,7 @@ class DatasetEvaluator:
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
         dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
 
-        traj_ref_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
+        traj_gt_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
         traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
         traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
 
@@ -358,7 +358,7 @@ class DatasetEvaluator:
         segments = dataset["segments"]
 
         [plot_collection, results_vio, results_pgo] = self.run_analysis(
-            traj_ref_path, traj_vio_path, traj_pgo_path, segments,
+            traj_gt_path, traj_vio_path, traj_pgo_path, segments,
             dataset_name, discard_n_start_poses, discard_n_end_poses)
 
         if self.save_results:
@@ -375,7 +375,6 @@ class DatasetEvaluator:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
 
         if self.write_website:
-            # Draw and upload APE boxplot online
             log.info("Writing performance website for dataset: %s" % dataset_name)
             self.website_builder.add_dataset_to_website(dataset_name, pipeline_type, dataset_pipeline_result_dir)
             self.website_builder.write_datasets_website()
