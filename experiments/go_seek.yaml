@@ -1,6 +1,6 @@
-results_dir: '$HOME/Downloads/logs'
+results_dir: '$HOME/Downloads/goseek-logs-20200504_v1/'
 plot_vio_and_pgo: true
 segments: []
 pipelines: ['kimera_vio_logs/Tesse']
-discard_n_start_poses: 0
-discard_n_end_poses: 0
+discard_n_start_poses: 10
+discard_n_end_poses: 10
