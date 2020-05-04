@@ -1,3 +1,6 @@
+## [DEPRECATED]
+Note that this repo has been moved to [https://github.com/ToniRV/Kimera-VIO-Evaluation](https://github.com/ToniRV/Kimera-VIO-Evaluation)
+
 # spark_vio_evaluation
 
 ![](https://travis-ci.org/ToniRV/spark_vio_evaluation.svg?branch=master)
@@ -194,3 +197,4 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
 
 # References
 [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
+
