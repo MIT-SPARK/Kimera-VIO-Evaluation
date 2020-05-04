@@ -7,6 +7,8 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 import plotly.graph_objects as go
 
+from collections import defaultdict
+
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from evaluation.tools import *
@@ -27,14 +29,16 @@ class WebsiteBuilder:
         self.boxplot_template = self.env.get_template('vio_performance_template.html')
         self.datasets_template = self.env.get_template('datasets_template.html')
         self.frontend_template = self.env.get_template('datasets_template.html')
-        self.performance_template = self.env.get_template('detailed_performance_template.html')
+        self.detailed_performance_template = self.env.get_template('detailed_performance_template.html')
         # Generate Website output path
         self.website_output_path = website_output_path
-        # We will store html snippets of each dataset indexed by dataset name in this
-        # dictionary
+        # We will store html snippets of each dataset indexed by dataset name in these
+        # dictionaries. Each dictionary indexes the data per pipeline_type in turn:
+        # That is why we use defaultdict to init each dataset entry by another dictionary.
+        # TODO(TONI): I didn't have time to implement the per-pipeline type logging...
         self.datasets_html = dict()
         self.frontend_html = dict()
-        self.performance_html = dict()
+        self.detailed_performance_html = dict()
 
     def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
@@ -69,7 +73,9 @@ class WebsiteBuilder:
         # corresponding html template in website/templates and find the usage of `pdf_path`.
         # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
         # website at the same level than where the dataset_name directories are.
-        self.performance_html[dataset_name] = os.path.join(dataset_name, pipeline_type, "plots.pdf")
+        # self.detailed_performance_html[dataset_name].append({pipeline_type: os.path.join(dataset_name, pipeline_type, "plots.pdf")})
+        # TODO(TONI): I didn't have time to implement the per-pipeline type logging...
+        self.detailed_performance_html[dataset_name] = os.path.join(dataset_name, pipeline_type, "plots.pdf")
 
     def write_datasets_website(self):
         """ Writes website using the collected data from calling add_dataset_to_website()"""
@@ -79,7 +85,7 @@ class WebsiteBuilder:
         with open(os.path.join(self.website_output_path, "frontend.html"), "w") as output:
             output.write(self.frontend_template.render(datasets_html=self.frontend_html))
         with open(os.path.join(self.website_output_path, "detailed_performance.html"), "w") as output:
-            output.write(self.performance_template.render(datasets_pdf_path=self.performance_html))
+            output.write(self.detailed_performance_template.render(datasets_pdf_path=self.detailed_performance_html))
 
     def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html
