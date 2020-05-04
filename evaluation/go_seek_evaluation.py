@@ -41,7 +41,8 @@ def find_submissions(results_dir):
             results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
-            assert(pipeline_name == "Tesse")
+            # Only check first five chars, others correspond to log id
+            assert(pipeline_name[:5] == "Tesse")
             # Get kimera_vio_ros name
             mid_folder_path = os.path.split(root)[0]
             mid_folder_name = os.path.basename(mid_folder_path)
@@ -72,7 +73,7 @@ def run(args):
     for submission_id in submissions:
         dataset_to_evaluate = dict()
         dataset_to_evaluate['name'] = submission_id
-        dataset_to_evaluate['use_lcd'] = False
+        dataset_to_evaluate['use_lcd'] = False # This is only for running VIO, not eval
         dataset_to_evaluate['segments'] = experiment_params['segments']
         dataset_to_evaluate['pipelines'] = experiment_params['pipelines']
         dataset_to_evaluate['discard_n_start_poses'] = experiment_params['discard_n_start_poses']
