@@ -5,11 +5,12 @@
 Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 This repository contains two main scripts:
-- `main_evaluation.py`: given an experiment yaml file with specifications, it runs SparkVIO pipeline to generate an estimated trajectory.
+- `main_evaluation.py`: given an experiment yaml file with specifications (see `experiments` folder), it runs Kimera-VIO pipeline to generate an estimated trajectory.
 Then, it aligns ground-truth trajectory with estimated trajectory, and computes error metrics (Absolute Translation Error (ATE), Relative Pose Error (RPE)).
 It also displays or saves plots about its performance. All functionality is optional (check parameters below).
 
-- `regression_tests.py`: runs SparkVIO with different parameters as specified in an experiment yaml file. It displays Absolute Translation Error (ATE) boxplots for each parameter setting to allow visual inspection of what set of parameters is performing well. Check parameters below for functionality.
+**[OUTDATED]**
+- `regression_tests.py`: runs Kimera-VIO with different parameters as specified in an experiment yaml file. It displays Absolute Translation Error (ATE) boxplots for each parameter setting to allow visual inspection of what set of parameters is performing well. Check parameters below for functionality.
 
 # Prerequisites
 
@@ -17,6 +18,7 @@ It also displays or saves plots about its performance. All functionality is opti
 - pyyaml
 - evo-1 // Fork from [evo](https://github.com/MichaelGrupp/evo)
 - open3d-python
+- plotly
 
 > We strongly recommend setting a new virtual environment to avoid conflicts with system-wide installations:
 > ```bash
@@ -27,8 +29,8 @@ It also displays or saves plots about its performance. All functionality is opti
 
 # Installation
 ```bash
-git clone https://github.com/ToniRV/spark_vio_evaluation
-cd spark_vio_evaluation
+git clone https://github.com/ToniRV/Kimera-VIO-Evaluation
+cd Kimera-VIO-Evaluation
 pip install .
 python setup.py develop
 ```
@@ -66,9 +68,9 @@ datasets_to_run:
 ```
 
 The experiment yaml file specifies the following:
-- `executable_path`: where to find the built binary executable to run SparkVIO.
+- `executable_path`: where to find the built binary executable to run Kimera-VIO.
 - `results_dir`: the directory where to store the results for each dataset. This directory is already inside this repository.
-- `params_dir`: the directory where to find the parameters to be used by SparkVIO.
+- `params_dir`: the directory where to find the parameters to be used by Kimera-VIO.
 - `dataset_dir`: the path to the Euroc dataset.
 - `datasets_to_run`: specifies which Euroc datasets to run, with the following params:
   - `name`: the name of the Euroc dataset to run. It must match exactly to the subfolders in your path to Euroc dataset.
@@ -82,6 +84,7 @@ The experiment yaml file specifies the following:
 where, as explained below, the `-r` and `-a` flags run the VIO pipeline given in the `executable_path` and analyze its output.
 
 
+**[OUTDATED]**
 ## Regression Tests
 
 The `regression_tests.py` script is in essence very similar to the `main_evaluation.py` script: it runs the VIO pipeline, computes error metrics, and displays results.
@@ -90,6 +93,7 @@ The only difference is that its **experiment** yaml file expects two extra field
 - `regression_parameters`: which specifies the VIO parameters to modify on each run.
 
 For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in
+
 ```yaml
 # Here goes the same as in a main_evaluation experiment file [...]
 # This is the path where to store the regression tests.
@@ -149,7 +153,7 @@ output options:
   --save_boxplots       Save boxplots?
   --save_results        Save results?
   -v, --verbose_sparkvio
-                        Make SparkVIO log all verbosity to console. Useful
+                        Make Kimera-VIO log all verbosity to console. Useful
                         for debugging if a run failed.
 ```
 
@@ -185,7 +189,7 @@ Provided are jupyter notebooks for extra plotting.
 
 # Chart of implementation details:
 
-![SparkVIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
+![Kimera-VIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
 
 # Notes
 
@@ -195,3 +199,4 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
 
 # References
 [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
+[2] A. Rosinol, M. Abate, Y. Chang, L. Carlone, [**Kimera: an Open-Source Library for Real-Time Metric-Semantic Localization and Mapping**](https://arxiv.org/abs/1910.02490). IEEE Intl. Conf. on Robotics and Automation (ICRA), 2020. [arXiv:1910.02490](https://arxiv.org/abs/1910.02490).
