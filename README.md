@@ -185,7 +185,19 @@ output options:
 
 # Jupyter Notebooks
 
-Provided are jupyter notebooks for extra plotting.
+Provided are jupyter notebooks for extra plotting, especially of the debug output from Kimera-VIO. Follow the steps below to run them.
+
+1. Set up Kimera Evaluation as stated above
+2. Install Jupyter dependencies and open the `notebooks` folder in the Jupyter browser
+```
+pip install jupyter
+pip install plotly
+cd Kimera-Evaluation/notebooks
+jupyter notebook
+```
+3. Open the notebook corresponding to what you want to analyze first. `plot-frontend.ipnyb` is a good place to start.
+4. Provide the path to the folder with Kimera's debug information from your dataset (typically `Kimera-VIO-ROS/output_logs/<yourdatasetname>`)
+5. Run the notebooks! A useful beginner tutorial for using Jupyter notebooks can be found [here](https://www.dataquest.io/blog/jupyter-notebook-tutorial/). A guide for interpreting the output is coming soon.
 
 # Chart of implementation details:
 
