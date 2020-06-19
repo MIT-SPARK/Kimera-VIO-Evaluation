@@ -584,7 +584,7 @@ def draw_feature_tracking_stats(df, show_figure=False):
     fig = go.Figure(data=[
         go.Bar(name='Keypoints Detected', x=x, y=df["nr_keypoints"]),
         go.Bar(name='Tracked Features', x=x, y=df["nrTrackerFeatures"]),
-        go.Bar(name='Monocular Inliers', x=x, y=df["nrMonoInliers"], marker_color=colors,
+        go.Bar(name='Monocular Inliers (colored by Status)', x=x, y=df["nrMonoInliers"], marker_color=colors,
                hovertext=df["mono_status"], hovertemplate="Mono Inliers: %{y} <br>Mono Status: %{hovertext}")
     ])
     fig.update_layout(barmode='overlay', template='plotly_white')
@@ -608,15 +608,15 @@ def draw_mono_stereo_inliers_outliers(df, show_figure=False):
 
     fig = make_subplots(rows=4, cols=1, shared_xaxes=True)
     x = df.index
-    fig.add_trace(go.Bar(name='nrMonoPutatives', x=x, y=df["nrMonoPutatives"]), row=1, col=1)
-    fig.add_trace(go.Bar(name='nrMonoInliers', x=x, y=df["nrMonoInliers"]), row=1, col=1)
+    fig.add_trace(go.Bar(name='# Mono Putatives', x=x, y=df["nrMonoPutatives"]), row=1, col=1)
+    fig.add_trace(go.Bar(name='# Mono Inliers', x=x, y=df["nrMonoInliers"]), row=1, col=1)
     
-    fig.add_trace(go.Bar(name='nrStereoPutatives', x=x, y=df["nrStereoPutatives"]), row=2, col=1)
-    fig.add_trace(go.Bar(name='nrStereoInliers', x=x, y=df["nrStereoInliers"]), row=2, col=1)
+    fig.add_trace(go.Bar(name='# Stereo Putatives', x=x, y=df["nrStereoPutatives"]), row=2, col=1)
+    fig.add_trace(go.Bar(name='# Stereo Inliers', x=x, y=df["nrStereoInliers"]), row=2, col=1)
     
-    fig.add_trace(go.Bar(name='monoRansacIters', x=x, y=df["monoRansacIters"]), row=3, col=1)
+    fig.add_trace(go.Bar(name='Mono RANSAC Iterations', x=x, y=df["monoRansacIters"]), row=3, col=1)
     
-    fig.add_trace(go.Bar(name='stereoRansacIters', x=x, y=df["stereoRansacIters"]), row=4, col=1)
+    fig.add_trace(go.Bar(name='Stereo RANSAC Iterations', x=x, y=df["stereoRansacIters"]), row=4, col=1)
     
     fig.update_layout(barmode='overlay')
 
@@ -638,11 +638,11 @@ def draw_frontend_timing(df, show_figure=False):
     """
     fig = go.Figure()
     x = df.index
-    fig.add_trace(go.Bar(name='featureDetectionTime', x=x, y=df["featureDetectionTime"]))
-    fig.add_trace(go.Bar(name='featureTrackingTime', x=x, y=df["featureTrackingTime"]))
-    fig.add_trace(go.Bar(name='monoRansacTime', x=x, y=df["monoRansacTime"]))
-    fig.add_trace(go.Bar(name='stereoRansacTime', x=x, y=df["stereoRansacTime"]))
-    fig.add_trace(go.Bar(name='featureSelectionTime', x=x, y=df["featureSelectionTime"]))
+    fig.add_trace(go.Bar(name='Feature Detection Time', x=x, y=df["featureDetectionTime"]))
+    fig.add_trace(go.Bar(name='Feature Tracking Time', x=x, y=df["featureTrackingTime"]))
+    fig.add_trace(go.Bar(name='Mono RANSAC Time', x=x, y=df["monoRansacTime"]))
+    fig.add_trace(go.Bar(name='Stereo RANSAC Time', x=x, y=df["stereoRansacTime"]))
+    fig.add_trace(go.Bar(name='Feature Selection Time', x=x, y=df["featureSelectionTime"]))
     fig.update_layout(barmode='stack', title_text='Frontend Timing')
     
     if show_figure:

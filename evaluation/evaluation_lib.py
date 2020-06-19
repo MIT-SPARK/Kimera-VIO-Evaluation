@@ -202,7 +202,7 @@ class DatasetRunner:
                     --visualize_mesh_in_frustum=false \
                     --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
-                    --log_output=True --log_euroc_gt_data=True --minloglevel={} ".format(
+                    --minloglevel={} ".format(
                         self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
                         self.params_dir, pipeline_type,
                         self.vocabulary_path,
@@ -320,7 +320,7 @@ class DatasetEvaluator:
         pipelines_to_evaluate_list = dataset['pipelines']
         for pipeline_type in pipelines_to_evaluate_list:
             if not self.__evaluate_run(pipeline_type, dataset):
-                log.error("Failed to evaluate dataset %s for pipeline %s. Exiting."
+                log.error("Failed to evaluate dataset %s for pipeline %s."
                         % dataset['name'] % pipeline_type)
                 raise Exception("Failed evaluation.")
 
@@ -344,7 +344,7 @@ class DatasetEvaluator:
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
         dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
 
-        traj_ref_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
+        traj_gt_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
         traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
         traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
 
@@ -358,7 +358,7 @@ class DatasetEvaluator:
         segments = dataset["segments"]
 
         [plot_collection, results_vio, results_pgo] = self.run_analysis(
-            traj_ref_path, traj_vio_path, traj_pgo_path, segments,
+            traj_gt_path, traj_vio_path, traj_pgo_path, segments,
             dataset_name, discard_n_start_poses, discard_n_end_poses)
 
         if self.save_results:
@@ -375,7 +375,6 @@ class DatasetEvaluator:
             self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
 
         if self.write_website:
-            # Draw and upload APE boxplot online
             log.info("Writing performance website for dataset: %s" % dataset_name)
             self.website_builder.add_dataset_to_website(dataset_name, pipeline_type, dataset_pipeline_result_dir)
             self.website_builder.write_datasets_website()
@@ -397,6 +396,7 @@ class DatasetEvaluator:
         """
         import copy
 
+        # Mind that traj_est_pgo might be None
         traj_ref, traj_est_vio, traj_est_pgo = self.read_traj_files(traj_ref_path, traj_vio_path, traj_pgo_path)
 
         # We copy to distinguish from the pgo version that may be created
@@ -541,7 +541,7 @@ class DatasetEvaluator:
         try:
             traj_ref = pandas_bridge.df_to_trajectory(pd.read_csv(traj_ref_path, sep=',', index_col=0))
         except FileNotFoundError as e:
-            raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
+            raise Exception("\033[91mMissing ground-truth output csv! \033[93m {}.".format(e))
 
         # Read estimated vio trajectory file:
         traj_est_vio = None
@@ -551,7 +551,6 @@ class DatasetEvaluator:
             raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
 
         # Read estimated pgo trajectory file:
-        # TODO(TONI): ... just parse pgo if the file is there, no need for extra bool flags.
         traj_est_pgo = None
         try:
             traj_est_pgo = pandas_bridge.df_to_trajectory(pd.read_csv(traj_pgo_path, sep=',', index_col=0))
