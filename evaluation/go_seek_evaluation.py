@@ -19,6 +19,8 @@ def find_submissions(results_dir):
             \* <submission_1>
             |___\* kimera_vio_logs
             |   |___\* Tesse
+            |   |   |___ traj_vio.csv
+            |   |___\* Tesse_1
             |       |___ traj_vio.csv
             |___\* other_logs...
             \* <submission_2>
@@ -26,7 +28,7 @@ def find_submissions(results_dir):
             |   |___\* Tesse
             |       |___ traj_vio.csv
             |___\* other_logs...
-            |   | 
+            |   |
 
         Args: results_dir path to the `logs` directory (see filesystem above)
 
@@ -35,21 +37,27 @@ def find_submissions(results_dir):
     import fnmatch
     # Load results.
     # Aggregate all stats for each pipeline and dataset
-    submissions = []
-    for root, dirnames, filenames in os.walk(results_dir):
-        for results_filename in fnmatch.filter(filenames, 'traj_vio.csv'):
-            results_filepath = os.path.join(root, results_filename)
+    submissions = dict()
+    for root, _, filenames in os.walk(results_dir):
+        for _ in fnmatch.filter(filenames, 'traj_vio.csv'):
+            # results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
-            assert(pipeline_name == "Tesse")
+            # Only check first five chars, others correspond to log id
+            assert(pipeline_name[:5] == "Tesse")
             # Get kimera_vio_ros name
             mid_folder_path = os.path.split(root)[0]
             mid_folder_name = os.path.basename(mid_folder_path)
-            assert(mid_folder_name == "kimera_vio_logs")
+            if (mid_folder_name != "kimera_vio_logs"):
+                raise Exception("Wrong mid folder name: \n \
+                                - expected: kimera_vio_logs \n \
+                                - got: %s"%mid_folder_name)
+
             # Get submission id name
             submission_id = os.path.basename(os.path.split(mid_folder_path)[0])
+            pipeline = mid_folder_name + '/' + pipeline_name
             # Collect stats
-            submissions.append(submission_id)
+            submissions.setdefault(submission_id, []).append(pipeline)
 
     return submissions
 
@@ -69,12 +77,12 @@ def run(args):
     experiment_params['dataset_dir'] = ""
     experiment_params['executable_path'] = ""
     experiment_params['datasets_to_run'] = []
-    for submission_id in submissions:
+    for submission_id, pipelines in submissions.items():
         dataset_to_evaluate = dict()
         dataset_to_evaluate['name'] = submission_id
-        dataset_to_evaluate['use_lcd'] = False
+        dataset_to_evaluate['use_lcd'] = False # This is only for running VIO, not eval
         dataset_to_evaluate['segments'] = experiment_params['segments']
-        dataset_to_evaluate['pipelines'] = experiment_params['pipelines']
+        dataset_to_evaluate['pipelines'] = pipelines
         dataset_to_evaluate['discard_n_start_poses'] = experiment_params['discard_n_start_poses']
         dataset_to_evaluate['discard_n_end_poses'] = experiment_params['discard_n_end_poses']
         experiment_params['datasets_to_run'].append(dataset_to_evaluate)
