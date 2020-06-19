@@ -609,7 +609,7 @@ def draw_mono_stereo_inliers_outliers(df, show_figure=False):
     fig = make_subplots(rows=4, cols=1, shared_xaxes=True)
     x = df.index
     fig.add_trace(go.Bar(name='nrMonoPutatives', x=x, y=df["nrMonoPutatives"]), row=1, col=1)
-    fig.add_trace(go.Bar(name='nrMonoInliers', x=x, y=df["nrMonoInliers"]), row=1, col=1)
+    fig.add_trace(go.Bar(name='nrMonoInliers with Status', x=x, y=df["nrMonoInliers"]), row=1, col=1)
     
     fig.add_trace(go.Bar(name='nrStereoPutatives', x=x, y=df["nrStereoPutatives"]), row=2, col=1)
     fig.add_trace(go.Bar(name='nrStereoInliers', x=x, y=df["nrStereoInliers"]), row=2, col=1)
