@@ -48,7 +48,11 @@ def find_submissions(results_dir):
             # Get kimera_vio_ros name
             mid_folder_path = os.path.split(root)[0]
             mid_folder_name = os.path.basename(mid_folder_path)
-            assert(mid_folder_name == "kimera_vio_logs")
+            if (mid_folder_name != "kimera_vio_logs"):
+                raise Exception("Wrong mid folder name: \n \
+                                - expected: kimera_vio_logs \n \
+                                - got: %s"%mid_folder_name)
+
             # Get submission id name
             submission_id = os.path.basename(os.path.split(mid_folder_path)[0])
             pipeline = mid_folder_name + '/' + pipeline_name
