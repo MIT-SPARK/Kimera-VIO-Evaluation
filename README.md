@@ -83,6 +83,19 @@ The experiment yaml file specifies the following:
 
 where, as explained below, the `-r` and `-a` flags run the VIO pipeline given in the `executable_path` and analyze its output.
 
+### Makefile
+
+An example of command that is useful and commonly used for local evaluation is:
+
+```
+make euroc_evaluation
+```
+
+Which will call the `Makefile` with the command:
+```make
+	@evaluation/main_evaluation.py -r -a -v --save_plots --save_boxplots --save_results --write_website experiments/full_euroc.yaml
+```
+
 
 **[OUTDATED]**
 ## Regression Tests
