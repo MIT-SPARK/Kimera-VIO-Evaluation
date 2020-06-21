@@ -13,7 +13,6 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 10000
-   parallel_run: false
  - name: MH_01_easy
    use_lcd: true
    segments: [1]
@@ -22,7 +21,6 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 10000
-   parallel_run: false
 
 regression_parameters:
   #- name: 'smartNoiseSigma'
