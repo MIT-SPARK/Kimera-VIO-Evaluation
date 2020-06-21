@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from evaluation.tools import *
+from evaluation.tools import draw_ape_boxplots_plotly, draw_feature_tracking_stats, draw_mono_stereo_inliers_outliers
 import website
 
 class WebsiteBuilder:
