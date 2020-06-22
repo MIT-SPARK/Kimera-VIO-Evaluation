@@ -506,18 +506,13 @@ class DatasetEvaluator:
         data = (traj_ref, traj_est)
 
         evt.print_purple("Calculating APE translation part for " + suffix)
-        ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_metric.process_data(data)
+        ape_metric = get_ape_trans(data)
 
         evt.print_purple("Calculating RPE translation part for " + suffix)
-        rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
-                                           1.0, metrics.Unit.frames, 0.0, False)
-        rpe_metric_trans.process_data(data)
+        rpe_metric_trans = get_rpe_trans(data)
 
         evt.print_purple("Calculating RPE rotation angle for " + suffix)
-        rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
-                                         1.0, metrics.Unit.frames, 1.0, False)
-        rpe_metric_rot.process_data(data)
+        rpe_metric_rot = get_rpe_rot(data)
 
         results = self.calc_results(ape_metric, rpe_metric_trans,
                                     rpe_metric_rot, data, segments)
@@ -769,3 +764,153 @@ class DatasetEvaluator:
             evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
         else:
             log.info("Missing RPE results, not drawing RPE boxplots.")
+
+
+# Miscellaneous methods
+
+def get_ape_trans(data):
+    """ Return APE translation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    ape_trans = metrics.APE(metrics.PoseRelation.translation_part)
+    ape_trans.process_data(data)
+
+    return ape_trans
+
+
+def get_ape_rot(data):
+    """ Return APE rotation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    ape_rot = metrics.APE(metrics.PoseRelation.rotation_angle_deg)
+    ape_rot.process_data(data)
+
+    return ape_rot
+
+
+def get_rpe_trans(data):
+    """ Return RPE translation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    rpe_trans = metrics.RPE(metrics.PoseRelation.translation_part,
+                            1.0, metrics.Unit.frames, 0.0, False)
+    rpe_trans.process_data(data)
+
+    return rpe_trans
+
+
+def get_rpe_rot(data):
+    """ Return RPE rotation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    rpe_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
+                          1.0, metrics.Unit.frames, 1.0, False)
+    rpe_rot.process_data(data)
+
+
+def plot_rpe(x_axis, rpe, size=(18,10)):
+    """ Plots RPE error against time for a given metrics.RPE instance.
+    
+        Args:
+            x_axis: An array-type of values for all the x-axis values (time).
+            rpe:    A metrics.RPE instance with pre-processed data.
+    """
+    fig = plt.figure(figsize=size)
+    plot.error_array(fig, rpe.error, x_array=x_axis, statistics=rpe.get_all_statistics(), 
+                    name="RPE", title="RPE w.r.t. " + rpe.pose_relation.value, xlabel="$t$ (s)")
+    return fig
+
+
+def plot_ape(x_axis, ape, size=(18,10), title=None):
+    """ Plots APE error against time for a given metrics.APE instance.
+    
+        Args:
+            x_axis: An array-type of values for all the x-axis values (time).
+            rpe:    A metrics.APE instance with pre-processed data.
+            size:   A tuple optionally containing the size of the figure to be plotted.
+    """
+    if title == None:
+        title = "APE w.r.t. " + ape.pose_relation.value
+    
+    fig = plt.figure(figsize=size)
+    plot.error_array(fig, ape.error, x_array=x_axis, statistics=ape.get_all_statistics(), 
+                name="APE", title=title, xlabel="$t$ (s)")
+    return fig
+
+
+def convert_abs_traj_to_rel_traj(traj, to_scale=True):
+    """ Converts an absolute-pose trajectory to a relative-pose trajectory.
+    
+        The incoming trajectory is processed element-wise. At each timestamp
+        starting from the second (index 1), the relative pose 
+        from the previous timestamp to the current one is calculated (in the previous-
+        timestamp's coordinate frame). This relative pose is then appended to the 
+        resulting trajectory.
+        The resulting trajectory has timestamp indices corresponding to poses that represent
+        the relative transformation between that timestamp and the **next** one.
+        
+        Args:
+            traj: A PoseTrajectory3D object with timestamps as indices containing, at a minimum,
+                columns representing the xyz position and wxyz quaternion-rotation at each
+                timestamp, corresponding to the absolute pose at that time.
+            to_scale: A boolean. If set to False, relative poses will have their translation
+                part normalized.
+        
+        Returns:
+            A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the 
+            relative pose trajectory corresponding to the absolute one given in `traj`.
+    """
+    new_positions = []
+    new_quaternions = []
+    
+    for i in range(len(traj.timestamps[1:])):        
+        w_t_bim1 = traj._positions_xyz[i-1]
+        w_q_bim1 = traj._orientations_quat_wxyz[i-1]
+        w_T_bim1 = transformations.quaternion_matrix(w_q_bim1)
+        w_T_bim1[:3,3] = w_t_bim1
+        
+        w_t_bi = traj._positions_xyz[i]
+        w_q_bi = traj._orientations_quat_wxyz[i]
+        w_T_bi = transformations.quaternion_matrix(w_q_bi)
+        w_T_bi[:3,3] = w_t_bi
+        
+        bim1_T_bi = lie.relative_se3(w_T_bim1, w_T_bi)
+        
+        bim1_R_bi = copy.deepcopy(bim1_T_bi)
+        bim1_R_bi[:,3] = np.array([0, 0, 0, 1])
+        bim1_q_bi = transformations.quaternion_from_matrix(bim1_R_bi)
+        bim1_t_bi = bim1_T_bi[:3,3]
+        
+        if not to_scale:
+            norm = np.linalg.norm(bim1_t_bi)
+            if norm > 1e-6:
+                bim1_t_bi = bim1_t_bi / norm
+        
+        new_positions.append(bim1_t_bi)
+        new_quaternions.append(bim1_q_bi)
+        
+    return trajectory.PoseTrajectory3D(new_positions, new_quaternions, traj.timestamps[1:])
