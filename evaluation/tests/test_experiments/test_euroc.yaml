@@ -3,8 +3,8 @@ executable_path: ''
 vocabulary_path: ''
 params_dir: ''
 
-results_dir: './evaluation/tests/test_results'
-dataset_dir: './evaluation/tests/test_results'
+results_dir: 'evaluation/tests/test_results'
+dataset_dir: 'evaluation/tests/test_results'
 
 datasets_to_run:
  - name: V1_01_easy
