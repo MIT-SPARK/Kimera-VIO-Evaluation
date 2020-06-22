@@ -1,7 +1,7 @@
-# YOU MAY HAVE TO CHANGE THESE THREE
-executable_path: '$HOME/catkin_ws/build/kimera_vio/stereoVIOEuroc'
-vocabulary_path: '$HOME/catkin_ws/src/Kimera-VIO/vocabulary/ORBvoc.yml'
-params_dir: $HOME/catkin_ws/src/Kimera-VIO/params'
+# These three are only needed for running datasets, which isn't currently tested.
+executable_path: ''
+vocabulary_path: ''
+params_dir: ''
 
 results_dir: './evaluation/tests/test_results'
 dataset_dir: './evaluation/tests/test_results'
