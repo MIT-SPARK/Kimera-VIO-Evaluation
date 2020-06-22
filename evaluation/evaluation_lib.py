@@ -183,6 +183,7 @@ class DatasetRunner:
             # Subprocess returns 0 if Ok, any number bigger than 1 if not ok.
             command = "{} \
                     --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
+                    --minloglevel={} \
                     --dataset_path={}/{} --output_path={} \
                     --params_folder_path={}/{} \
                     --vocabulary_path={} \
@@ -202,8 +203,10 @@ class DatasetRunner:
                     --visualize_mesh_in_frustum=false \
                     --viz_type=2 \
                     --initial_k={} --final_k={} --use_lcd={} \
-                    --minloglevel={} ".format(
-                        self.executable_path, self.dataset_dir, dataset["name"], self.pipeline_output_dir,
+                    --log_euroc_gt_data=true --log_output=true".format(
+                        self.executable_path,
+                        minloglevel,
+                        self.dataset_dir, dataset["name"], self.pipeline_output_dir,
                         self.params_dir, pipeline_type,
                         self.vocabulary_path,
                         self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
@@ -212,8 +215,7 @@ class DatasetRunner:
                         self.params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
                         self.params_dir, pipeline_type, "flags/Visualizer3D.flags",
                         self.params_dir, self.extra_flagfile_path,
-                        dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"], minloglevel,
-                        dataset["parallel_run"])
+                        dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"])
             # print("Starting Kimera-VIO with command:\n")
             # print(command)
             return_code = subprocess.call(command, shell=True)
