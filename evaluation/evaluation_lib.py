@@ -564,21 +564,21 @@ class DatasetEvaluator:
         traj_ref = None
         try:
             traj_ref = pandas_bridge.df_to_trajectory(pd.read_csv(traj_ref_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             raise Exception("\033[91mMissing ground-truth output csv! \033[93m {}.".format(e))
 
         # Read estimated vio trajectory file:
         traj_est_vio = None
         try:
             traj_est_vio = pandas_bridge.df_to_trajectory(pd.read_csv(traj_vio_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
 
         # Read estimated pgo trajectory file:
         traj_est_pgo = None
         try:
             traj_est_pgo = pandas_bridge.df_to_trajectory(pd.read_csv(traj_pgo_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             log.warning("Missing pgo estimated output csv: {}.".format(e))
             log.warning("Not plotting pgo results.")
 
