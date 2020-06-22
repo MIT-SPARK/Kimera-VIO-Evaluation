@@ -1,7 +1,7 @@
-executable_path: '$HOME/Code/Kimera-VIO/build/stereoVIOEuroc'
-vocabulary_path: '$HOME/Code/Kimera-VIO/vocabulary/ORBvoc.yml'
-results_dir: '$HOME/Code/Kimera-VIO_Evaluation/results'
-params_dir: '$HOME/Code/Kimera-VIO/params'
+executable_path: '$HOME/catkin_ws/build/kimera_vio/stereoVIOEuroc'
+vocabulary_path: '$HOME/catkin_ws/src/Kimera-VIO/vocabulary/ORBvoc.yml'
+results_dir: '$HOME/code/spark_vio_evaluation/results'
+params_dir: '$HOME/catkin_ws/src/Kimera-VIO/params'
 dataset_dir: '$HOME/datasets/EuRoC'
 
 datasets_to_run:
@@ -13,8 +13,7 @@ datasets_to_run:
    discard_n_start_poses: 0
    discard_n_end_poses: 0
    initial_frame: 10
-   final_frame: 220
-   parallel_run: true
+   final_frame: 3500
  - name: MH_01_easy
    use_lcd: true
    plot_vio_and_pgo: true
@@ -24,8 +23,7 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 3500
-   parallel_run: true
- - name: V1_03_difficult
+ - name: V2_01_easy
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [5]
@@ -34,4 +32,3 @@ datasets_to_run:
    discard_n_end_poses: 10
    initial_frame: 100
    final_frame: 3500
-   parallel_run: true
