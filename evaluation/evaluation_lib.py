@@ -872,7 +872,7 @@ def plot_traj_colormap_rpe(rpe_metric, traj_ref, traj_est1, traj_est2=None,
     return fig
 
 
-def convert_abs_traj_to_rel_traj(traj, to_scale=True):
+def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
     """ Converts an absolute-pose trajectory to a relative-pose trajectory.
     
         The incoming trajectory is processed element-wise. At each timestamp
@@ -887,7 +887,7 @@ def convert_abs_traj_to_rel_traj(traj, to_scale=True):
             traj: A PoseTrajectory3D object with timestamps as indices containing, at a minimum,
                 columns representing the xyz position and wxyz quaternion-rotation at each
                 timestamp, corresponding to the absolute pose at that time.
-            to_scale: A boolean. If set to False, relative poses will have their translation
+            up_to_scale: A boolean. If set to True, relative poses will have their translation
                 part normalized.
         
         Returns:
@@ -901,6 +901,14 @@ def convert_abs_traj_to_rel_traj(traj, to_scale=True):
     
     for i in range(1, len(traj.timestamps)):
         rel_pose = lie.relative_se3(traj.poses_se3[i-1], traj.poses_se3[i])
+
+        if up_to_scale:
+            bim1_t_bi = rel_pose[:3, 3]
+            norm = np.linalg.norm(bim1_t_bi)
+            if norm > 1e-6:
+                bim1_t_bi = bim1_t_bi / norm
+                rel_pose[:3, 3] = bim1_t_bi
+    
         new_poses.append(rel_pose)
 
     return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)

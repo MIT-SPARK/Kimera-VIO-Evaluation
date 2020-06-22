@@ -72,7 +72,7 @@ class TestEvaluationMisc(unittest.TestCase):
     def test_get_rpe_trans(self):
         pass
 
-    def test_convert_abs_traj_to_rel_traj(self):
+    def test_convert_abs_traj_to_rel_traj_0(self):
         pos_xyz = [[0, 0, 0], [1, 0, 0]]
         # quat_wxyz = [[1, 0, 0, 0], [0.7071068, 0.7071068, 0, 0,]]
         quat_wxyz = [[1, 0, 0, 0], [1, 0, 0, 0,]]
@@ -81,7 +81,6 @@ class TestEvaluationMisc(unittest.TestCase):
         traj_abs = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
         traj_rel = convert_abs_traj_to_rel_traj(traj_abs, False)
 
-
         self.assertEqual(len(traj_rel.positions_xyz), 1)
         self.assertEqual(len(traj_rel.orientations_quat_wxyz), 1)
         self.assertEqual(len(traj_rel.timestamps), 1)
@@ -89,6 +88,23 @@ class TestEvaluationMisc(unittest.TestCase):
 
         self.assertTrue(np.allclose(traj_rel.positions_xyz[0], pos_xyz[1], atol=1e-6))
         self.assertTrue(np.allclose(traj_rel.orientations_quat_wxyz[0], quat_wxyz[1], atol=1e-6))
+
+    def test_convert_abs_traj_to_rel_traj_1(self):
+        # Test equivalent trajectories for zero relative ATE (not to-scale)
+        pos_xyz = np.array([[random.random() for _ in range(3)] for _ in range(15)])
+        quat_wxyz = np.array([[random.random() for _ in range(4)] for _ in range(15)])
+        timestamps = np.array([i for i in range(15)])
+
+        traj_1 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
+        pos_xyz = [pos*2 for pos in pos_xyz]
+        traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
+
+        traj_1 = convert_abs_traj_to_rel_traj(traj_1, False)
+        traj_2 = convert_abs_traj_to_rel_traj(traj_2, False)
+
+        ape_metric_trans = get_ape_trans((traj_1, traj_2))
+
+        self.assertTrue(np.allclose(ape_metric_trans.error, [0. for i in range(len(ape_metric_trans.error))], atol=1e-5))
 
 
 if __name__ == '__main__':
