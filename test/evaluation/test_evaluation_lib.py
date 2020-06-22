@@ -74,19 +74,21 @@ class TestEvaluationMisc(unittest.TestCase):
 
     def test_convert_abs_traj_to_rel_traj(self):
         pos_xyz = [[0, 0, 0], [1, 0, 0]]
-        quat_wxyz = [[1, 0, 0, 0], [0.7071068, 0.7071068, 0, 0,]]
+        # quat_wxyz = [[1, 0, 0, 0], [0.7071068, 0.7071068, 0, 0,]]
+        quat_wxyz = [[1, 0, 0, 0], [1, 0, 0, 0,]]
         timestamps = [0, 1]
         
         traj_abs = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
         traj_rel = convert_abs_traj_to_rel_traj(traj_abs, False)
 
-        self.assertEqual(len(traj_rel._positions_xyz), 1)
-        self.assertEqual(len(traj_rel._orientations_quat_wxyz), 1)
-        self.assertEqual(len(traj_rel.timestamps), 1)
-        self.assertEqual(traj_rel.timestamps[0], 1)
 
-        self.assertTrue(np.allclose(traj_rel._positions_xyz[0], pos_xyz[1], atol=1e-6))
-        self.assertTrue(np.allclose(traj_rel._orientations_quat_wxyz[0], quat_wxyz[1], atol=1e-6))
+        self.assertEqual(len(traj_rel.positions_xyz), 1)
+        self.assertEqual(len(traj_rel.orientations_quat_wxyz), 1)
+        self.assertEqual(len(traj_rel.timestamps), 1)
+        self.assertEqual(traj_rel.timestamps[0], timestamps[1])
+
+        self.assertTrue(np.allclose(traj_rel.positions_xyz[0], pos_xyz[1], atol=1e-6))
+        self.assertTrue(np.allclose(traj_rel.orientations_quat_wxyz[0], quat_wxyz[1], atol=1e-6))
 
 
 if __name__ == '__main__':

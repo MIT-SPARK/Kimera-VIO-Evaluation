@@ -897,35 +897,10 @@ def convert_abs_traj_to_rel_traj(traj, to_scale=True):
     from evo.core import transformations
     from evo.core import lie_algebra as lie
 
-    new_positions = []
-    new_quaternions = []
+    new_poses = []
     
-    for i in range(len(traj.timestamps[1:])):        
-        w_t_bim1 = traj._positions_xyz[i-1]
-        w_q_bim1 = traj._orientations_quat_wxyz[i-1]
-        w_T_bim1 = transformations.quaternion_matrix(w_q_bim1)
-        w_T_bim1[:3,3] = w_t_bim1
-        
-        w_t_bi = traj._positions_xyz[i]
-        w_q_bi = traj._orientations_quat_wxyz[i]
-        w_T_bi = transformations.quaternion_matrix(w_q_bi)
-        w_T_bi[:3,3] = w_t_bi
-        
-        # TODO(marcus): is this the correct direction? Make sure it's the same dir as in Kimera!
-        bim1_T_bi = lie.relative_se3(w_T_bim1, w_T_bi)
-        
-        bim1_R_bi = copy.deepcopy(bim1_T_bi)
-        bim1_R_bi[:,3] = np.array([0, 0, 0, 1])
-        bim1_q_bi = transformations.quaternion_from_matrix(bim1_R_bi)
-        bim1_t_bi = bim1_T_bi[:3,3]
-        
-        if not to_scale:
-            norm = np.linalg.norm(bim1_t_bi)
-            if norm > 1e-6:
-                bim1_t_bi = bim1_t_bi / norm
-        
-        new_positions.append(bim1_t_bi)
-        new_quaternions.append(bim1_q_bi)
-        
-    # TODO(marcus): might have to switch this back to cutting first timestamp...
-    return trajectory.PoseTrajectory3D(new_positions, new_quaternions, traj.timestamps[:-1])
+    for i in range(1, len(traj.timestamps)):
+        rel_pose = lie.relative_se3(traj.poses_se3[i-1], traj.poses_se3[i])
+        new_poses.append(rel_pose)
+
+    return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
