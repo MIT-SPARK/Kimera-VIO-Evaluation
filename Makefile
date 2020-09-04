@@ -6,6 +6,9 @@ help:
 euroc_evaluation:
 	@evaluation/main_evaluation.py -r -a -v --save_plots --save_boxplots --save_results --write_website experiments/full_euroc.yaml
 
+tesse_evaluation:
+	@evaluation/main_evaluation.py -a -v --save_plots --save_boxplots --save_results --write_website experiments/example_euroc.yaml
+
 regression_tests:
 	@evaluation/regression_tests.py -r -a --save_results experiments/regression_test.yaml
 
