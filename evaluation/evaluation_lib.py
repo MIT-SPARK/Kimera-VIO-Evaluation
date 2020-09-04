@@ -340,7 +340,7 @@ class DatasetEvaluator:
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
 
-            Returns: True if the there are no exceptions during evaluation, False otherwise.
+            Returns: True if there are no exceptions during evaluation, False otherwise.
         """
         dataset_name = dataset["name"]
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
