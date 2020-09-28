@@ -20,7 +20,7 @@ from evo.tools import file_interface
 import evaluation.tools as evt
 
 
-def aggregate_all_results(results_dir):
+def aggregate_all_results(results_dir, use_pgo=False):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
     with results:
         Args:
@@ -34,6 +34,8 @@ def aggregate_all_results(results_dir):
                |___\* pipeline_type:
                |   |___results.yaml
                Basically all subfolders with a results.yaml will be examined.
+            - use_pgo: whether to aggregate all results for VIO or for PGO trajectory.
+                set to True for PGO and False (default) for VIO
         Returns:
             - stats: a nested dictionary with the statistics and results of all pipelines:
                 * First level ordered with dataset_name as keys:
@@ -46,9 +48,12 @@ def aggregate_all_results(results_dir):
     # Load results.
     log.info("Aggregate dataset results.")
     # Aggregate all stats for each pipeline and dataset
+    yaml_filename = 'results_vio.yaml'
+    if use_pgo:
+        yaml_filename = 'results_pgo.yaml'
     stats = dict()
     for root, dirnames, filenames in os.walk(results_dir):
-        for results_filename in fnmatch.filter(filenames, 'results_vio.yaml'):
+        for results_filename in fnmatch.filter(filenames, yaml_filename):
             results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
@@ -61,7 +66,7 @@ def aggregate_all_results(results_dir):
             try:
                 stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
             except yaml.YAMLError as e:
-                raise Exception("Error in results_vio file: ", e)
+                raise Exception("Error in results file: ", e)
             except:
                 log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
 
@@ -538,6 +543,7 @@ class DatasetEvaluator:
 
         evt.print_purple("Calculating APE translation part for " + suffix)
         ape_metric = get_ape_trans(data)
+        ape_result = ape_metric.get_result()
 
         evt.print_purple("Calculating RPE translation part for " + suffix)
         rpe_metric_trans = get_rpe_trans(data)
@@ -545,8 +551,14 @@ class DatasetEvaluator:
         evt.print_purple("Calculating RPE rotation angle for " + suffix)
         rpe_metric_rot = get_rpe_rot(data)
 
-        results = self.calc_results(ape_metric, rpe_metric_trans,
-                                    rpe_metric_rot, data, segments)
+        # Collect results:
+        results = dict()
+        results["absolute_errors"] = ape_result
+
+        results["relative_errors"] = self.calc_rpe_results(rpe_metric_trans, rpe_metric_rot, data, segments)
+
+        # Add as well how long hte trajectory was.
+        results["trajectory_length_m"] = traj_est.path_length()
 
         return (ape_metric, rpe_metric_trans, rpe_metric_rot, results)
 
@@ -586,50 +598,40 @@ class DatasetEvaluator:
 
         return (traj_ref, traj_est_vio, traj_est_pgo)
 
-    def calc_results(self, ape_metric, rpe_metric_trans, rpe_metric_rot, data, segments):
-        """ Create and return a dictionary containing stats and results for ATE, RRE and RTE for a datset.
+    def calc_rpe_results(self, rpe_metric_trans, rpe_metric_rot, data, segments):
+        """ Create and return a dictionary containing stats and results RRE and RTE for a datset.
 
             Args:
-                ape_metric: an evo.core.metric object representing the ATE.
                 rpe_metric_trans: an evo.core.metric object representing the RTE.
                 rpe_metric_rot: an evo.core.metric object representing the RRE.
                 data: a 2-tuple with reference and estimated trajectories as PoseTrajectory3D objects
                     in that order.
                 segments: a list of segments for RPE.
 
-            Returns: a dictionary containing all relevant results.
+            Returns: a dictionary containing all relevant RPE results.
         """
-        # Calculate APE results:
-        results = dict()
-        ape_result = ape_metric.get_result()
-        results["absolute_errors"] = ape_result
-
-        # Calculate RPE results:
-        # TODO(Toni): Save RPE computation results rather than the statistics
-        # you can compute statistics later...
-        rpe_stats_trans = rpe_metric_trans.get_all_statistics()
-        rpe_stats_rot = rpe_metric_rot.get_all_statistics()
-
         # Calculate RPE results of segments and save
-        results["relative_errors"] = dict()
+        rpe_results = dict()
         for segment in segments:
-            results["relative_errors"][segment] = dict()
+            rpe_results[segment] = dict()
             evt.print_purple("RPE analysis of segment: %d"%segment)
             evt.print_lightpurple("Calculating RPE segment translation part")
             rpe_segment_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                                    float(segment), metrics.Unit.meters, 0.01, True)
             rpe_segment_metric_trans.process_data(data)
+            # TODO(Toni): Save RPE computation results rather than the statistics
+            # you can compute statistics later... Like done for ape!
             rpe_segment_stats_trans = rpe_segment_metric_trans.get_all_statistics()
-            results["relative_errors"][segment]["rpe_trans"] = rpe_segment_stats_trans
+            rpe_results[segment]["rpe_trans"] = rpe_segment_stats_trans
 
             evt.print_lightpurple("Calculating RPE segment rotation angle")
             rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                                  float(segment), metrics.Unit.meters, 0.01, True)
             rpe_segment_metric_rot.process_data(data)
             rpe_segment_stats_rot = rpe_segment_metric_rot.get_all_statistics()
-            results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
+            rpe_results[segment]["rpe_rot"] = rpe_segment_stats_rot
 
-        return results
+        return rpe_results
 
     def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
         """ Writes a result dictionary to file as a yaml file.
