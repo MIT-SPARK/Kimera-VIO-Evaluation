@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import matplotlib
-matplotlib.use('Agg')
-
 from __future__ import print_function
 import glog as log
 import os
@@ -12,6 +9,9 @@ from tqdm import tqdm
 # Ignore warnings from matplotlib...
 import warnings
 warnings.filterwarnings("ignore")
+
+import matplotlib
+matplotlib.use('Agg')
 
 from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
