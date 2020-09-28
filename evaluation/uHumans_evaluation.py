@@ -133,8 +133,7 @@ def run(args):
     dataset_evaluator.evaluate()
 
     # Aggregate results in results directory
-    # TODO(Toni): do a uHumans2 version
-    # aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
+    aggregate_ape_results(os.path.expandvars(experiment_params['results_dir']))
     return True
 
 def parser():
