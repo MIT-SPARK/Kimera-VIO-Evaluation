@@ -10,6 +10,7 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings("ignore")
 
+# This is to avoid using tkinter
 import matplotlib
 matplotlib.use('Agg')
 
