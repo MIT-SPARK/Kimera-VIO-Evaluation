@@ -249,7 +249,7 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
  }
 ```
 
-- [3] Rosinol, Antoni and Gupta, Arjun and Abate, Marcus and Shi, Jingnan and Carlone, Luca. [**3D Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans**](https://arxiv.org/pdf/2002.06289.pdf)
+- [3] A. Rosinol, A. Gupta, M. Abate, J. Shi, L. Carlone. [**3D Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans**](https://arxiv.org/abs/2002.06289). Robotics: Science and Systems (RSS), 2020. [arXiv:1910.02490](https://arxiv.org/abs/2002.06289).
 
 ```bibtex
 @InProceedings{Rosinol20rss-dynamicSceneGraphs,
