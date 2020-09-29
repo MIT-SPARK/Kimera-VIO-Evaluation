@@ -224,7 +224,7 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
 
 # References
 
-- [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. [**Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**](https://arxiv.org/abs/1903.01067). IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
+- [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. [**Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**](https://arxiv.org/abs/1903.01067). IEEE Int. Conf. on Robotics and Automation (ICRA), 2019. [arXiv:1903.01067](https://arxiv.org/abs/1903.01067)
 
 ```bibtex
 @inproceedings{Rosinol19-incremental,
@@ -249,7 +249,7 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
  }
 ```
 
-- [3] A. Rosinol, A. Gupta, M. Abate, J. Shi, L. Carlone. [**3D Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans**](https://arxiv.org/abs/2002.06289). Robotics: Science and Systems (RSS), 2020. [arXiv:1910.02490](https://arxiv.org/abs/2002.06289).
+- [3] A. Rosinol, A. Gupta, M. Abate, J. Shi, L. Carlone. [**3D Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans**](https://arxiv.org/abs/2002.06289). Robotics: Science and Systems (RSS), 2020. [arXiv:2002.06289](https://arxiv.org/abs/2002.06289).
 
 ```bibtex
 @InProceedings{Rosinol20rss-dynamicSceneGraphs,
