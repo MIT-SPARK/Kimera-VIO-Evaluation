@@ -227,13 +227,12 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
 - [1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. [**Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**](https://arxiv.org/abs/1903.01067). IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
 
 ```bibtex
-@inproceedings{rosinol2019incremental,
+@inproceedings{Rosinol19-incremental,
   title={Incremental visual-inertial 3d mesh generation with structural regularities},
   author={Rosinol, Antoni and Sattler, Torsten and Pollefeys, Marc and Carlone, Luca},
-  booktitle={2019 International Conference on Robotics and Automation (ICRA)},
-  pages={8220--8226},
   year={2019},
-  organization={IEEE}
+  booktitle={2019 International Conference on Robotics and Automation (ICRA)},
+  pdf={https://arxiv.org/pdf/1903.01067.pdf}
 }
 ```
 
@@ -256,8 +255,8 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
 @InProceedings{Rosinol20rss-dynamicSceneGraphs,
   title={{3D} Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans},
   author={A. Rosinol and A. Gupta and M. Abate and J. Shi and L. Carlone},
-  booktitle=rss,
-  pdf={https://arxiv.org/pdf/2002.06289.pdf},
-  year={2020}
+  year={2020},
+  booktitle={Robotics: Science and Systems (RSS)},
+  pdf={https://arxiv.org/pdf/2002.06289.pdf}
 }
 ```
