@@ -1,6 +1,6 @@
 # Kimera VIO Evaluation
 
-![](https://travis-ci.org/ToniRV/spark_vio_evaluation.svg?branch=master)
+![](https://travis-ci.org/ToniRV/Kimera-VIO-Evaluation.svg?branch=master)
 
 Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
@@ -223,5 +223,40 @@ For example, in Jenkins we use the default `evo_config` which does not split plo
 Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
 
 # References
-[1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
-[2] A. Rosinol, M. Abate, Y. Chang, L. Carlone, [**Kimera: an Open-Source Library for Real-Time Metric-Semantic Localization and Mapping**](https://arxiv.org/abs/1910.02490). IEEE Intl. Conf. on Robotics and Automation (ICRA), 2020. [arXiv:1910.02490](https://arxiv.org/abs/1910.02490).
+
+- [1] A. Rosinol, T. Sattler, M. Pollefeys, L. Carlone. [**Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**](https://arxiv.org/abs/1903.01067). IEEE Intl. Conf. on Robotics and Automation (ICRA), 2019. [arXiv:1903.01067](https://arxiv.org/abs/1903.01067)
+
+```bibtex
+@InProceedings{Rosinol19icra-incremental,
+  title = {Incremental visual-inertial 3d mesh generation with structural regularities},
+  author = {Rosinol, Antoni and Sattler, Torsten and Pollefeys, Marc and Carlone, Luca},
+  year = {2019},
+  booktitle = {2019 International Conference on Robotics and Automation (ICRA)},
+  pdf = {https://arxiv.org/pdf/1903.01067.pdf}
+}
+```
+
+- [2] A. Rosinol, M. Abate, Y. Chang, L. Carlone, [**Kimera: an Open-Source Library for Real-Time Metric-Semantic Localization and Mapping**](https://arxiv.org/abs/1910.02490). IEEE Intl. Conf. on Robotics and Automation (ICRA), 2020. [arXiv:1910.02490](https://arxiv.org/abs/1910.02490).
+ 
+ ```bibtex
+ @InProceedings{Rosinol20icra-Kimera,
+   title = {Kimera: an Open-Source Library for Real-Time Metric-Semantic Localization and Mapping},
+   author = {Rosinol, Antoni and Abate, Marcus and Chang, Yun and Carlone, Luca},
+   year = {2020},
+   booktitle = {IEEE Intl. Conf. on Robotics and Automation (ICRA)},
+   url = {https://github.com/MIT-SPARK/Kimera},
+   pdf = {https://arxiv.org/pdf/1910.02490.pdf}
+ }
+```
+
+- [3] A. Rosinol, A. Gupta, M. Abate, J. Shi, L. Carlone. [**3D Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans**](https://arxiv.org/abs/2002.06289). Robotics: Science and Systems (RSS), 2020. [arXiv:2002.06289](https://arxiv.org/abs/2002.06289).
+
+```bibtex
+@InProceedings{Rosinol20rss-dynamicSceneGraphs,
+  title = {{3D} Dynamic Scene Graphs: Actionable Spatial Perception with Places, Objects, and Humans},
+  author = {A. Rosinol and A. Gupta and M. Abate and J. Shi and L. Carlone},
+  year = {2020},
+  booktitle = {Robotics: Science and Systems (RSS)},
+  pdf = {https://arxiv.org/pdf/2002.06289.pdf}
+}
+```
