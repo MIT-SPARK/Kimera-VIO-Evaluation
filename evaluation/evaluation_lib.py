@@ -20,7 +20,7 @@ from evo.tools import file_interface
 import evaluation.tools as evt
 
 
-def aggregate_all_results(results_dir):
+def aggregate_all_results(results_dir, use_pgo=False):
     """ Aggregate APE results and draw APE boxplot as well as write latex table
     with results:
         Args:
@@ -34,6 +34,8 @@ def aggregate_all_results(results_dir):
                |___\* pipeline_type:
                |   |___results.yaml
                Basically all subfolders with a results.yaml will be examined.
+            - use_pgo: whether to aggregate all results for VIO or for PGO trajectory.
+                set to True for PGO and False (default) for VIO
         Returns:
             - stats: a nested dictionary with the statistics and results of all pipelines:
                 * First level ordered with dataset_name as keys:
@@ -46,9 +48,12 @@ def aggregate_all_results(results_dir):
     # Load results.
     log.info("Aggregate dataset results.")
     # Aggregate all stats for each pipeline and dataset
+    yaml_filename = 'results_vio.yaml'
+    if use_pgo:
+        yaml_filename = 'results_pgo.yaml'
     stats = dict()
     for root, dirnames, filenames in os.walk(results_dir):
-        for results_filename in fnmatch.filter(filenames, 'results_vio.yaml'):
+        for results_filename in fnmatch.filter(filenames, yaml_filename):
             results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
@@ -61,7 +66,7 @@ def aggregate_all_results(results_dir):
             try:
                 stats[dataset_name][pipeline_name] = yaml.load(open(results_filepath, 'r'), Loader=yaml.Loader)
             except yaml.YAMLError as e:
-                raise Exception("Error in results_vio file: ", e)
+                raise Exception("Error in results file: ", e)
             except:
                 log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
 
@@ -340,7 +345,7 @@ class DatasetEvaluator:
                 pipeline_type: a pipeline representing a set of parameters to use, as
                     defined in the experiments yaml file for the dataset in question.
 
-            Returns: True if the there are no exceptions during evaluation, False otherwise.
+            Returns: True if there are no exceptions during evaluation, False otherwise.
         """
         dataset_name = dataset["name"]
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
@@ -450,54 +455,83 @@ class DatasetEvaluator:
 
             if traj_est_pgo is not None:
                 # APE Metric Plot:
-                self.add_metric_plot(plot_collection, dataset_name, ape_metric_pgo,
-                                     "PGO_APE_translation", "PGO + VIO APE Translation", "[m]")
+                plot_collection.add_figure(
+                    "PGO_APE_translation",
+                    plot_metric(ape_metric_pgo, "PGO + VIO APE Translation")
+                )
 
                 # Trajectory Colormapped with ATE Plot:
-                self.add_traj_colormap_ape(plot_collection, ape_metric_pgo, traj_ref_pgo,
-                                           traj_est_vio, traj_est_pgo,
-                                           "PGO_APE_translation_trajectory_error",
-                                           "PGO + VIO ATE Mapped Onto Trajectory")
+                plot_collection.add_figure(
+                    "PGO_APE_translation_trajectory_error",
+                    plot_traj_colormap_ape(ape_metric_pgo, traj_ref_pgo,
+                                               traj_est_vio, traj_est_pgo,
+                                               "PGO + VIO ATE Mapped Onto Trajectory")
+                )
 
                 # RPE Translation Metric Plot:
-                self.add_metric_plot(plot_collection, dataset_name, rpe_metric_trans_pgo,
-                                     "PGO_RPE_translation", "PGO + VIO RPE Translation", "[m]")
+                plot_collection.add_figure(
+                    "PGO_RPE_translation",
+                    plot_metric(rpe_metric_trans_pgo, "PGO + VIO RPE Translation")
+                )
 
                 # Trajectory Colormapped with RTE Plot:
-                self.add_traj_colormap_rpe(plot_collection, rpe_metric_trans_pgo, traj_ref_pgo,
-                                           traj_est_vio, traj_est_pgo,
-                                           "PGO_RPE_translation_trajectory_error",
-                                           "PGO + VIO RPE Translation Error Mapped Onto Trajectory")
+                plot_collection.add_figure(
+                    "PGO_RPE_translation_trajectory_error",
+                    plot_traj_colormap_rpe(rpe_metric_trans_pgo, traj_ref_pgo,
+                                               traj_est_vio, traj_est_pgo,
+                                               "PGO + VIO RPE Translation Error Mapped Onto Trajectory")
+                )
 
                 # RPE Rotation Metric Plot:
-                self.add_metric_plot(plot_collection, dataset_name, rpe_metric_rot_pgo,
-                                     "PGO_RPE_Rotation", "PGO + VIO RPE Rotation", "[m]")
+                plot_collection.add_figure(
+                    "PGO_RPE_Rotation",
+                    plot_metric(rpe_metric_rot_pgo, "PGO + VIO RPE Rotation")
+                )
 
                 # Trajectory Colormapped with RTE Plot:
-                self.add_traj_colormap_rpe(plot_collection, rpe_metric_rot_pgo, traj_ref_pgo,
-                                           traj_est_vio, traj_est_pgo,
-                                           "PGO_RPE_rotation_trajectory_error",
-                                           "PGO + VIO RPE Rotation Error Mapped Onto Trajectory")
+                plot_collection.add_figure(
+                    "PGO_RPE_rotation_trajectory_error",
+                    plot_traj_colormap_rpe(rpe_metric_rot_pgo, traj_ref_pgo,
+                                               traj_est_vio, traj_est_pgo,
+                                               "PGO + VIO RPE Rotation Error Mapped Onto Trajectory")
+                )
 
             # Plot VIO results
-            self.add_metric_plot(plot_collection, dataset_name, ape_metric_vio,
-                                    "VIO_APE_translation", "VIO APE Translation", "[m]")
-            self.add_traj_colormap_ape(plot_collection, ape_metric_vio, traj_ref_vio,
-                                        traj_est_vio, None,
-                                        "VIO_APE_translation_trajectory_error",
-                                        "VIO ATE Mapped Onto Trajectory")
-            self.add_metric_plot(plot_collection, dataset_name, rpe_metric_trans_vio,
-                                    "VIO_RPE_translation", "VIO RPE Translation", "[m]")
-            self.add_traj_colormap_rpe(plot_collection, rpe_metric_trans_vio, traj_ref_vio,
-                                        traj_est_vio, None,
-                                        "VIO_RPE_translation_trajectory_error",
-                                        "VIO RPE Translation Error Mapped Onto Trajectory")
-            self.add_metric_plot(plot_collection, dataset_name, rpe_metric_rot_vio,
-                                    "VIO_RPE_Rotation", "VIO RPE Rotation", "[m]")
-            self.add_traj_colormap_rpe(plot_collection, rpe_metric_rot_vio, traj_ref_vio,
+            plot_collection.add_figure(
+                "VIO_APE_translation",
+                plot_metric(ape_metric_vio, "VIO APE Translation")
+            )
+
+            plot_collection.add_figure(
+                "VIO_APE_translation_trajectory_error",
+                plot_traj_colormap_ape(ape_metric_vio, traj_ref_vio,
                                            traj_est_vio, None,
-                                           "VIO_RPE_rotation_trajectory_error",
+                                           "VIO ATE Mapped Onto Trajectory")
+            )
+
+            plot_collection.add_figure(
+                "VIO_RPE_translation",
+                plot_metric(rpe_metric_trans_vio, "VIO RPE Translation")
+            )
+
+            plot_collection.add_figure(
+                "VIO_RPE_translation_trajectory_error",
+                plot_traj_colormap_rpe(rpe_metric_trans_vio, traj_ref_vio,
+                                           traj_est_vio, None,
+                                           "VIO RPE Translation Error Mapped Onto Trajectory")
+            )
+
+            plot_collection.add_figure(
+                "VIO_RPE_Rotation",
+                plot_metric(rpe_metric_rot_vio, "VIO RPE Rotation")
+            )
+
+            plot_collection.add_figure(
+                "VIO_RPE_rotation_trajectory_error",
+                plot_traj_colormap_rpe(rpe_metric_rot_vio, traj_ref_vio,
+                                           traj_est_vio, None,
                                            "VIO RPE Rotation Error Mapped Onto Trajectory")
+            )
 
         return [plot_collection, results_vio, results_pgo]
 
@@ -508,21 +542,23 @@ class DatasetEvaluator:
         data = (traj_ref, traj_est)
 
         evt.print_purple("Calculating APE translation part for " + suffix)
-        ape_metric = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_metric.process_data(data)
+        ape_metric = get_ape_trans(data)
+        ape_result = ape_metric.get_result()
 
         evt.print_purple("Calculating RPE translation part for " + suffix)
-        rpe_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
-                                           1.0, metrics.Unit.frames, 0.0, False)
-        rpe_metric_trans.process_data(data)
+        rpe_metric_trans = get_rpe_trans(data)
 
         evt.print_purple("Calculating RPE rotation angle for " + suffix)
-        rpe_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
-                                         1.0, metrics.Unit.frames, 1.0, False)
-        rpe_metric_rot.process_data(data)
+        rpe_metric_rot = get_rpe_rot(data)
 
-        results = self.calc_results(ape_metric, rpe_metric_trans,
-                                    rpe_metric_rot, data, segments)
+        # Collect results:
+        results = dict()
+        results["absolute_errors"] = ape_result
+
+        results["relative_errors"] = self.calc_rpe_results(rpe_metric_trans, rpe_metric_rot, data, segments)
+
+        # Add as well how long hte trajectory was.
+        results["trajectory_length_m"] = traj_est.path_length()
 
         return (ape_metric, rpe_metric_trans, rpe_metric_rot, results)
 
@@ -542,161 +578,60 @@ class DatasetEvaluator:
         traj_ref = None
         try:
             traj_ref = pandas_bridge.df_to_trajectory(pd.read_csv(traj_ref_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             raise Exception("\033[91mMissing ground-truth output csv! \033[93m {}.".format(e))
 
         # Read estimated vio trajectory file:
         traj_est_vio = None
         try:
             traj_est_vio = pandas_bridge.df_to_trajectory(pd.read_csv(traj_vio_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             raise Exception("\033[91mMissing vio estimated output csv! \033[93m {}.".format(e))
 
         # Read estimated pgo trajectory file:
         traj_est_pgo = None
         try:
             traj_est_pgo = pandas_bridge.df_to_trajectory(pd.read_csv(traj_pgo_path, sep=',', index_col=0))
-        except FileNotFoundError as e:
+        except IOError as e:
             log.warning("Missing pgo estimated output csv: {}.".format(e))
             log.warning("Not plotting pgo results.")
 
         return (traj_ref, traj_est_vio, traj_est_pgo)
 
-    def calc_results(self, ape_metric, rpe_metric_trans, rpe_metric_rot, data, segments):
-        """ Create and return a dictionary containing stats and results for ATE, RRE and RTE for a datset.
+    def calc_rpe_results(self, rpe_metric_trans, rpe_metric_rot, data, segments):
+        """ Create and return a dictionary containing stats and results RRE and RTE for a datset.
 
             Args:
-                ape_metric: an evo.core.metric object representing the ATE.
                 rpe_metric_trans: an evo.core.metric object representing the RTE.
                 rpe_metric_rot: an evo.core.metric object representing the RRE.
                 data: a 2-tuple with reference and estimated trajectories as PoseTrajectory3D objects
                     in that order.
                 segments: a list of segments for RPE.
 
-            Returns: a dictionary containing all relevant results.
+            Returns: a dictionary containing all relevant RPE results.
         """
-        # Calculate APE results:
-        results = dict()
-        ape_result = ape_metric.get_result()
-        results["absolute_errors"] = ape_result
-
-        # Calculate RPE results:
-        # TODO(Toni): Save RPE computation results rather than the statistics
-        # you can compute statistics later...
-        rpe_stats_trans = rpe_metric_trans.get_all_statistics()
-        rpe_stats_rot = rpe_metric_rot.get_all_statistics()
-
         # Calculate RPE results of segments and save
-        results["relative_errors"] = dict()
+        rpe_results = dict()
         for segment in segments:
-            results["relative_errors"][segment] = dict()
+            rpe_results[segment] = dict()
             evt.print_purple("RPE analysis of segment: %d"%segment)
             evt.print_lightpurple("Calculating RPE segment translation part")
             rpe_segment_metric_trans = metrics.RPE(metrics.PoseRelation.translation_part,
                                                    float(segment), metrics.Unit.meters, 0.01, True)
             rpe_segment_metric_trans.process_data(data)
+            # TODO(Toni): Save RPE computation results rather than the statistics
+            # you can compute statistics later... Like done for ape!
             rpe_segment_stats_trans = rpe_segment_metric_trans.get_all_statistics()
-            results["relative_errors"][segment]["rpe_trans"] = rpe_segment_stats_trans
+            rpe_results[segment]["rpe_trans"] = rpe_segment_stats_trans
 
             evt.print_lightpurple("Calculating RPE segment rotation angle")
             rpe_segment_metric_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
                                                  float(segment), metrics.Unit.meters, 0.01, True)
             rpe_segment_metric_rot.process_data(data)
             rpe_segment_stats_rot = rpe_segment_metric_rot.get_all_statistics()
-            results["relative_errors"][segment]["rpe_rot"] = rpe_segment_stats_rot
+            rpe_results[segment]["rpe_rot"] = rpe_segment_stats_rot
 
-        return results
-
-    def add_metric_plot(self, plot_collection, dataset_name, metric, fig_title="",
-                        plot_title="", metric_units=""):
-        """ Adds a metric plot to a plot collection.
-
-            Args:
-                plot_collection: a PlotCollection containing plots.
-                dataset_name: a string representing the name of the dataset being evaluated.
-                metric: an evo.core.metric object with statistics and information.
-                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
-                plot_title: a string representing the title of the plot.
-                metric_units: a string representing the units of the metric being plotted.
-        """
-        fig = plt.figure(figsize=(8, 8))
-        stats = metric.get_all_statistics()
-
-        plot.error_array(fig, metric.error, statistics=stats,
-                         name=plot_title, title=plot_title,
-                         xlabel="Keyframe index [-]",
-                         ylabel=plot_title + " " + metric_units)
-        plot_collection.add_figure(fig_title, fig)
-
-    def add_traj_colormap_ape(self, plot_collection, ape_metric, traj_ref, traj_est1, traj_est2=None,
-                              fig_title="", plot_title=""):
-        """ Adds a trajectory colormap of ATE metrics to a plot collection.
-
-            Args:
-                plot_collection: a PlotCollection containing plots.
-                ape_metric: an evo.core.metric object with statistics and information for APE.
-                traj_ref: a PoseTrajectory3D object representing the reference trajectory.
-                traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
-                traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
-                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
-                plot_title: a string representing the title of the plot.
-        """
-        fig = plt.figure(figsize=(8, 8))
-        plot_mode = plot.PlotMode.xy
-        ax = plot.prepare_axis(fig, plot_mode)
-
-        ape_stats = ape_metric.get_all_statistics()
-
-        plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
-
-        colormap_traj = traj_est1
-        if traj_est2 is not None:
-            plot.traj(ax, plot_mode, traj_est1, '.', 'gray', 'reference without pgo')
-            colormap_traj = traj_est2
-
-        plot.traj_colormap(ax, colormap_traj, ape_metric.error, plot_mode,
-                           min_map=0.0, max_map=math.ceil(ape_stats['max']*10)/10,
-                           title=plot_title)
-        plot_collection.add_figure(fig_title, fig)
-
-    def add_traj_colormap_rpe(self, plot_collection, rpe_metric, traj_ref, traj_est1, traj_est2=None,
-                              fig_title="", plot_title=""):
-        """ Adds a trajectory colormap of RPE metrics to a plot collection.
-
-            Args:
-                plot_collection: a PlotCollection containing plots.
-                ape_metric: an evo.core.metric object with statistics and information for RPE.
-                traj_ref: a PoseTrajectory3D object representing the reference trajectory.
-                traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
-                traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
-                fig_title: a string representing the title of the figure. Must be unique in the plot_collection.
-                plot_title: a string representing the title of the plot.
-        """
-        fig = plt.figure(figsize=(8, 8))
-        plot_mode = plot.PlotMode.xy
-        ax = plot.prepare_axis(fig, plot_mode)
-
-        # We have to make deep copies to avoid altering the original data: TODO(marcus): figure out why
-        traj_ref = copy.deepcopy(traj_ref)
-        traj_est1 = copy.deepcopy(traj_est1)
-        traj_est2 = copy.deepcopy(traj_est2)
-
-        rpe_stats = rpe_metric.get_all_statistics()
-        traj_ref.reduce_to_ids(rpe_metric.delta_ids)
-        traj_est1.reduce_to_ids(rpe_metric.delta_ids)
-
-        plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
-
-        colormap_traj = traj_est1
-        if traj_est2 is not None:
-            traj_est2.reduce_to_ids(rpe_metric.delta_ids)
-            plot.traj(ax, plot_mode, traj_est1, '.', 'gray', 'reference without pgo')
-            colormap_traj = traj_est2
-
-        plot.traj_colormap(ax, colormap_traj, rpe_metric.error, plot_mode,
-                           min_map=0.0, max_map=math.ceil(rpe_stats['max']*10)/10,
-                           title=plot_title)
-        plot_collection.add_figure(fig_title, fig)
+        return rpe_results
 
     def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
         """ Writes a result dictionary to file as a yaml file.
@@ -771,3 +706,247 @@ class DatasetEvaluator:
             evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
         else:
             log.info("Missing RPE results, not drawing RPE boxplots.")
+
+
+# Miscellaneous methods
+
+def get_ape_rot(data):
+    """ Return APE rotation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    ape_rot = metrics.APE(metrics.PoseRelation.rotation_angle_deg)
+    ape_rot.process_data(data)
+
+    return ape_rot
+
+
+def get_ape_trans(data):
+    """ Return APE translation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    ape_trans = metrics.APE(metrics.PoseRelation.translation_part)
+    ape_trans.process_data(data)
+
+    return ape_trans
+
+
+def get_rpe_rot(data):
+    """ Return RPE rotation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    rpe_rot = metrics.RPE(metrics.PoseRelation.rotation_angle_deg,
+                          1.0, metrics.Unit.frames, 1.0, False)
+    rpe_rot.process_data(data)
+
+    return rpe_rot
+
+def get_rpe_trans(data):
+    """ Return RPE translation metric for input data.
+
+        Args:
+            data: A 2-tuple containing the reference trajectory and the
+                estimated trajectory as PoseTrajectory3D objects.
+
+        Returns:
+            A metrics object containing the desired results.
+    """
+    rpe_trans = metrics.RPE(metrics.PoseRelation.translation_part,
+                            1.0, metrics.Unit.frames, 0.0, False)
+    rpe_trans.process_data(data)
+
+    return rpe_trans
+
+
+def plot_metric(metric, plot_title="", figsize=(8,8)):
+    """ Adds a metric plot to a plot collection.
+
+        Args:
+            plot_collection: a PlotCollection containing plots.
+            metric: an evo.core.metric object with statistics and information.
+            plot_title: a string representing the title of the plot.
+            figsize: a 2-tuple representing the figure size.
+
+        Returns:
+            A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    stats = metric.get_all_statistics()
+
+    plot.error_array(fig, metric.error, statistics=stats,
+                        title=plot_title,
+                        xlabel="Keyframe index [-]",
+                        ylabel=plot_title + " " + metric.unit.value)
+
+    return fig
+
+
+def plot_traj_colormap_ape(ape_metric, traj_ref, traj_est1, traj_est2=None,
+                           plot_title="", figsize=(8,8)):
+    """ Adds a trajectory colormap of ATE metrics to a plot collection.
+
+        Args:
+            ape_metric: an evo.core.metric object with statistics and information for APE.
+            traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+            traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+            traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
+            plot_title: a string representing the title of the plot.
+            figsize: a 2-tuple representing the figure size.
+
+        Returns:
+            A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    plot_mode = plot.PlotMode.xy
+    ax = plot.prepare_axis(fig, plot_mode)
+
+    ape_stats = ape_metric.get_all_statistics()
+
+    plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
+
+    colormap_traj = traj_est1
+    if traj_est2 is not None:
+        plot.traj(ax, plot_mode, traj_est1, '.', 'gray', 'reference without pgo')
+        colormap_traj = traj_est2
+
+    plot.traj_colormap(ax, colormap_traj, ape_metric.error, plot_mode,
+                        min_map=0.0, max_map=math.ceil(ape_stats['max']*10)/10,
+                        title=plot_title)
+
+    return fig
+
+
+def plot_traj_colormap_rpe(rpe_metric, traj_ref, traj_est1, traj_est2=None,
+                           plot_title="", figsize=(8,8)):
+    """ Adds a trajectory colormap of RPE metrics to a plot collection.
+
+        Args:
+            ape_metric: an evo.core.metric object with statistics and information for RPE.
+            traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+            traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+            traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory. Optional.
+            plot_title: a string representing the title of the plot.
+            figsize: a 2-tuple representing the figure size.
+
+        Returns:
+            A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    plot_mode = plot.PlotMode.xy
+    ax = plot.prepare_axis(fig, plot_mode)
+
+    # We have to make deep copies to avoid altering the original data: TODO(marcus): figure out why
+    traj_ref = copy.deepcopy(traj_ref)
+    traj_est1 = copy.deepcopy(traj_est1)
+    traj_est2 = copy.deepcopy(traj_est2)
+
+    rpe_stats = rpe_metric.get_all_statistics()
+    traj_ref.reduce_to_ids(rpe_metric.delta_ids)
+    traj_est1.reduce_to_ids(rpe_metric.delta_ids)
+
+    plot.traj(ax, plot_mode, traj_ref, '--', 'gray', 'reference')
+
+    colormap_traj = traj_est1
+    if traj_est2 is not None:
+        traj_est2.reduce_to_ids(rpe_metric.delta_ids)
+        plot.traj(ax, plot_mode, traj_est1, '.', 'gray', 'reference without pgo')
+        colormap_traj = traj_est2
+
+    plot.traj_colormap(ax, colormap_traj, rpe_metric.error, plot_mode,
+                        min_map=0.0, max_map=math.ceil(rpe_stats['max']*10)/10,
+                        title=plot_title)
+    
+    return fig
+
+
+def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
+    """ Converts an absolute-pose trajectory to a relative-pose trajectory.
+    
+        The incoming trajectory is processed element-wise. At each timestamp
+        starting from the second (index 1), the relative pose 
+        from the previous timestamp to the current one is calculated (in the previous-
+        timestamp's coordinate frame). This relative pose is then appended to the 
+        resulting trajectory.
+        The resulting trajectory has timestamp indices corresponding to poses that represent
+        the relative transformation between that timestamp and the **next** one.
+        
+        Args:
+            traj: A PoseTrajectory3D object with timestamps as indices containing, at a minimum,
+                columns representing the xyz position and wxyz quaternion-rotation at each
+                timestamp, corresponding to the absolute pose at that time.
+            up_to_scale: A boolean. If set to True, relative poses will have their translation
+                part normalized.
+        
+        Returns:
+            A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the 
+            relative pose trajectory corresponding to the absolute one given in `traj`.
+    """
+    from evo.core import transformations
+    from evo.core import lie_algebra as lie
+
+    new_poses = []
+    
+    for i in range(1, len(traj.timestamps)):
+        rel_pose = lie.relative_se3(traj.poses_se3[i-1], traj.poses_se3[i])
+
+        if up_to_scale:
+            bim1_t_bi = rel_pose[:3, 3]
+            norm = np.linalg.norm(bim1_t_bi)
+            if norm > 1e-6:
+                bim1_t_bi = bim1_t_bi / norm
+                rel_pose[:3, 3] = bim1_t_bi
+    
+        new_poses.append(rel_pose)
+
+    return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
+
+def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
+    """Converts a relative pose trajectory from body frame to camera frame
+    
+    Args: 
+        rel_traj: Relative trajectory, a PoseTrajectory3D object containing timestamps
+            and relative poses at each timestamp. It has to have the poses_se3 field.
+            
+        body_T_cam: The SE(3) transformation from camera from to body frame. Also known
+            as camera extrinsics matrix.
+        
+    Returns: 
+        A PoseTrajectory3D object in camera frame
+    """
+    def assert_so3(R):
+        assert(np.isclose(np.linalg.det(R), 1, atol=1e-06))
+        assert(np.allclose(np.matmul(R, R.transpose()), np.eye(3), atol=1e-06)) 
+
+    assert_so3(body_T_cam[0:3, 0:3])
+ 
+    new_poses = []
+    for i in range(len(rel_traj.timestamps)):
+        im1_body_T_body_i = rel_traj.poses_se3[i]
+        assert_so3(im1_body_T_body_i[0:3,0:3])
+ 
+        im1_cam_T_cam_i = np.matmul(np.matmul(np.linalg.inv(body_T_cam), im1_body_T_body_i), body_T_cam)
+
+        assert_so3(np.linalg.inv(body_T_cam)[0:3,0:3])
+        assert_so3(im1_cam_T_cam_i[0:3,0:3])
+ 
+        new_poses.append(im1_cam_T_cam_i)
+ 
+    return trajectory.PoseTrajectory3D(timestamps=rel_traj.timestamps, poses_se3=new_poses)
+    

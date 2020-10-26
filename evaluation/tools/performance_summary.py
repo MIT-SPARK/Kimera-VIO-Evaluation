@@ -10,6 +10,10 @@ from ruamel import yaml
 
 import glog as log
 
+# This is to avoid using tkinter
+import matplotlib
+matplotlib.use('Agg')
+
 import evaluation.tools as evt
 
 def parser():

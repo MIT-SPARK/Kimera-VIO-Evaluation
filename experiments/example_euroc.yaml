@@ -1,37 +1,19 @@
+# Params used if running Kimera-VIO
 executable_path: '$HOME/Code/Kimera-VIO/build/stereoVIOEuroc'
 vocabulary_path: '$HOME/Code/Kimera-VIO/vocabulary/ORBvoc.yml'
-results_dir: '$HOME/Code/Kimera-VIO_Evaluation/results'
 params_dir: '$HOME/Code/Kimera-VIO/params'
-dataset_dir: '$HOME/datasets/EuRoC'
+
+# Params used for evaluation
+dataset_dir: '$HOME/Code/ROS/kimera_ws/src/Kimera-VIO-ROS/output_logs'
+results_dir: '$HOME/Code/Kimera-VIO-Evaluation/results'
 
 datasets_to_run:
- - name: V1_01_easy
+ - name: Tesse
    use_lcd: true
    plot_vio_and_pgo: true
    segments: [1]
-   pipelines: ['Euroc']
+   pipelines: ['Tesse']
    discard_n_start_poses: 0
    discard_n_end_poses: 0
    initial_frame: 10
    final_frame: 220
-   parallel_run: true
- - name: MH_01_easy
-   use_lcd: true
-   plot_vio_and_pgo: true
-   segments: [5]
-   pipelines: ['Euroc']
-   discard_n_start_poses: 10
-   discard_n_end_poses: 10
-   initial_frame: 100
-   final_frame: 3500
-   parallel_run: true
- - name: V1_03_difficult
-   use_lcd: true
-   plot_vio_and_pgo: true
-   segments: [5]
-   pipelines: ['Euroc']
-   discard_n_start_poses: 10
-   discard_n_end_poses: 10
-   initial_frame: 100
-   final_frame: 3500
-   parallel_run: true

@@ -10,6 +10,10 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings("ignore")
 
+# This is to avoid using tkinter
+import matplotlib
+matplotlib.use('Agg')
+
 from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
 def run(args):
