@@ -56,7 +56,7 @@ class ICP:
         """
         # Visualize initial registration problem
         if self.visualize:
-            draw_registration_result(est_pcl, gt_pcl, self.trans_init)
+            self.draw_registration_result(est_pcl, gt_pcl, self.trans_init)
 
         # Evaluate current fit between pointclouds
         print("Initial registration")
@@ -94,7 +94,7 @@ class ICP:
 
         # Draw PointClouds and Correspondences
         if self.visualize:
-            draw_correspondences(est_pcl, gt_pcl, c2c_lines)
+            self.draw_correspondences(est_pcl, gt_pcl, c2c_lines)
 
         return reg_p2p
 
@@ -225,7 +225,7 @@ class MeshEvaluator:
 
         # Visualize manual alignment
         if self.visualize:
-            visualize_meshes(gt_mesh, est_mesh)
+            self.visualize_meshes(gt_mesh, est_mesh)
 
         # Get meshes' pointclouds
         gt_pcl = o3d.geometry.sample_points_uniformly(gt_mesh.mesh_o3d, number_of_mesh_samples)
@@ -234,10 +234,14 @@ class MeshEvaluator:
         est_pcl = o3d.io.read_point_cloud(self.est_mesh_path)
 
         if self.visualize:
-            visualize_pcls(gt_pcl, est_pcl)
+            self.visualize_pcls(gt_pcl, est_pcl)
 
         # Align pointclouds using ICP
         reg_p2p = self.icp.align(est_pcl, gt_pcl)
+
+        if len(reg_p2p.correspondence_set) == 0:
+            print("ICP registration failed! No inlier correspondences.")
+            return 0, 0
 
         # Calculate geometric metrics using the ICP transformation
         print("Geometric inlier RMSE [m]: ")
@@ -282,9 +286,10 @@ class MeshEvaluator:
         #print("Negative matches: ", total_negative_matches)
         #print("Total correspondences: ", total_correspondences)
         assert(total_correspondences == total_negative_matches + total_positive_matches)
+        assert(total_correspondences > 0)
         #print ("Positive [%]: ", (total_positive_matches / total_correspondences * 100))
         #print ("Negative [%]: ", (total_negative_matches / total_correspondences * 100))
-        accuracy = total_positive_matches / total_correspondences * 100
+        accuracy = float(total_positive_matches) / float(total_correspondences) * 100.0
         return accuracy
 
     ##### Visualization methods
@@ -347,7 +352,7 @@ if __name__ == '__main__':
 
     # Run evaluation
     mesh_eval = MeshEvaluator(args.est_mesh_path, args.gt_mesh_path, args.semantic_labels_to_color_csv_path, args.visualize)
-    number_of_mesh_samples=100
+    number_of_mesh_samples=1000
     mesh_eval.compare_meshes(number_of_mesh_samples)
 
     # TODO(Toni): write the results of compare_meshes to a file with the name of the dataset/meshes.
