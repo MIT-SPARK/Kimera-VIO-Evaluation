@@ -914,3 +914,37 @@ def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
         new_poses.append(rel_pose)
 
     return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
+
+def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
+    """Converts a relative pose trajectory from body frame to camera frame
+    
+    Args: 
+        rel_traj: Relative trajectory, a PoseTrajectory3D object containing timestamps
+            and relative poses at each timestamp. It has to have the poses_se3 field.
+            
+        body_T_cam: The SE(3) transformation from camera from to body frame. Also known
+            as camera extrinsics matrix.
+        
+    Returns: 
+        A PoseTrajectory3D object in camera frame
+    """
+    def assert_so3(R):
+        assert(np.isclose(np.linalg.det(R), 1, atol=1e-06))
+        assert(np.allclose(np.matmul(R, R.transpose()), np.eye(3), atol=1e-06)) 
+
+    assert_so3(body_T_cam[0:3, 0:3])
+ 
+    new_poses = []
+    for i in range(len(rel_traj.timestamps)):
+        im1_body_T_body_i = rel_traj.poses_se3[i]
+        assert_so3(im1_body_T_body_i[0:3,0:3])
+ 
+        im1_cam_T_cam_i = np.matmul(np.matmul(np.linalg.inv(body_T_cam), im1_body_T_body_i), body_T_cam)
+
+        assert_so3(np.linalg.inv(body_T_cam)[0:3,0:3])
+        assert_so3(im1_cam_T_cam_i[0:3,0:3])
+ 
+        new_poses.append(im1_cam_T_cam_i)
+ 
+    return trajectory.PoseTrajectory3D(timestamps=rel_traj.timestamps, poses_se3=new_poses)
+    
