@@ -5,7 +5,7 @@ import os
 import glog as log
 import copy
 
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 import open3d as o3d
 from open3d import JVisualizer
@@ -181,7 +181,7 @@ class MeshEvaluator:
             visualize: bool
                 Whether to visualize intermediate results (ICP registration, correspondences)
         """
-        print("Init MeshEvaluator")
+        #print("Init MeshEvaluator")
         self.est_mesh_path = est_mesh_path
         self.gt_mesh_path = gt_mesh_path
         self.semantic_labels_csv_path = semantic_labels_csv_path
@@ -193,9 +193,9 @@ class MeshEvaluator:
         # Import Semantic Labels
         self.semantic_mapping = SemanticLabelToColorCSV(self.semantic_labels_csv_path)
 
-        print("Loading Ground-truth mesh...")
+        #print("Loading Ground-truth mesh...")
         self.gt_mesh_original = Mesh(gt_mesh_path)
-        print("Loading Estimated mesh...")
+        #print("Loading Estimated mesh...")
         self.est_mesh_original = Mesh(est_mesh_path)
 
     def compare_meshes(self, number_of_mesh_samples=1000000):
