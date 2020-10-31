@@ -244,14 +244,15 @@ class MeshEvaluator:
             return 0, 0
 
         # Calculate geometric metrics using the ICP transformation
-        print("Geometric inlier RMSE [m]: ")
         inlier_rmse = reg_p2p.inlier_rmse
+        print("Geometric inlier RMSE [m]: ")
         print(inlier_rmse)
         print(" ")
 
         # Calculate semantic metrics using the ICP correspondences
-        print("Semantic Accuracy [%]: ")
+        print("Calculating Semantic Accuracy...")
         semantic_accuracy = self.calc_corresp(est_pcl, gt_pcl, reg_p2p.correspondence_set)
+        print("Semantic Accuracy [%]: ")
         print(semantic_accuracy)
         print(" ")
 
