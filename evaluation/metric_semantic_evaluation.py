@@ -5,7 +5,7 @@ import os
 import glog as log
 import copy
 
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 import open3d as o3d
 from open3d import JVisualizer
@@ -36,7 +36,7 @@ class ICP:
                 Aligns given pointclouds
     """
 
-    def __init__(visualize=False):
+    def __init__(self, visualize=False):
         self.visualize = visualize
         # ICP params
         self.icp_threshold = 1.5
@@ -44,7 +44,7 @@ class ICP:
                                       [0.0, 1.0, 0.0, 0.0],
                                       [0.0, 0.0, 1.0, 0.0],
                                       [0.0, 0.0, 0.0, 1.0]])
-    def align(est_pcl, gt_pcl):
+    def align(self, est_pcl, gt_pcl):
         """
             Args:
                 est_pcl: open3d.pcl
@@ -56,7 +56,7 @@ class ICP:
         """
         # Visualize initial registration problem
         if self.visualize:
-            draw_registration_result(est_pcl, gt_pcl, self.trans_init)
+            self.draw_registration_result(est_pcl, gt_pcl, self.trans_init)
 
         # Evaluate current fit between pointclouds
         print("Initial registration")
@@ -69,6 +69,7 @@ class ICP:
             est_pcl, gt_pcl, self.icp_threshold, self.trans_init,
             o3d.registration.TransformationEstimationPointToPoint(),
             o3d.registration.ICPConvergenceCriteria(max_iteration = 2000))
+        print("Done with point-to-point ICP")
         correspondences = reg_p2p.correspondence_set
 
         #print(reg_p2p)
@@ -87,19 +88,19 @@ class ICP:
             self.draw_registration_result(est_pcl, gt_pcl, reg_p2p.transformation)
 
         # Draw Only Correspondences
-        if visualize:
+        if self.visualize:
             c2c_lines = o3d.geometry.create_line_set_from_point_cloud_correspondences(est_pcl, gt_pcl, correspondences)
             o3d.visualization.draw_geometries([c2c_lines])
 
         # Draw PointClouds and Correspondences
-        if visualize:
-            draw_correspondences(est_pcl, gt_pcl, c2c_lines)
+        if self.visualize:
+            self.draw_correspondences(est_pcl, gt_pcl, c2c_lines)
 
         return reg_p2p
 
 
     # Visualization functions
-    def draw_registration_result(source, target, transformation):
+    def draw_registration_result(self, source, target, transformation):
         source_temp = copy.deepcopy(source)
         target_temp = copy.deepcopy(target)
         source_temp.paint_uniform_color([1, 0.706, 0])
@@ -107,7 +108,7 @@ class ICP:
         source_temp.transform(transformation)
         o3d.visualization.draw_geometries([source_temp, target_temp])
 
-    def draw_correspondences(source, target, correspondences):
+    def draw_correspondences(self, source, target, correspondences):
         source_temp = copy.deepcopy(source)
         target_temp = copy.deepcopy(target)
         #source_temp.paint_uniform_color([1, 0.706, 0])
@@ -121,7 +122,7 @@ class SemanticLabelToColorCSV:
         mapping between colors and semantic labels...
     """
 
-    def __init__(semantic_labels_csv_path):
+    def __init__(self, semantic_labels_csv_path):
         # Import Semantic Labels
         df = pd.read_csv(semantic_labels_csv_path)
         #df
@@ -137,11 +138,8 @@ class SemanticLabelToColorCSV:
         self.normalized_df['normalized_green'] = self.normalized_df['normalized_green'].apply(lambda x: round(x, 5))
         self.normalized_df['normalized_blue'] = self.normalized_df['normalized_blue'].apply(lambda x: round(x, 5))
 
-        # Check that colors match
-        assert(sum(np.isclose(self.normalized_df['normalized_red'], gt_pcl.colors[0][0])) == 0)
-
     # Generate table from color to id.
-    def label_from_color(color):
+    def label_from_color(self, color):
         # TODO(Toni): do you need to round again? isn't color already rounded?
         norm_r = round(color[0], 5)
         norm_g = round(color[1], 5)
@@ -183,7 +181,7 @@ class MeshEvaluator:
             visualize: bool
                 Whether to visualize intermediate results (ICP registration, correspondences)
         """
-        print("Init MeshEvaluator")
+        #print("Init MeshEvaluator")
         self.est_mesh_path = est_mesh_path
         self.gt_mesh_path = gt_mesh_path
         self.semantic_labels_csv_path = semantic_labels_csv_path
@@ -195,12 +193,12 @@ class MeshEvaluator:
         # Import Semantic Labels
         self.semantic_mapping = SemanticLabelToColorCSV(self.semantic_labels_csv_path)
 
-        print("Loading Ground-truth mesh...")
+        #print("Loading Ground-truth mesh...")
         self.gt_mesh_original = Mesh(gt_mesh_path)
-        print("Loading Estimated mesh...")
+        #print("Loading Estimated mesh...")
         self.est_mesh_original = Mesh(est_mesh_path)
 
-    def compare_meshes(self, number_of_mesh_samples=1e6, only_geometric=False):
+    def compare_meshes(self, number_of_mesh_samples=1000000, only_geometric=False):
         """
         Args:
             number_of_mesh_samples: int
@@ -220,36 +218,42 @@ class MeshEvaluator:
         gt_mesh = copy.deepcopy(self.gt_mesh_original)
         est_mesh = copy.deepcopy(self.est_mesh_original)
 
+        #######################################
         # Align Pointclouds Manually:
         gt_mesh.transform_left(enu_R_unity)
+        #######################################
 
         # Visualize manual alignment
-        if visualize:
-            visualize_meshes(gt_mesh, est_mesh)
+        if self.visualize:
+            self.visualize_meshes(gt_mesh, est_mesh)
 
         # Get meshes' pointclouds
-        gt_pcl = o3d.geometry.sample_points_uniformly(gt_mesh.mesh_o3d, NUMBER_OF_SAMPLES)
+        gt_pcl = o3d.geometry.sample_points_uniformly(gt_mesh.mesh_o3d, number_of_mesh_samples)
         # Don't sample estimated mesh, just pick vertices, otw you'll be mixing colors...
-        # est_pcl = o3d.geometry.sample_points_uniformly(est_mesh.mesh_o3d, NUMBER_OF_SAMPLES)
+        # est_pcl = o3d.geometry.sample_points_uniformly(est_mesh.mesh_o3d, number_of_mesh_samples)
         est_pcl = o3d.io.read_point_cloud(self.est_mesh_path)
 
-        if visualize:
-            visualize_pcls(gt_pcl, est_pcl)
+        if self.visualize:
+            self.visualize_pcls(gt_pcl, est_pcl)
 
         # Align pointclouds using ICP
         reg_p2p = self.icp.align(est_pcl, gt_pcl)
 
+        if len(reg_p2p.correspondence_set) == 0:
+            print("ICP registration failed! No inlier correspondences.")
+            return 0, 0
+
         # Calculate geometric metrics using the ICP transformation
         print("Geometric inlier RMSE [m]: ")
         inlier_rmse = reg_p2p.inlier_rmse
-        print()
+        print(inlier_rmse)
         print(" ")
 
         # Calculate semantic metrics using the ICP correspondences
         if not only_geometric:
             print("Semantic Accuracy [%]: ")
             semantic_accuracy = self.calc_corresp(est_pcl, gt_pcl, reg_p2p.correspondence_set)
-            print()
+            print(semantic_accuracy)
             print(" ")
 
         return inlier_rmse, semantic_accuracy
@@ -261,7 +265,7 @@ class MeshEvaluator:
 
         # Compare labels between correspondences:
         # Initialize dictionaries to 0:
-        total_label_correspondences = {i:0 for i in normalized_df['id'].unique()}
+        total_label_correspondences = {i:0 for i in self.semantic_mapping.normalized_df['id'].unique()}
         total_label_positive_matches = copy.deepcopy(total_label_correspondences)
         total_label_negative_matches = copy.deepcopy(total_label_correspondences)
 
@@ -270,8 +274,8 @@ class MeshEvaluator:
             assert(len(correspondence) == 2)
             assert(correspondence[0] < len(est_pcl.colors))
             assert(correspondence[1] < len(gt_pcl.colors))
-            est_label_id = label_from_color(est_pcl.colors[correspondence[0]])
-            gt_label_id = label_from_color(gt_pcl.colors[correspondence[1]])
+            est_label_id = self.semantic_mapping.label_from_color(est_pcl.colors[correspondence[0]])
+            gt_label_id = self.semantic_mapping.label_from_color(gt_pcl.colors[correspondence[1]])
             if est_label_id == gt_label_id:
                 total_positive_matches += 1
                 total_label_positive_matches[est_label_id] += 1
@@ -283,9 +287,10 @@ class MeshEvaluator:
         #print("Negative matches: ", total_negative_matches)
         #print("Total correspondences: ", total_correspondences)
         assert(total_correspondences == total_negative_matches + total_positive_matches)
+        assert(total_correspondences > 0)
         #print ("Positive [%]: ", (total_positive_matches / total_correspondences * 100))
         #print ("Negative [%]: ", (total_negative_matches / total_correspondences * 100))
-        accuracy = total_positive_matches / total_correspondences * 100
+        accuracy = float(total_positive_matches) / float(total_correspondences) * 100.0
         return accuracy
 
     ##### Visualization methods
@@ -311,33 +316,34 @@ class MeshEvaluator:
         vis.destroy_window()
 
 
+def parser():
+    import argparse
+    basic_desc = "Evaluation of metric-semantic 3D mesh."
+
+    shared_parser = argparse.ArgumentParser(
+        add_help=True, description="{}".format(basic_desc))
+
+    input_opts = shared_parser.add_argument_group("input options")
+
+    input_opts.add_argument("gt_mesh_path", help="Path to the ground-truth ply file with the mesh.",
+                            default="./gt_mesh.ply")
+    input_opts.add_argument("est_mesh_path", help="Path to the estimated ply file with the mesh.",
+                            default="./est_mesh.ply")
+    input_opts.add_argument("semantic_labels_to_color_csv_path",
+                            help="Path to the estimated csv file with the semantic label to color mapping.",
+                            default="./semantic_label_to_color.csv")
+    input_opts.add_argument("--visualize", action="store_true",
+                            help="Visualize meshes, ICP, and correspondences.")
+
+    main_parser = argparse.ArgumentParser(
+        description="{}".format(basic_desc))
+    sub_parsers = main_parser.add_subparsers(dest="subcommand")
+    sub_parsers.required = True
+    return shared_parser
 
 if __name__ == '__main__':
     import argcomplete
     import sys
-
-    def parser():
-        import argparse
-        basic_desc = "Evaluation of metric-semantic 3D mesh."
-
-        shared_parser = argparse.ArgumentParser(
-            add_help=True, description="{}".format(basic_desc))
-
-        input_opts = shared_parser.add_argument_group("input options")
-
-        input_opts.add_argument("gt_mesh_path", help="Path to the ground-truth ply file with the mesh.",
-                                default="./gt_mesh.ply")
-        input_opts.add_argument("est_mesh_path", help="Path to the estimated ply file with the mesh.",
-                                default="./est_mesh.ply")
-        input_opts.add_argument("semantic_labels_to_color_csv_path",
-                                help="Path to the estimated csv file with the semantic label to color mapping.",
-                                default="./semantic_label_to_color.csv")
-
-        main_parser = argparse.ArgumentParser(
-            description="{}".format(basic_desc))
-        sub_parsers = main_parser.add_subparsers(dest="subcommand")
-        sub_parsers.required = True
-        return shared_parser
 
     # Parse args
     log.setLevel("INFO")
@@ -346,7 +352,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Run evaluation
-    mesh_eval = MeshEvaluator(args.est_mesh_path, args.gt_mesh_path, args.semantic_labels_to_color_csv_path)
-    mesh_eval.compare_meshes()
+    mesh_eval = MeshEvaluator(args.est_mesh_path, args.gt_mesh_path, args.semantic_labels_to_color_csv_path, args.visualize)
+    number_of_mesh_samples=1000
+    mesh_eval.compare_meshes(number_of_mesh_samples)
 
     # TODO(Toni): write the results of compare_meshes to a file with the name of the dataset/meshes.
