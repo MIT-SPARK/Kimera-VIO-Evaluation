@@ -200,7 +200,7 @@ class MeshEvaluator:
         print("Loading Estimated mesh...")
         self.est_mesh_original = Mesh(est_mesh_path)
 
-    def compare_meshes(self, number_of_mesh_samples=1e6):
+    def compare_meshes(self, number_of_mesh_samples=1e6, only_geometric=False):
         """
         Args:
             number_of_mesh_samples: int
@@ -246,10 +246,11 @@ class MeshEvaluator:
         print(" ")
 
         # Calculate semantic metrics using the ICP correspondences
-        print("Semantic Accuracy [%]: ")
-        semantic_accuracy = self.calc_corresp(est_pcl, gt_pcl, reg_p2p.correspondence_set)
-        print()
-        print(" ")
+        if not only_geometric:
+            print("Semantic Accuracy [%]: ")
+            semantic_accuracy = self.calc_corresp(est_pcl, gt_pcl, reg_p2p.correspondence_set)
+            print()
+            print(" ")
 
         return inlier_rmse, semantic_accuracy
 
