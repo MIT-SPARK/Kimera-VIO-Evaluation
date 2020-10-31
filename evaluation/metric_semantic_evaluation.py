@@ -250,6 +250,7 @@ class MeshEvaluator:
         print(" ")
 
         # Calculate semantic metrics using the ICP correspondences
+        semantic_accuracy = -1
         if not only_geometric:
             print("Calculating Semantic Accuracy...")
             print("Semantic Accuracy [%]: ")
