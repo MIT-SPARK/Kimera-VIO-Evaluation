@@ -294,6 +294,10 @@ class DatasetEvaluator:
 
         self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
 
+        self.traj_vio_csv_name = "traj_vio.csv"
+        self.traj_gt_csv_name = "traj_gt.csv"
+        self.traj_pgo_csv_name = "traj_pgo.csv"
+
         # Class to write the results to the Jenkins website
         self.website_builder = evt.WebsiteBuilder(self.results_dir)
 
@@ -351,9 +355,9 @@ class DatasetEvaluator:
         dataset_results_dir = os.path.join(self.results_dir, dataset_name)
         dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
 
-        traj_gt_path = os.path.join(dataset_pipeline_result_dir, "traj_gt.csv")
-        traj_vio_path = os.path.join(dataset_pipeline_result_dir, "traj_vio.csv")
-        traj_pgo_path = os.path.join(dataset_pipeline_result_dir, "traj_pgo.csv")
+        traj_gt_path = os.path.join(dataset_pipeline_result_dir, self.traj_gt_csv_name)
+        traj_vio_path = os.path.join(dataset_pipeline_result_dir, self.traj_vio_csv_name)
+        traj_pgo_path = os.path.join(dataset_pipeline_result_dir, self.traj_pgo_csv_name)
 
         # Analyze dataset:
         log.debug("\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."

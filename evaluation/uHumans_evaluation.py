@@ -130,6 +130,9 @@ def run(args):
 
     # Create dataset evaluator: evaluates vio output.
     dataset_evaluator = DatasetEvaluator(experiment_params, args, "")
+    evaluate_pgmo = True
+    if evaluate_pgmo:
+        dataset_evaluator.traj_vio_csv_name = "traj_pgmo.csv"
     dataset_evaluator.evaluate()
 
     # Aggregate results in results directory
