@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 
 from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
-def find_submissions(results_dir):
+def find_submissions(results_dir, traj_vio_csv_name="traj_vio.csv"):
     """ Finds all folders having a traj_vio.csv file. We assume these folders have the following
     filesystem:
         ./logs
@@ -72,7 +72,10 @@ def find_submissions(results_dir):
         │           ├── traj_gt.csv
         │           └── traj_vio.csv
 
-        Args: results_dir path to the `logs` directory (see filesystem above)
+        Args:
+            -- results_dir path to the `logs` directory (see filesystem above)
+            -- traj_vio_csv_name name of the csv file with the trajcetory (default: traj_vio.csv, but you could
+            use instead traj_pgmo.csv for example).
 
         Return: List of submission ids where a traj_vio.csv was found.
     """
@@ -81,7 +84,7 @@ def find_submissions(results_dir):
     # Aggregate all stats for each pipeline and dataset
     submissions = dict()
     for root, _, filenames in os.walk(results_dir):
-        for _ in fnmatch.filter(filenames, 'traj_vio.csv'):
+        for _ in fnmatch.filter(filenames, traj_vio_csv_name):
             # results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
@@ -107,7 +110,11 @@ def run(args):
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
     results_dir = os.path.expandvars(experiment_params['results_dir'])
 
-    submissions = find_submissions(results_dir)
+    evaluate_pgmo = True
+    if evaluate_pgmo:
+        submissions = find_submissions(results_dir, "traj_pgmo.csv")
+    else:
+        submissions = find_submissions(results_dir, "traj_vio.csv")
 
     if len(submissions) == 0:
         log.warning("No submissions found!")
@@ -130,7 +137,6 @@ def run(args):
 
     # Create dataset evaluator: evaluates vio output.
     dataset_evaluator = DatasetEvaluator(experiment_params, args, "")
-    evaluate_pgmo = True
     if evaluate_pgmo:
         dataset_evaluator.traj_vio_csv_name = "traj_pgmo.csv"
     dataset_evaluator.evaluate()

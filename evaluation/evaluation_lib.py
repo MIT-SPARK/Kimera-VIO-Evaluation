@@ -327,7 +327,7 @@ class DatasetEvaluator:
 
     def evaluate_dataset(self, dataset):
         """ Evaluates VIO performance on given dataset """
-        log.info("Evaluate dataset: %s" % dataset['name'])
+        evt.print_red("Evaluate dataset: %s" % dataset['name'])
         pipelines_to_evaluate_list = dataset['pipelines']
         for pipeline_type in pipelines_to_evaluate_list:
             if not self.__evaluate_run(pipeline_type, dataset):
@@ -548,6 +548,7 @@ class DatasetEvaluator:
         evt.print_purple("Calculating APE translation part for " + suffix)
         ape_metric = get_ape_trans(data)
         ape_result = ape_metric.get_result()
+        evt.print_green("APE translation: %f" % ape_result.stats['mean'])
 
         evt.print_purple("Calculating RPE translation part for " + suffix)
         rpe_metric_trans = get_rpe_trans(data)
@@ -876,37 +877,37 @@ def plot_traj_colormap_rpe(rpe_metric, traj_ref, traj_est1, traj_est2=None,
     plot.traj_colormap(ax, colormap_traj, rpe_metric.error, plot_mode,
                         min_map=0.0, max_map=math.ceil(rpe_stats['max']*10)/10,
                         title=plot_title)
-    
+
     return fig
 
 
 def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
     """ Converts an absolute-pose trajectory to a relative-pose trajectory.
-    
+
         The incoming trajectory is processed element-wise. At each timestamp
-        starting from the second (index 1), the relative pose 
+        starting from the second (index 1), the relative pose
         from the previous timestamp to the current one is calculated (in the previous-
-        timestamp's coordinate frame). This relative pose is then appended to the 
+        timestamp's coordinate frame). This relative pose is then appended to the
         resulting trajectory.
         The resulting trajectory has timestamp indices corresponding to poses that represent
         the relative transformation between that timestamp and the **next** one.
-        
+
         Args:
             traj: A PoseTrajectory3D object with timestamps as indices containing, at a minimum,
                 columns representing the xyz position and wxyz quaternion-rotation at each
                 timestamp, corresponding to the absolute pose at that time.
             up_to_scale: A boolean. If set to True, relative poses will have their translation
                 part normalized.
-        
+
         Returns:
-            A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the 
+            A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the
             relative pose trajectory corresponding to the absolute one given in `traj`.
     """
     from evo.core import transformations
     from evo.core import lie_algebra as lie
 
     new_poses = []
-    
+
     for i in range(1, len(traj.timestamps)):
         rel_pose = lie.relative_se3(traj.poses_se3[i-1], traj.poses_se3[i])
 
@@ -916,41 +917,41 @@ def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
             if norm > 1e-6:
                 bim1_t_bi = bim1_t_bi / norm
                 rel_pose[:3, 3] = bim1_t_bi
-    
+
         new_poses.append(rel_pose)
 
     return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
 
 def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
     """Converts a relative pose trajectory from body frame to camera frame
-    
-    Args: 
+
+    Args:
         rel_traj: Relative trajectory, a PoseTrajectory3D object containing timestamps
             and relative poses at each timestamp. It has to have the poses_se3 field.
-            
+
         body_T_cam: The SE(3) transformation from camera from to body frame. Also known
             as camera extrinsics matrix.
-        
-    Returns: 
+
+    Returns:
         A PoseTrajectory3D object in camera frame
     """
     def assert_so3(R):
         assert(np.isclose(np.linalg.det(R), 1, atol=1e-06))
-        assert(np.allclose(np.matmul(R, R.transpose()), np.eye(3), atol=1e-06)) 
+        assert(np.allclose(np.matmul(R, R.transpose()), np.eye(3), atol=1e-06))
 
     assert_so3(body_T_cam[0:3, 0:3])
- 
+
     new_poses = []
     for i in range(len(rel_traj.timestamps)):
         im1_body_T_body_i = rel_traj.poses_se3[i]
         assert_so3(im1_body_T_body_i[0:3,0:3])
- 
+
         im1_cam_T_cam_i = np.matmul(np.matmul(np.linalg.inv(body_T_cam), im1_body_T_body_i), body_T_cam)
 
         assert_so3(np.linalg.inv(body_T_cam)[0:3,0:3])
         assert_so3(im1_cam_T_cam_i[0:3,0:3])
- 
+
         new_poses.append(im1_cam_T_cam_i)
- 
+
     return trajectory.PoseTrajectory3D(timestamps=rel_traj.timestamps, poses_se3=new_poses)
-    
+
