@@ -64,21 +64,7 @@ def write_latex_table(stats, results_dir):
                             - "q3"
                             - "rmse"
                         - "trajectory_length_m"
-            This function iterates over the pipeline types, and for each pipeline type, it plots
-            the metrics achieved, as a boxplot. So the boxplot has in x-axis the dataset name,
-            and in y-axis one boxplot per pipeline."""
-    # Tex stuff.
-    # start_line = """\\begin{table}[H]
-    # \\centering
-    # \\resizebox{\\textwidth}{!}{
-    # \\begin{tabular}{l p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm} p{1.4cm}}
-    # \\hline
-    # Sequence             & \\multicolumn{2}{c}{\\textbf{S}} & \\multicolumn{2}{c}{\\textbf{S + P}}  & \\multicolumn{2}{c}{\\textbf{S + P + R} (Proposed)}          \\\\ \\hline
-    # & Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) &
-    # Median APE Translation (m)  & Mean APE Translation (m) & RMSE APE Translation (m) & Median
-    # APE Translation (m) & Mean APE Translation (m)  & RMSE APE translation (m) \\\\
-    # """
-
+    """
     # Assumes an equal number of cols/keys per row
     cols_names_list = list(stats[list(stats.keys())[0]].keys())
     sub_cols_names_list = ["Median [cm]", "RMSE [cm]", "Drift [\\%]"]
@@ -133,7 +119,7 @@ def write_latex_table(stats, results_dir):
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos = pipeline_stats["absolute_errors"].stats["median"] * 100 # as we report in cm
             # mean_error_pos = pipeline_stats["absolute_errors"]["mean"] * 100 # as we report in cm
-            rmse = pipeline_stats["absolute_errors"].stats["rmse"] 
+            rmse = pipeline_stats["absolute_errors"].stats["rmse"]
             rmse_error_pos = rmse * 100 # as we report in cm
             assert(pipeline_stats["trajectory_length_m"] > 0)
             drift = rmse / pipeline_stats["trajectory_length_m"] * 100 # as we report in %

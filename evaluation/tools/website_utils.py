@@ -202,7 +202,6 @@ class WebsiteBuilder:
 
         return self.__get_fig_as_html(fig)
 
-
     def __get_frontend_results_as_html(self, csv_frontend_path, show_figures=False):
         """  Reads output_frontend_stats.csv file with the following header:
             #timestamp_lkf, mono_status, stereo_status, nr_keypoints, nrDetectedFeatures, nrTrackerFeatures, nrMonoInliers, nrMonoPutatives, nrStereoInliers, nrStereoPutatives, monoRansacIters, stereoRansacIters, nrValidRKP, nrNoLeftRectRKP, nrNoRightRectRKP, nrNoDepthRKP, nrFailedArunRKP, featureDetectionTime, featureTrackingTime, monoRansacTime, stereoRansacTime, featureSelectionTime, extracted_corners, need_n_corners
