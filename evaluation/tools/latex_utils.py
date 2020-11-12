@@ -39,7 +39,7 @@ def write_latex_table_header(cols_names_list, sub_cols_names_list):
             cols_header_line = cols_header_line + """& \\textbf{%s} """%(col_name)
         col_counter = col_counter + sub_cols
 
-    break_row = """ \\\\ """
+    break_row = """ \\\\"""
     sub_cols_header_line = ""
     if sub_cols > 1:
         sub_cols_header_line = """Sequence """
@@ -47,7 +47,7 @@ def write_latex_table_header(cols_names_list, sub_cols_names_list):
             for sub_col_name in sub_cols_names_list:
                 sub_cols_header_line = sub_cols_header_line + """& %s """ % (sub_col_name)
 
-    start_line = start_line + cols_header_line + break_row + sub_cols_header_line + break_row + "\\midrule \n"
+    start_line = start_line + cols_header_line + break_row + "\n" + sub_cols_header_line + break_row + "\n \\midrule \n"
     return start_line
 
 def write_latex_table(stats, results_dir):
@@ -66,7 +66,7 @@ def write_latex_table(stats, results_dir):
                         - "trajectory_length_m"
     """
     # Assumes an equal number of cols/keys per row
-    cols_names_list = list(stats[list(stats.keys())[0]].keys())
+    cols_names_list = list(sorted(stats[list(stats.keys())[0]].keys()))
     sub_cols_names_list = ["Median [cm]", "RMSE [cm]", "Drift [\\%]"]
     start_line = write_latex_table_header(cols_names_list, sub_cols_names_list)
     end_line = """
@@ -86,7 +86,10 @@ def write_latex_table(stats, results_dir):
         # mean_error_pos = []
         rmse_error_pos = []
         drift = []
+        i = 0
         for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
+            assert(cols_names_list[i] == pipeline_type) # Ensure col names and results are consistent!
+            i += 1
             assert(isinstance(pipeline_stats["absolute_errors"], result.Result))
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos.append(pipeline_stats["absolute_errors"].stats["median"])
