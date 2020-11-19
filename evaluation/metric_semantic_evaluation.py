@@ -2,6 +2,8 @@
 
 import numpy as np
 import os
+import os.path
+from os import path
 import glog as log
 import copy
 
@@ -186,6 +188,10 @@ class MeshEvaluator:
         self.gt_mesh_path = gt_mesh_path
         self.semantic_labels_csv_path = semantic_labels_csv_path
         self.visualize = visualize
+
+        assert(path.exists(self.est_mesh_path))
+        assert(path.exists(self.gt_mesh_path))
+        assert(path.exists(self.semantic_labels_csv_path))
 
         # Init ICP class
         self.icp = ICP(self.visualize)
