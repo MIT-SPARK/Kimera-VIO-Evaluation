@@ -1,4 +1,4 @@
-results_dir: '$HOME/Documents/uHumans2_VIO/'
+results_dir: '$HOME/Documents/uHumans2_VIO_vxblx/'
 plot_vio_and_pgo: true
 segments: []
 discard_n_start_poses: 10

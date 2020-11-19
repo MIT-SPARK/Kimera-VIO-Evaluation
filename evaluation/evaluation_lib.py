@@ -280,7 +280,7 @@ class DatasetRunner:
 
 """ DatasetEvaluator is used to evaluate performance of the pipeline on datasets """
 class DatasetEvaluator:
-    def __init__(self, experiment_params, args, extra_flagfile_path):
+    def __init__(self, experiment_params, args, extra_flagfile_path, traj_vio_csv_name="traj_vio.csv"):
         self.results_dir      = os.path.expandvars(experiment_params['results_dir'])
         self.datasets_to_eval = experiment_params['datasets_to_run']
 
@@ -294,12 +294,12 @@ class DatasetEvaluator:
 
         self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
 
-        self.traj_vio_csv_name = "traj_vio.csv"
+        self.traj_vio_csv_name = traj_vio_csv_name
         self.traj_gt_csv_name = "traj_gt.csv"
         self.traj_pgo_csv_name = "traj_pgo.csv"
 
         # Class to write the results to the Jenkins website
-        self.website_builder = evt.WebsiteBuilder(self.results_dir)
+        self.website_builder = evt.WebsiteBuilder(self.results_dir, self.traj_vio_csv_name)
 
     def evaluate(self):
         """ Run datasets if necessary, evaluate all. """

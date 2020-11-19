@@ -15,7 +15,7 @@ from evaluation.tools import draw_ape_boxplots_plotly, draw_feature_tracking_sta
 import website
 
 class WebsiteBuilder:
-    def __init__(self, website_output_path):
+    def __init__(self, website_output_path, traj_vio_csv_name):
         """ Reads a template html website inside the `templates` directory of
         a `website` python package (that's why we call `import website`, which
         is a package of this project), and writes down html code with plotly figures.
@@ -39,6 +39,8 @@ class WebsiteBuilder:
         self.datasets_html = dict()
         self.frontend_html = dict()
         self.detailed_performance_html = dict()
+
+        self.traj_vio_csv_name = traj_vio_csv_name
 
     def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
@@ -66,10 +68,10 @@ class WebsiteBuilder:
                 `output` directory where all the stats of the VIO are.
         """
         self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(
-            dataset_name, os.path.join(csv_results_path, "traj_vio.csv"))
+            dataset_name, os.path.join(csv_results_path, self.traj_vio_csv_name))
         self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
             os.path.join(csv_results_path, "output_frontend_stats.csv"))
-        # The performance html just needs the path to the plots.pdf file. Have a look at the 
+        # The performance html just needs the path to the plots.pdf file. Have a look at the
         # corresponding html template in website/templates and find the usage of `pdf_path`.
         # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
         # website at the same level than where the dataset_name directories are.

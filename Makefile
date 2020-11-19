@@ -6,8 +6,11 @@ help:
 euroc_evaluation:
 	@evaluation/main_evaluation.py -r -a -v --save_plots --save_boxplots --save_results --write_website experiments/full_euroc.yaml
 
-uHumans_evaluation:
-	@evaluation/uHumans_evaluation.py -a -v --save_plots --save_boxplots --save_results --write_website experiments/uHumans2.yaml
+uHumans1_evaluation:
+	@evaluation/uHumans_evaluation.py -a -v --save_plots --save_boxplots --save_results experiments/uHumans1.yaml
+
+uHumans2_evaluation:
+	@evaluation/uHumans_evaluation.py -a -v --save_plots --save_boxplots --save_results experiments/uHumans2.yaml
 
 regression_tests:
 	@evaluation/regression_tests.py -r -a --save_results experiments/regression_test.yaml

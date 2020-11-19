@@ -72,12 +72,27 @@ def find_submissions(results_dir, traj_vio_csv_name="traj_vio.csv"):
         │           ├── traj_gt.csv
         │           └── traj_vio.csv
 
+    Or, for uHumans1:
+        .
+        ├── uHumans1_06h
+        │   ├── mesh_pgmo.ply
+        │   └── PGMO
+        │       └── traj_pgmo.csv
+        ├── uHumans1_12h
+        │   ├── mesh_pgmo.ply
+        │   └── PGMO
+        │       └── traj_pgmo.csv
+        └── uHumans1_30h
+            ├── mesh_pgmo.ply
+            └── PGMO
+                └── traj_pgmo.csv
+
         Args:
             -- results_dir path to the `logs` directory (see filesystem above)
-            -- traj_vio_csv_name name of the csv file with the trajcetory (default: traj_vio.csv, but you could
+            -- traj_vio_csv_name name of the csv file with the trajectory (default: traj_vio.csv, but you could
             use instead traj_pgmo.csv for example).
 
-        Return: List of submission ids where a traj_vio.csv was found.
+        Return: List of submission ids where a traj_vio_csv_name was found.
     """
     import fnmatch
     # Load results.
@@ -92,9 +107,10 @@ def find_submissions(results_dir, traj_vio_csv_name="traj_vio.csv"):
             mid_folder_path = os.path.split(root)[0]
             mid_folder_name = os.path.basename(mid_folder_path)
             # Only check first 8 chars, others correspond to log id
-            if (mid_folder_name[:8] != "uHumans2"):
+            if mid_folder_name[:8] != "uHumans2" and \
+               mid_folder_name[:8] != "uHumans1":
                 raise Exception("Wrong mid folder name: \n \
-                                - expected: uHumans2_xxx \n \
+                                - expected: uHumans{1,2}_xxx \n \
                                 - got: %s"%mid_folder_name)
 
             # Get submission id name
@@ -136,9 +152,10 @@ def run(args):
         experiment_params['datasets_to_run'].append(dataset_to_evaluate)
 
     # Create dataset evaluator: evaluates vio output.
-    dataset_evaluator = DatasetEvaluator(experiment_params, args, "")
     if evaluate_pgmo:
-        dataset_evaluator.traj_vio_csv_name = "traj_pgmo.csv"
+        dataset_evaluator = DatasetEvaluator(experiment_params, args, "", "traj_pgmo.csv")
+    else:
+        dataset_evaluator = DatasetEvaluator(experiment_params, args, "", "traj_vio.csv")
     dataset_evaluator.evaluate()
 
     # Aggregate results in results directory

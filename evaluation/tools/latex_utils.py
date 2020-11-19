@@ -97,6 +97,8 @@ def write_latex_table(stats, results_dir):
             rmse = pipeline_stats["absolute_errors"].stats["rmse"]
             rmse_error_pos.append(rmse)
             assert(pipeline_stats["trajectory_length_m"] > 0)
+            # THIS IS NOT ACTUALLY DRIFT: bcs the trajectory_length_m is the length of the estimated traj...
+            # not the ground-truth one...
             drift.append(rmse / pipeline_stats["trajectory_length_m"])
             log.error("DRIFT IS: %f"%(rmse / pipeline_stats["trajectory_length_m"]))
 
