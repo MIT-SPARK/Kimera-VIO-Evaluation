@@ -151,7 +151,9 @@ class SemanticLabelToColorCSV:
         label_list = self.normalized_df.loc[(self.normalized_df['normalized_red'] == norm_r) &
                                             (self.normalized_df['normalized_green'] == norm_g) &
                                             (self.normalized_df['normalized_blue'] == norm_b)]['id'].unique().tolist()
-        assert(len(label_list) > 0)
+        if len(label_list) <= 0:
+            print("Missing Semantic Label from Color: %f, %f, %f "%(color[0], color[1], color[2]))
+            return []
         return label_list[0]
 
 
@@ -284,6 +286,9 @@ class MeshEvaluator:
             assert(correspondence[1] < len(gt_pcl.colors))
             est_label_id = self.semantic_mapping.label_from_color(est_pcl.colors[correspondence[0]])
             gt_label_id = self.semantic_mapping.label_from_color(gt_pcl.colors[correspondence[1]])
+            if not est_label_id or not gt_label_id:
+                continue
+
             if est_label_id == gt_label_id:
                 total_positive_matches += 1
                 total_label_positive_matches[est_label_id] += 1
@@ -294,7 +299,8 @@ class MeshEvaluator:
         #print("Positive matches: ", total_positive_matches)
         #print("Negative matches: ", total_negative_matches)
         #print("Total correspondences: ", total_correspondences)
-        assert(total_correspondences == total_negative_matches + total_positive_matches)
+        if total_correspondences != total_negative_matches + total_positive_matches:
+            print("Some colors' label couldn't be found...")
         assert(total_correspondences > 0)
         #print ("Positive [%]: ", (total_positive_matches / total_correspondences * 100))
         #print ("Negative [%]: ", (total_negative_matches / total_correspondences * 100))
