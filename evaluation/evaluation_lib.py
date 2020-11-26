@@ -322,6 +322,7 @@ class DatasetEvaluator:
             if (len(list(stats.values())) > 0):
                 self.website_builder.write_boxplot_website(stats)
             self.website_builder.write_datasets_website()
+            log.info("Done writing full website.")
 
         return True
 
