@@ -1,5 +1,7 @@
 # Kimera VIO Evaluation
 
+Note that this repo is a mirror of [https://github.com/ToniRV/Kimera-VIO-Evaluation](https://github.com/ToniRV/Kimera-VIO-Evaluation)
+
 ![](https://travis-ci.org/ToniRV/Kimera-VIO-Evaluation.svg?branch=master)
 
 Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
@@ -223,6 +225,7 @@ For example, in Jenkins we use the default `evo_config` which does not split plo
 Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
 
 # References
+<<<<<<< HEAD
 
 - [1] A. Rosinol, T. Sattler, M. Pollefeys, L. Carlone. [**Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**](https://arxiv.org/abs/1903.01067). IEEE Intl. Conf. on Robotics and Automation (ICRA), 2019. [arXiv:1903.01067](https://arxiv.org/abs/1903.01067)
 
@@ -260,3 +263,7 @@ Yet, locally, you can use `evo_config` to allow plotting plots separately for ad
   pdf = {https://arxiv.org/pdf/2002.06289.pdf}
 }
 ```
+=======
+[1] A. Rosinol, T. Sattler, M. Pollefeys, and L. Carlone. **Incremental Visual-Inertial 3D Mesh Generation with Structural Regularities**. IEEE Int. Conf. on Robotics and Automation (ICRA), 2019.
+
+>>>>>>> da38e3b634302e47bcc610c78a7da5a90e94b7b6
