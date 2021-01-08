@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 import os
@@ -9,7 +8,6 @@ class Mesh:
     def __init__(self, filepath):
         os.path.isfile(filepath)
         self.mesh_o3d = o3d.io.read_triangle_mesh(filepath)
-        self.print_mesh()
 
     def visualize(self):
         self.mesh_o3d.compute_vertex_normals()
@@ -40,8 +38,8 @@ class Mesh:
         assert(isinstance(rotation_matrix, np.ndarray))
         assert(np.size(rotation_matrix, 0) == 3)
         assert(np.size(rotation_matrix, 1) == 3)
-        print("Transforming mesh according to left matrix:")
-        print(rotation_matrix)
+        #print("Transforming mesh according to left matrix:")
+        #print(rotation_matrix)
         rotated_vertices = rotation_matrix.dot(np.transpose(np.asarray(self.mesh_o3d.vertices)))
         self.mesh_o3d.vertices = o3d.utility.Vector3dVector(np.transpose(rotated_vertices))
 

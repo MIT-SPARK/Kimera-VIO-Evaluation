@@ -14,31 +14,115 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from evaluation.tools import draw_ape_boxplots_plotly, draw_feature_tracking_stats, draw_mono_stereo_inliers_outliers
 import website
 
+def get_fig_as_html(fig):
+    """ Gets a plotly figure and returns html string to embed in a website
+    """
+    return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
+
+# This is really making three different websites:
+# a) dataset_template: which plots all raw data for a run (no need for gt). It'll be useful to be able to get
+# this website up even for real-life data as well where we might not get ground-truth.
+# b) frontend_template: which plots the frontend stats, I don't think this needs gt either.
+# c) boxplot_template which is really the one needing gt as it plots APE in boxplots.
+# d) detailed_performance_template which needs the plots.pdf which implicitly needs gt, to just present the pdf plots
 class WebsiteBuilder:
-    def __init__(self, website_output_path):
+    def __init__(self, website_output_path, traj_vio_csv_name):
         """ Reads a template html website inside the `templates` directory of
         a `website` python package (that's why we call `import website`, which
         is a package of this project), and writes down html code with plotly figures.
         """
         # Initialize Jinja2
-        self.env = Environment(
+        jinja_env = Environment(
             loader=PackageLoader('website', 'templates'),
             autoescape=select_autoescape(['html', 'xml'])
         )
-        # Get Website template html
-        self.boxplot_template = self.env.get_template('vio_performance_template.html')
-        self.datasets_template = self.env.get_template('datasets_template.html')
-        self.frontend_template = self.env.get_template('datasets_template.html')
-        self.detailed_performance_template = self.env.get_template('detailed_performance_template.html')
+
+        self.boxplot_website = BoxplotWebsiteBuilder(jinja_env, website_output_path, traj_vio_csv_name)
+        self.raw_output_website = RawOutputWebsiteBuilder(jinja_env, website_output_path, traj_vio_csv_name)
+        self.frontend_website = FrontendWebsiteBuilder(jinja_env, website_output_path)
+        self.detailed_performance_website = PdfLoaderWebsiteBuilder(jinja_env, website_output_path)
+
+    def write_boxplot_website(self, stats):
+        """ Writes website using overall stats, and optionally the original data of a dataset run
+        specified in csv_results_path.
+            Args:
+            - stats: a nested dictionary with the statistics and results of all pipelines:
+                * First level ordered with dataset_name as keys:
+                * Second level ordered with pipeline_type as keys:
+                * Each stats[dataset_name][pipeline_type] value has:
+                    * absolute_errors: an evo Result type with trajectory and APE stats.
+                    * relative_errors: RPE stats.
+        """
+        self.boxplot_website.write_boxplot_website(stats)
+
+    def add_dataset_to_website(self, dataset_name, pipeline_type, csv_results_path):
+        """ Writes dataset results specified in csv_results_path.
+        Call write_datasets_website to actually write this data in the website template.
+            Args:
+            - dataset_name: name of the dataset that the VIO stats come from.
+            - csv_results_path: path to the directory where the csv results of the VIO pipeline are.
+                This is typically the directory where there is a `traj_vio.csv` file together with an
+                `output` directory where all the stats of the VIO are.
+        """
+        self.raw_output_website.add_dataset_to_website(dataset_name, csv_results_path)
+        self.frontend_website.add_dataset_to_website(dataset_name, csv_results_path)
+        self.detailed_performance_website.add_dataset_to_website(dataset_name, pipeline_type)
+
+    def write_datasets_website(self):
+        """ Writes website using the collected data from calling add_dataset_to_website()"""
+        # Write modified template inside the website package.
+        self.raw_output_website.write_datasets_website()
+        self.frontend_website.write_datasets_website()
+        self.detailed_performance_website.write_datasets_website()
+
+
+class PdfLoaderWebsiteBuilder:
+    def __init__(self, jinja_env, website_output_path):
+        """ Reads a template html website inside the `templates` directory of
+        a `website` python package (that's why we cal
+         `import website`, which
+        is a package of this project), and writes down html code with plotly figures.
+        """
+        # Website template
+        self.detailed_performance_template = jinja_env.get_template('detailed_performance_template.html')
+
         # Generate Website output path
         self.website_output_path = website_output_path
+
         # We will store html snippets of each dataset indexed by dataset name in these
         # dictionaries. Each dictionary indexes the data per pipeline_type in turn:
         # That is why we use defaultdict to init each dataset entry by another dictionary.
-        # TODO(TONI): I didn't have time to implement the per-pipeline type logging...
-        self.datasets_html = dict()
-        self.frontend_html = dict()
         self.detailed_performance_html = dict()
+
+    def add_dataset_to_website(self, dataset_name, pipeline_type, pdf_name="plots.pdf"):
+        """ Writes dataset results specified in csv_results_path.
+        Call write_datasets_website to actually write this data in the website template.
+            Args:
+            - dataset_name: name of the dataset that the VIO stats come from.
+        """
+        # The performance html just needs the path to the plots.pdf file. Have a look at the
+        # corresponding html template in website/templates and find the usage of `pdf_path`.
+        # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
+        # website at the same level than where the dataset_name directories are.
+        # self.detailed_performance_html[dataset_name].append({pipeline_type: os.path.join(dataset_name, pipeline_type, "plots.pdf")})
+        self.detailed_performance_html[dataset_name] = os.path.join(dataset_name, pipeline_type, pdf_name)
+
+    def write_datasets_website(self, website_name="detailed_performance.html"):
+        """ Writes website using the collected data from calling add_dataset_to_website()"""
+        # Write modified template inside the website package.
+        with open(os.path.join(self.website_output_path, website_name), "w") as output:
+            output.write(self.detailed_performance_template.render(datasets_pdf_path=self.detailed_performance_html))
+
+
+class BoxplotWebsiteBuilder:
+    def __init__(self, jinja_env, website_output_path, traj_vio_csv_name):
+        """ Reads a template html website inside the `templates` directory of
+        a `website` python package (that's why we call `import website`, which
+        is a package of this project), and writes down html code with plotly figures.
+        """
+        # Get Website template html
+        self.boxplot_template = jinja_env.get_template('vio_performance_template.html')
+        self.website_output_path = website_output_path
 
     def write_boxplot_website(self, stats):
         """ Writes website using overall stats, and optionally the original data of a dataset run
@@ -56,37 +140,6 @@ class WebsiteBuilder:
             # Write modified template inside the website package.
             output.write(self.boxplot_template.render(boxplot=self.__get_boxplot_as_html(stats)))
 
-    def add_dataset_to_website(self, dataset_name, pipeline_type, csv_results_path):
-        """ Writes dataset results specified in csv_results_path.
-        Call write_datasets_website to actually write this data in the website template.
-            Args:
-            - dataset_name: name of the dataset that the VIO stats come from.
-            - csv_results_path: path to the directory where the csv results of the VIO pipeline are.
-                This is typically the directory where there is a `traj_vio.csv` file together with an
-                `output` directory where all the stats of the VIO are.
-        """
-        self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(
-            dataset_name, os.path.join(csv_results_path, "traj_vio.csv"))
-        self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
-            os.path.join(csv_results_path, "output_frontend_stats.csv"))
-        # The performance html just needs the path to the plots.pdf file. Have a look at the 
-        # corresponding html template in website/templates and find the usage of `pdf_path`.
-        # This is a relative path to the plots.pdf, it assumes we are writing the detailed_performance.html
-        # website at the same level than where the dataset_name directories are.
-        # self.detailed_performance_html[dataset_name].append({pipeline_type: os.path.join(dataset_name, pipeline_type, "plots.pdf")})
-        # TODO(TONI): I didn't have time to implement the per-pipeline type logging...
-        self.detailed_performance_html[dataset_name] = os.path.join(dataset_name, pipeline_type, "plots.pdf")
-
-    def write_datasets_website(self):
-        """ Writes website using the collected data from calling add_dataset_to_website()"""
-        # Write modified template inside the website package.
-        with open(os.path.join(self.website_output_path, "datasets.html"), "w") as output:
-            output.write(self.datasets_template.render(datasets_html=self.datasets_html))
-        with open(os.path.join(self.website_output_path, "frontend.html"), "w") as output:
-            output.write(self.frontend_template.render(datasets_html=self.frontend_html))
-        with open(os.path.join(self.website_output_path, "detailed_performance.html"), "w") as output:
-            output.write(self.detailed_performance_template.render(datasets_pdf_path=self.detailed_performance_html))
-
     def __get_boxplot_as_html(self, stats):
         """ Returns a plotly boxplot in html
             Args:
@@ -102,7 +155,93 @@ class WebsiteBuilder:
         # Generate plotly figure
         fig = draw_ape_boxplots_plotly(stats)
         # Get HTML code for the plotly figure
-        return self.__get_fig_as_html(fig)
+        return get_fig_as_html(fig)
+
+
+class FrontendWebsiteBuilder:
+    def __init__(self, jinja_env, website_output_path):
+        """ Reads a template html website inside the `templates` directory of
+        a `website` python package (that's why we call `import website`, which
+        is a package of this project), and writes down html code with plotly figures.
+        """
+        # Get Website template html
+        self.frontend_template = jinja_env.get_template('datasets_template.html')
+        # Generate Website output path
+        self.website_output_path = website_output_path
+        # We will store html snippets of each dataset indexed by dataset name in these
+        # dictionaries. Each dictionary indexes the data per pipeline_type in turn:
+        # That is why we use defaultdict to init each dataset entry by another dictionary.
+        self.frontend_html = dict()
+
+    def add_dataset_to_website(self, dataset_name, csv_results_path):
+        """ Writes dataset results specified in csv_results_path.
+        Call write_datasets_website to actually write this data in the website template.
+            Args:
+            - dataset_name: name of the dataset that the VIO stats come from.
+            - csv_results_path: path to the directory where the csv results of the VIO pipeline are.
+                This is typically the directory where there is a `traj_vio.csv` file together with an
+                `output` directory where all the stats of the VIO are.
+        """
+        self.frontend_html[dataset_name] = self.__get_frontend_results_as_html(
+            os.path.join(csv_results_path, "output_frontend_stats.csv"))
+
+    def write_datasets_website(self):
+        """ Writes website using the collected data from calling add_dataset_to_website()"""
+        # Write modified template inside the website package.
+        with open(os.path.join(self.website_output_path, "frontend.html"), "w") as output:
+            output.write(self.frontend_template.render(datasets_html=self.frontend_html))
+
+    def __get_frontend_results_as_html(self, csv_frontend_path, show_figures=False):
+        """  Reads output_frontend_stats.csv file with the following header:
+            #timestamp_lkf, mono_status, stereo_status, nr_keypoints, nrDetectedFeatures, nrTrackerFeatures, nrMonoInliers, nrMonoPutatives, nrStereoInliers, nrStereoPutatives, monoRansacIters, stereoRansacIters, nrValidRKP, nrNoLeftRectRKP, nrNoRightRectRKP, nrNoDepthRKP, nrFailedArunRKP, featureDetectionTime, featureTrackingTime, monoRansacTime, stereoRansacTime, featureSelectionTime, extracted_corners, need_n_corners
+            And plots the frontend data.
+            Args:
+            - csv_frontend_path: path to the output_frontend_stats.csv file
+            Returns:
+            - HTML data for all plots
+        """
+        df_stats = pd.read_csv(csv_frontend_path, sep=',', index_col=False)
+        fig_html = get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
+        fig_html += get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
+        return fig_html
+
+
+class RawOutputWebsiteBuilder:
+    def __init__(self, jinja_env, website_output_path, traj_vio_csv_name):
+        """ Reads a template html website inside the `templates` directory of
+        a `website` python package (that's why we call `import website`, which
+        is a package of this project), and writes down html code with plotly figures.
+        """
+        # Get Website template html
+        self.datasets_template = jinja_env.get_template('datasets_template.html')
+
+        # Generate Website output path
+        self.website_output_path = website_output_path
+
+        # We will store html snippets of each dataset indexed by dataset name in these
+        # dictionaries. Each dictionary indexes the data per pipeline_type in turn:
+        # That is why we use defaultdict to init each dataset entry by another dictionary.
+        self.datasets_html = dict()
+
+        self.traj_vio_csv_name = traj_vio_csv_name
+
+    def add_dataset_to_website(self, dataset_name, csv_results_path):
+        """ Writes dataset results specified in csv_results_path.
+        Call write_datasets_website to actually write this data in the website template.
+            Args:
+            - dataset_name: name of the dataset that the VIO stats come from.
+            - csv_results_path: path to the directory where the csv results of the VIO pipeline are.
+                This is typically the directory where there is a `traj_vio.csv` file together with an
+                `output` directory where all the stats of the VIO are.
+        """
+        self.datasets_html[dataset_name] = self.__get_dataset_results_as_html(
+            dataset_name, os.path.join(csv_results_path, self.traj_vio_csv_name))
+
+    def write_datasets_website(self):
+        """ Writes website using the collected data from calling add_dataset_to_website()"""
+        # Write modified template inside the website package.
+        with open(os.path.join(self.website_output_path, "datasets.html"), "w") as output:
+            output.write(self.datasets_template.render(datasets_html=self.datasets_html))
 
     def __get_dataset_results_as_html(self, dataset_name, csv_results_path, show_figures=False):
         """  Reads traj_vio.csv file with the following header:
@@ -200,27 +339,7 @@ class WebsiteBuilder:
         if show_figures:
             fig.show()
 
-        return self.__get_fig_as_html(fig)
-
-
-    def __get_frontend_results_as_html(self, csv_frontend_path, show_figures=False):
-        """  Reads output_frontend_stats.csv file with the following header:
-            #timestamp_lkf, mono_status, stereo_status, nr_keypoints, nrDetectedFeatures, nrTrackerFeatures, nrMonoInliers, nrMonoPutatives, nrStereoInliers, nrStereoPutatives, monoRansacIters, stereoRansacIters, nrValidRKP, nrNoLeftRectRKP, nrNoRightRectRKP, nrNoDepthRKP, nrFailedArunRKP, featureDetectionTime, featureTrackingTime, monoRansacTime, stereoRansacTime, featureSelectionTime, extracted_corners, need_n_corners
-            And plots the frontend data.
-            Args:
-            - csv_frontend_path: path to the output_frontend_stats.csv file
-            Returns:
-            - HTML data for all plots
-        """
-        df_stats = pd.read_csv(csv_frontend_path, sep=',', index_col=False)
-        fig_html = self.__get_fig_as_html(draw_feature_tracking_stats(df_stats, show_figures))
-        fig_html += self.__get_fig_as_html(draw_mono_stereo_inliers_outliers(df_stats, show_figures))
-        return fig_html
-
-    def __get_fig_as_html(self, fig):
-        """ Gets a plotly figure and returns html string to embed in a website
-        """
-        return plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
+        return get_fig_as_html(fig)
 
     def __plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
         """
@@ -253,4 +372,3 @@ class WebsiteBuilder:
             fig.add_trace(go.Scatter(x=df[x_id], y=df[y_id],
                                     mode=mode, name=y_id), row=row, col=col)
         return fig
-

@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 
 from evaluation.evaluation_lib import DatasetEvaluator, DatasetRunner, aggregate_ape_results
 
-def find_submissions(results_dir):
+def find_submissions(results_dir, traj_vio_csv_name="traj_vio.csv"):
     """ Finds all folders having a traj_vio.csv file. We assume these folders have the following
     filesystem:
         ./logs
@@ -72,16 +72,34 @@ def find_submissions(results_dir):
         │           ├── traj_gt.csv
         │           └── traj_vio.csv
 
-        Args: results_dir path to the `logs` directory (see filesystem above)
+    Or, for uHumans1:
+        .
+        ├── uHumans1_06h
+        │   ├── mesh_pgmo.ply
+        │   └── PGMO
+        │       └── traj_pgmo.csv
+        ├── uHumans1_12h
+        │   ├── mesh_pgmo.ply
+        │   └── PGMO
+        │       └── traj_pgmo.csv
+        └── uHumans1_30h
+            ├── mesh_pgmo.ply
+            └── PGMO
+                └── traj_pgmo.csv
 
-        Return: List of submission ids where a traj_vio.csv was found.
+        Args:
+            -- results_dir path to the `logs` directory (see filesystem above)
+            -- traj_vio_csv_name name of the csv file with the trajectory (default: traj_vio.csv, but you could
+            use instead traj_pgmo.csv for example).
+
+        Return: List of submission ids where a traj_vio_csv_name was found.
     """
     import fnmatch
     # Load results.
     # Aggregate all stats for each pipeline and dataset
     submissions = dict()
     for root, _, filenames in os.walk(results_dir):
-        for _ in fnmatch.filter(filenames, 'traj_vio.csv'):
+        for _ in fnmatch.filter(filenames, traj_vio_csv_name):
             # results_filepath = os.path.join(root, results_filename)
             # Get pipeline name
             pipeline_name = os.path.basename(root)
@@ -89,9 +107,10 @@ def find_submissions(results_dir):
             mid_folder_path = os.path.split(root)[0]
             mid_folder_name = os.path.basename(mid_folder_path)
             # Only check first 8 chars, others correspond to log id
-            if (mid_folder_name[:8] != "uHumans2"):
+            if mid_folder_name[:8] != "uHumans2" and \
+               mid_folder_name[:8] != "uHumans1":
                 raise Exception("Wrong mid folder name: \n \
-                                - expected: uHumans2_xxx \n \
+                                - expected: uHumans{1,2}_xxx \n \
                                 - got: %s"%mid_folder_name)
 
             # Get submission id name
@@ -107,7 +126,11 @@ def run(args):
     experiment_params = yaml.load(args.experiments_path, Loader=yaml.Loader)
     results_dir = os.path.expandvars(experiment_params['results_dir'])
 
-    submissions = find_submissions(results_dir)
+    evaluate_pgmo = True
+    if evaluate_pgmo:
+        submissions = find_submissions(results_dir, "traj_pgmo.csv")
+    else:
+        submissions = find_submissions(results_dir, "traj_vio.csv")
 
     if len(submissions) == 0:
         log.warning("No submissions found!")
@@ -129,7 +152,10 @@ def run(args):
         experiment_params['datasets_to_run'].append(dataset_to_evaluate)
 
     # Create dataset evaluator: evaluates vio output.
-    dataset_evaluator = DatasetEvaluator(experiment_params, args, "")
+    if evaluate_pgmo:
+        dataset_evaluator = DatasetEvaluator(experiment_params, args, "", "traj_pgmo.csv")
+    else:
+        dataset_evaluator = DatasetEvaluator(experiment_params, args, "", "traj_vio.csv")
     dataset_evaluator.evaluate()
 
     # Aggregate results in results directory
