@@ -216,8 +216,8 @@ class DatasetRunner:
                         self.vocabulary_path,
                         self.params_dir, pipeline_type, "flags/stereoVIOEuroc.flags",
                         self.params_dir, pipeline_type, "flags/Mesher.flags",
-                        self.params_dir, pipeline_type, "flags/VioBackEnd.flags",
-                        self.params_dir, pipeline_type, "flags/RegularVioBackEnd.flags",
+                        self.params_dir, pipeline_type, "flags/VioBackend.flags",
+                        self.params_dir, pipeline_type, "flags/RegularVioBackend.flags",
                         self.params_dir, pipeline_type, "flags/Visualizer3D.flags",
                         self.params_dir, self.extra_flagfile_path,
                         dataset["initial_frame"], dataset["final_frame"], dataset["use_lcd"])
