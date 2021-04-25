@@ -33,6 +33,8 @@ It also displays or saves plots about its performance. All functionality is opti
 ```bash
 git clone https://github.com/ToniRV/Kimera-VIO-Evaluation
 cd Kimera-VIO-Evaluation
+# you may want to do this instead for jupyter notebooks:
+# pip install .[notebook]
 pip install .
 python setup.py develop
 ```
@@ -202,15 +204,17 @@ output options:
 
 Provided are jupyter notebooks for extra plotting, especially of the debug output from Kimera-VIO. Follow the steps below to run them.
 
-1. Set up Kimera Evaluation as stated above
-2. Install Jupyter dependencies and open the `notebooks` folder in the Jupyter browser
+1. Set up Kimera Evaluation as stated above (using the `notebook` extra) or install the required dependencies if you didn't use the notebook extra:
 ```
-pip install jupyter
-pip install plotly
+pip install jupyter jupytext
+```
+2. Open the `notebooks` folder in the Jupyter browser
+```
 cd Kimera-Evaluation/notebooks
 jupyter notebook
 ```
-3. Open the notebook corresponding to what you want to analyze first. `plot-frontend.ipnyb` is a good place to start.
+  2a. If the contents of the folder appear empty in your web-browser, you may have to manually add the jupytext content manager as described [here](https://github.com/mwouts/jupytext/blob/master/docs/install.md#jupytexts-contents-manager)
+3. Open the notebook corresponding to what you want to analyze first. `plot-frontend.py` is a good place to start.
 4. Provide the path to the folder with Kimera's debug information from your dataset (typically `Kimera-VIO-ROS/output_logs/<yourdatasetname>`)
 5. Run the notebooks! A useful beginner tutorial for using Jupyter notebooks can be found [here](https://www.dataquest.io/blog/jupyter-notebook-tutorial/). A guide for interpreting the output is coming soon.
 
