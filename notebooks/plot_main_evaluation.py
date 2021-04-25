@@ -28,17 +28,17 @@ from evaluation.evaluation_lib import aggregate_all_results
 
 # %%
 # Parse experiment yaml file
-experiments_path="../experiments/full_euroc.yaml"
+experiments_path = "../experiments/full_euroc.yaml"
 
 # Get experiment information from yaml file.
 experiment_params = yaml.load(open(experiments_path))
 
 # Get directory where all results are stored
-results_dir = os.path.expandvars(experiment_params['results_dir'])
+results_dir = os.path.expandvars(experiment_params["results_dir"])
 
 # Collect results
 stats = aggregate_all_results(results_dir)
-#evt.check_stats(stats)
+# evt.check_stats(stats)
 
 # %%
 figure = evt.draw_ape_boxplots_plotly(stats, False)

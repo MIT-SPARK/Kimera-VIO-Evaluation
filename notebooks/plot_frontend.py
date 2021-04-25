@@ -28,14 +28,15 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 import logging
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 if not log.handlers:
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
     log.addHandler(ch)
-    
+
 from evo.tools import file_interface
 from evo.tools import plot
 from evo.tools import pandas_bridge
@@ -50,11 +51,11 @@ import plotly.graph_objects as go
 
 import evaluation.tools as evt
 from evaluation.evaluation_lib import (
-    get_ape_trans, 
-    get_ape_rot, 
-    plot_metric, 
-    convert_abs_traj_to_rel_traj, 
-    convert_rel_traj_from_body_to_cam
+    get_ape_trans,
+    get_ape_rot,
+    plot_metric,
+    convert_abs_traj_to_rel_traj,
+    convert_rel_traj_from_body_to_cam,
 )
 
 # %matplotlib inline
@@ -85,10 +86,12 @@ left_cam_calibration_file = ""
 
 # %%
 # Parse frontend statistics csv file.
-stats_file = os.path.join(os.path.expandvars(vio_output_dir), "output_frontend_stats.csv")
+stats_file = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_frontend_stats.csv"
+)
 
 # Convert to tidy pandas DataFrame object.
-df_stats = pd.read_csv(stats_file, sep=',', index_col=False)
+df_stats = pd.read_csv(stats_file, sep=",", index_col=False)
 df_stats.head()
 
 
@@ -98,17 +101,20 @@ def get_mean(attrib):
     ls = df_stats[attrib].tolist()
     return float(sum(ls)) / len(ls)
 
+
 def get_min(attrib):
     return min(df_stats[attrib])
 
+
 def get_max(attrib):
     return max(df_stats[attrib])
+
 
 # Construct and visualize summary. TODO(marcus): use a LaTeX table.
 summary_stats = [
     ("Average number of detected features", get_mean("nrDetectedFeatures")),
     ("Minimum number of detected features", get_min("nrDetectedFeatures")),
-    ("Average number of tracked features" , get_mean("nrTrackerFeatures")),
+    ("Average number of tracked features", get_mean("nrTrackerFeatures")),
     ("Minimum number of tracked features", get_min("nrTrackerFeatures")),
     ("Average number of mono ransac inliers", get_mean("nrMonoInliers")),
     ("Minimum number of mono ransac inliers", get_min("nrMonoInliers")),
@@ -128,16 +134,16 @@ for entry in summary_stats:
     attrib = entry[0]
     value = entry[1]
     spacing = max_attrib_len - len(attrib)
-    print(attrib + " "*spacing + ": " + str(value))
+    print(attrib + " " * spacing + ": " + str(value))
 
 # %%
 # Plot feature tracking statistics.
 use_plotly = False
 
 if not use_plotly:
-    fig0, axes0 = plt.subplots(nrows=1, ncols=1, figsize=(18,10), squeeze=False)
-    df_stats.plot(kind="line", y="nrDetectedFeatures", ax=axes0[0,0])
-    df_stats.plot(kind="line", y="nrTrackerFeatures", ax=axes0[0,0])
+    fig0, axes0 = plt.subplots(nrows=1, ncols=1, figsize=(18, 10), squeeze=False)
+    df_stats.plot(kind="line", y="nrDetectedFeatures", ax=axes0[0, 0])
+    df_stats.plot(kind="line", y="nrTrackerFeatures", ax=axes0[0, 0])
     plt.show()
 else:
     evt.draw_feature_tracking_stats(df_stats, True)
@@ -146,13 +152,13 @@ else:
 # %%
 # Plot ransac inlier, putative and iteration statistics.
 if not use_plotly:
-    fig1, axes1 = plt.subplots(nrows=1, ncols=3, figsize=(18,10), squeeze=False)
-    df_stats.plot(kind="line", y="nrMonoInliers", ax=axes1[0,0])
-    df_stats.plot(kind="line", y="nrMonoPutatives", ax=axes1[0,0])
-    df_stats.plot(kind="line", y="nrStereoInliers", ax=axes1[0,1])
-    df_stats.plot(kind="line", y="nrStereoPutatives", ax=axes1[0,1])
-    df_stats.plot(kind="line", y="monoRansacIters", ax=axes1[0,2])
-    df_stats.plot(kind="line", y="stereoRansacIters", ax=axes1[0,2])
+    fig1, axes1 = plt.subplots(nrows=1, ncols=3, figsize=(18, 10), squeeze=False)
+    df_stats.plot(kind="line", y="nrMonoInliers", ax=axes1[0, 0])
+    df_stats.plot(kind="line", y="nrMonoPutatives", ax=axes1[0, 0])
+    df_stats.plot(kind="line", y="nrStereoInliers", ax=axes1[0, 1])
+    df_stats.plot(kind="line", y="nrStereoPutatives", ax=axes1[0, 1])
+    df_stats.plot(kind="line", y="monoRansacIters", ax=axes1[0, 2])
+    df_stats.plot(kind="line", y="stereoRansacIters", ax=axes1[0, 2])
     plt.show()
 else:
     evt.draw_mono_stereo_inliers_outliers(df_stats, True)
@@ -160,25 +166,25 @@ else:
 # %%
 # Plot sparse-stereo-matching statistics.
 
-fig3, axes3 = plt.subplots(nrows=1, ncols=4, figsize=(18,10), squeeze=False)
+fig3, axes3 = plt.subplots(nrows=1, ncols=4, figsize=(18, 10), squeeze=False)
 
-df_stats.plot(kind="line", y="nrValidRKP", ax=axes3[0,0])
-df_stats.plot(kind="line", y="nrNoLeftRectRKP", ax=axes3[0,1])
-df_stats.plot(kind="line", y="nrNoRightRectRKP", ax=axes3[0,1])
-df_stats.plot(kind="line", y="nrNoDepthRKP", ax=axes3[0,2])
-df_stats.plot(kind="line", y="nrFailedArunRKP", ax=axes3[0,3])
+df_stats.plot(kind="line", y="nrValidRKP", ax=axes3[0, 0])
+df_stats.plot(kind="line", y="nrNoLeftRectRKP", ax=axes3[0, 1])
+df_stats.plot(kind="line", y="nrNoRightRectRKP", ax=axes3[0, 1])
+df_stats.plot(kind="line", y="nrNoDepthRKP", ax=axes3[0, 2])
+df_stats.plot(kind="line", y="nrFailedArunRKP", ax=axes3[0, 3])
 
 plt.show()
 
 # %%
 # Plot timing statistics.
 if not use_plotly:
-    fig2, axes2 = plt.subplots(nrows=1, ncols=5, figsize=(18,10), squeeze=False)
-    df_stats.plot(kind="line", y="featureDetectionTime", ax=axes2[0,0])
-    df_stats.plot(kind="line", y="featureTrackingTime", ax=axes2[0,1])
-    df_stats.plot(kind="line", y="monoRansacTime", ax=axes2[0,2])
-    df_stats.plot(kind="line", y="stereoRansacTime", ax=axes2[0,3])
-    df_stats.plot(kind="line", y="featureSelectionTime", ax=axes2[0,4])
+    fig2, axes2 = plt.subplots(nrows=1, ncols=5, figsize=(18, 10), squeeze=False)
+    df_stats.plot(kind="line", y="featureDetectionTime", ax=axes2[0, 0])
+    df_stats.plot(kind="line", y="featureTrackingTime", ax=axes2[0, 1])
+    df_stats.plot(kind="line", y="monoRansacTime", ax=axes2[0, 2])
+    df_stats.plot(kind="line", y="stereoRansacTime", ax=axes2[0, 3])
+    df_stats.plot(kind="line", y="featureSelectionTime", ax=axes2[0, 4])
     plt.show()
 else:
     evt.draw_frontend_timing(df_stats, True)
@@ -196,16 +202,18 @@ else:
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
-gt_df = pd.read_csv(gt_data_file, sep=',', index_col=0)
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 
-ransac_mono_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_frontend_ransac_mono.csv")
-mono_df = pd.read_csv(ransac_mono_filename, sep=',', index_col=0)
+ransac_mono_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_frontend_ransac_mono.csv"
+)
+mono_df = pd.read_csv(ransac_mono_filename, sep=",", index_col=0)
 
 # Load calibration data
 with open(left_cam_calibration_file) as f:
-    f.readline() # skip first line
+    f.readline()  # skip first line
     left_calibration_data = yaml.safe_load(f)
-    body_T_leftCam = np.reshape(np.array(left_calibration_data['T_BS']['data']), (4,4))
+    body_T_leftCam = np.reshape(np.array(left_calibration_data["T_BS"]["data"]), (4, 4))
     print("Left cam calibration matrix: ")
     print(body_T_leftCam)
 
@@ -221,21 +229,25 @@ traj_ref_unassociated = pandas_bridge.df_to_trajectory(gt_df)
 traj_est_unassociated = pandas_bridge.df_to_trajectory(mono_df)
 
 # Associate the trajectories
-traj_ref_abs, traj_est_rel = sync.associate_trajectories(traj_ref_unassociated, traj_est_unassociated)
+traj_ref_abs, traj_est_rel = sync.associate_trajectories(
+    traj_ref_unassociated, traj_est_unassociated
+)
 
 traj_ref_rel = convert_abs_traj_to_rel_traj(traj_ref_abs, up_to_scale=False)
 
 # Transform the relative gt trajectory from body to left camera frame
-traj_ref_cam_rel =  convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
 
 # Remove the first timestamp; we don't have relative pose at first gt timestamp
-traj_est_rel = trajectory.PoseTrajectory3D(traj_est_rel._positions_xyz[1:],
-                                           traj_est_rel._orientations_quat_wxyz[1:],
-                                           traj_est_rel.timestamps[1:])
+traj_est_rel = trajectory.PoseTrajectory3D(
+    traj_est_rel._positions_xyz[1:],
+    traj_est_rel._orientations_quat_wxyz[1:],
+    traj_est_rel.timestamps[1:],
+)
 
-print "traj_ref_rel: ", traj_ref_rel
-print "traj_ref_cam_rel: ", traj_ref_cam_rel
-print "traj_est_rel: ", traj_est_rel
+print("traj_ref_rel: ", traj_ref_rel)
+print("traj_ref_cam_rel: ", traj_ref_cam_rel)
+print("traj_est_rel: ", traj_est_rel)
 
 # Frames of trajectories:
 # traj_rel_rel: body frame relative poses
@@ -269,20 +281,20 @@ gt_angles_timestamps = []
 for i in range(len(traj_ref_rel._poses_se3)):
     gt_angles_timestamps.append(traj_ref_rel.timestamps[i])
     # rotation matrix to axisangle
-    rotm = traj_ref_rel._poses_se3[i][0:3,0:3]
+    rotm = traj_ref_rel._poses_se3[i][0:3, 0:3]
     r = R.from_dcm(rotm)
-    
+
     rot_vec = r.as_rotvec()
     gt_angles.append(np.linalg.norm(rot_vec))
 
-    
+
 plt.figure(figsize=(18, 10))
-plt.plot(mono_ransac_angles_timestamps, mono_ransac_angles, 'r', label='Mono ransac')
-plt.plot(gt_angles_timestamps, gt_angles, 'b',  label='GT')
-plt.legend(loc='upper right')
+plt.plot(mono_ransac_angles_timestamps, mono_ransac_angles, "r", label="Mono ransac")
+plt.plot(gt_angles_timestamps, gt_angles, "b", label="GT")
+plt.legend(loc="upper right")
 ax = plt.gca()
-ax.set_xlabel('Timestamps')
-ax.set_ylabel('Relative Angles [rad]')
+ax.set_xlabel("Timestamps")
+ax.set_ylabel("Relative Angles [rad]")
 
 plt.show()
 
@@ -302,28 +314,28 @@ ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
 # calculate the translation errors up-to-scale
 trans_errors = []
 for i in range(len(traj_ref_cam_rel.timestamps)):
-    
+
     # normalized translation vector from gt
-    t_ref = traj_ref_cam_rel.poses_se3[i][0:3,3]
+    t_ref = traj_ref_cam_rel.poses_se3[i][0:3, 3]
     if np.linalg.norm(t_ref) > 1e-6:
         t_ref /= np.linalg.norm(t_ref)
-    
+
     # normalized translation vector from mono ransac
-    t_est = traj_est_rel.poses_se3[i][0:3,3] 
+    t_est = traj_est_rel.poses_se3[i][0:3, 3]
     if np.linalg.norm(t_est) > 1e-6:
         t_est /= np.linalg.norm(t_est)
-        
+
     # calculate error (up to scale, equivalent to the angle between the two translation vectors)
     trans_errors.append(np.linalg.norm(t_ref - t_est))
-    
+
 plt.figure(figsize=(18, 10))
 plt.plot(traj_ref_cam_rel.timestamps, trans_errors)
 plt.xlim(3370, 3450)
 plt.ylim(0, 0.17)
 
 ax = plt.gca()
-ax.set_xlabel('Timestamps')
-ax.set_ylabel('Relative Translation Errors')
+ax.set_xlabel("Timestamps")
+ax.set_ylabel("Relative Translation Errors")
 
 plt.show()
 
@@ -332,8 +344,8 @@ plt.show()
 # Plot RPE of trajectory rotation and translation parts.
 seconds_from_start = [t - traj_est_rel.timestamps[0] for t in traj_est_rel.timestamps]
 
-fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part (degrees)", figsize=(18,10))
-#fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18,10))
+fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part (degrees)", figsize=(18, 10))
+# fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18,10))
 plt.show()
 
 # %% [markdown]
@@ -349,10 +361,12 @@ plt.show()
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
-gt_df = pd.read_csv(gt_data_file, sep=',', index_col=0)
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 
-ransac_stereo_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_frontend_ransac_stereo.csv")
-stereo_df = pd.read_csv(ransac_stereo_filename, sep=',', index_col=0)
+ransac_stereo_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_frontend_ransac_stereo.csv"
+)
+stereo_df = pd.read_csv(ransac_stereo_filename, sep=",", index_col=0)
 
 # %%
 gt_df = gt_df[~gt_df.index.duplicated()]
@@ -365,17 +379,21 @@ traj_ref_unassociated = pandas_bridge.df_to_trajectory(gt_df)
 traj_est_unassociated = pandas_bridge.df_to_trajectory(stereo_df)
 
 # Associate the trajectories
-traj_ref_abs, traj_est_rel = sync.associate_trajectories(traj_ref_unassociated, traj_est_unassociated)
+traj_ref_abs, traj_est_rel = sync.associate_trajectories(
+    traj_ref_unassociated, traj_est_unassociated
+)
 
 traj_ref_rel = convert_abs_traj_to_rel_traj(traj_ref_abs)
 
 # Remove the first timestamp; we don't have relative pose at first gt timestamp
-traj_est_rel = trajectory.PoseTrajectory3D(traj_est_rel._positions_xyz[1:],
-                                           traj_est_rel._orientations_quat_wxyz[1:],
-                                           traj_est_rel.timestamps[1:])
+traj_est_rel = trajectory.PoseTrajectory3D(
+    traj_est_rel._positions_xyz[1:],
+    traj_est_rel._orientations_quat_wxyz[1:],
+    traj_est_rel.timestamps[1:],
+)
 
-print "traj_ref_rel: ", traj_ref_rel
-print "traj_est_rel: ", traj_est_rel
+print("traj_ref_rel: ", traj_ref_rel)
+print("traj_est_rel: ", traj_est_rel)
 
 # Convert the absolute poses (world frame) of the gt DataFrame to relative poses.
 
@@ -392,6 +410,6 @@ rpe_tran = get_ape_trans((traj_ref_rel, traj_est_rel))
 # Plot RPE of trajectory rotation and translation parts.
 seconds_from_start = [t - traj_est_rel.timestamps[0] for t in traj_est_rel.timestamps]
 
-plot_metric(rpe_rot, "Stereo Ransac RPE Rotation Part (degrees)", figsize=(18,10))
-plot_metric(rpe_tran, "Stereo Ransac RPE Translation Part (meters)", figsize=(18,10))
+plot_metric(rpe_rot, "Stereo Ransac RPE Rotation Part (degrees)", figsize=(18, 10))
+plot_metric(rpe_tran, "Stereo Ransac RPE Translation Part (meters)", figsize=(18, 10))
 plt.show()
