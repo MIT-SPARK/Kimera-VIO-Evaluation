@@ -213,7 +213,8 @@ pip install jupyter jupytext
 cd Kimera-Evaluation/notebooks
 jupyter notebook
 ```
-    2a. If the contents of the folder appear empty in your web-browser, you may have to manually add the jupytext content manager as described [here](https://github.com/mwouts/jupytext/blob/master/docs/install.md#jupytexts-contents-manager)
+
+    a. If the contents of the folder appear empty in your web-browser, you may have to manually add the jupytext content manager as described [here](https://github.com/mwouts/jupytext/blob/master/docs/install.md#jupytexts-contents-manager)
 3. Open the notebook corresponding to what you want to analyze first. `plot-frontend.py` is a good place to start.
 4. Provide the path to the folder with Kimera's debug information from your dataset (typically `Kimera-VIO-ROS/output_logs/<yourdatasetname>`)
 5. Run the notebooks! A useful beginner tutorial for using Jupyter notebooks can be found [here](https://www.dataquest.io/blog/jupyter-notebook-tutorial/). A guide for interpreting the output is coming soon.
