@@ -6,11 +6,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.11.1
+#       jupytext_version: 1.8.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 2
 #     language: python
-#     name: python3
+#     name: python2
 # ---
 
 # %% [markdown]
@@ -55,6 +55,7 @@ from evaluation.evaluation_lib import (
     plot_traj_colormap_ape,
     plot_traj_colormap_rpe,
     convert_abs_traj_to_rel_traj,
+    convert_rel_traj_to_abs_traj,
 )
 
 # #%matplotlib inline
@@ -526,7 +527,106 @@ plt.xlabel("Timestamps")
 plt.legend()
 plt.show()
 
+# %% [markdown]
+# # External Odometry
+# Plot external odometry trajectory against ground truth.
+
 # %%
+gt_df = pd.read_csv(gt_data_file, sep=',', index_col=0)
+gt_df = gt_df[~gt_df.index.duplicated()]
+
+output_external_odom_filename = os.path.join(os.path.expandvars(vio_output_dir),
+                                             "output_backend_external_odometry.csv")
+output_external_odom_df = pd.read_csv(output_external_odom_filename, sep=',', index_col=0)
+
+# Convert the gt relative-pose DataFrame to a trajectory object.
+traj_ref_complete = pandas_bridge.df_to_trajectory(gt_df)
+
+# Use the backend poses as trajectory.
+traj_est_unaligned_rel = pandas_bridge.df_to_trajectory(output_external_odom_df)
+
+# Convert to absolute trajectory by concatenating all between poses
+traj_est_unaligned = convert_rel_traj_to_abs_traj(traj_est_unaligned_rel)
+discard_n_start_poses = 0
+discard_n_end_poses = 0
+
+# Associate the data.
+traj_est = copy.deepcopy(traj_est_unaligned)
+traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
+traj_est = trajectory.align_trajectory(traj_est, traj_ref, correct_scale=False,
+                                       discard_n_start_poses = int(discard_n_start_poses),
+                                       discard_n_end_poses = int(discard_n_end_poses))
+
+print("traj_ref: ", traj_ref)
+print("traj_est: ", traj_est)
+
+# %%
+# plot ground truth trajectory with pose
+plot_mode = plot.PlotMode.xy
+fig = plt.figure()
+ax = plot.prepare_axis(fig, plot_mode)
+draw_coordinate_axes(ax, traj_ref_complete, marker_scale=2, downsample_ratio=20, plot_mode=plot_mode)
+draw_start_and_end(ax, traj_ref_complete, plot_mode)
+plot.traj(ax, plot_mode, traj_ref_complete, '--', "gray", "reference")
+plt.title('Reference trajectory with pose')
+plt.show()
+
+# plot unaligned trajectory with pose
+plot_mode = plot.PlotMode.xy
+fig = plt.figure()
+ax = plot.prepare_axis(fig, plot_mode)
+draw_coordinate_axes(ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode)
+draw_start_and_end(ax, traj_est_unaligned, plot_mode)
+plot.traj(ax, plot_mode, traj_est_unaligned, '--', "gray", "reference")
+plt.title('External odometry estimated trajectory with pose')
+plt.show()
+
+plot_mode = plot.PlotMode.xyz
+fig = plt.figure()
+ax = plot.prepare_axis(fig, plot_mode)
+
+gt_df_downsampled = gt_df.iloc[:1200:100]
+
+# reference trajectory
+traj_ref_downsampled = pandas_bridge.df_to_trajectory(gt_df_downsampled)
+draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode,marker_scale=3)
+draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode,marker_scale=3)
+plot.traj(ax, plot_mode, traj_ref, '--', "gray", "reference")
+plot.traj(ax, plot_mode, traj_est, '--', "green", "estimate (aligned)")
+
+plt.title('Trajectory with pose')
+plt.show()
+
+# %%
+# Plot APE of trajectory rotation and translation parts.
+num_of_poses = traj_est.num_poses
+traj_est.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+traj_ref.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+
+seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
+
+ape_tran = get_ape_trans((traj_ref, traj_est))
+fig1 = plot_metric(ape_tran, "External Odometry ATE in Meters")
+plt.show()
+
+# Plot the ground truth and estimated trajectories against each other with APE overlaid.
+fig2 = plot_traj_colormap_ape(ape_tran, traj_ref, traj_est,
+                              plot_title="External Odometry Trajectory Tracking - Color Coded by ATE")
+plt.show()
+
+# Plot ARE
+
+ape_rot = get_ape_rot((traj_ref, traj_est))
+fig3 = plot_metric(ape_rot, "External Odometry ARE in Degrees")
+plt.show()
+
+# Plot the ground truth and estimated trajectories against each other with APE overlaid.
+fig4 = plot_traj_colormap_ape(ape_rot, traj_ref, traj_est,
+                             plot_title="External Odometry Trajectory Tracking - Color Coded by ARE")
+plt.show()
+
+# %% [markdown]
+# # Website Builder
 
 # %%
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -544,17 +644,3 @@ raw_output_web.add_dataset_to_website("RealSense", vio_output_dir)
 
 # %%
 raw_output_web.write_datasets_website()
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%

@@ -904,7 +904,6 @@ def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
             A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the
             relative pose trajectory corresponding to the absolute one given in `traj`.
     """
-    from evo.core import transformations
     from evo.core import lie_algebra as lie
 
     new_poses = []
@@ -922,6 +921,33 @@ def convert_abs_traj_to_rel_traj(traj, up_to_scale=False):
         new_poses.append(rel_pose)
 
     return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
+
+
+def convert_rel_traj_to_abs_traj(traj):
+    """ Converts a relative pose trajectory to an absolute-pose trajectory.
+
+        The incoming trajectory is processed elemente-wise. Poses at each 
+        timestamp are appended to the absolute pose from the previous timestamp.
+
+        Args:
+            traj: A PoseTrajectory3D object with timestamps as indices containing, at a minimum,
+                columns representing the xyz position and wxyz quaternion-rotation at each 
+                timestamp, corresponding to the pose between previous and current timestamps.
+            
+        Returns:
+            A PoseTrajectory3D object with xyz position and wxyz quaternion fields for the
+            relative pose trajectory corresponding to the relative one given in `traj`.
+    """
+    from evo.core import lie_algebra as lie
+
+    new_poses = [lie.se3()]  # origin at identity
+
+    for i in range(0, len(traj.timestamps)):
+        abs_pose = np.dot(new_poses[-1], traj.poses_se3[i])
+        new_poses.append(abs_pose)
+
+    return trajectory.PoseTrajectory3D(timestamps=traj.timestamps[1:], poses_se3=new_poses)
+
 
 def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
     """Converts a relative pose trajectory from body frame to camera frame
