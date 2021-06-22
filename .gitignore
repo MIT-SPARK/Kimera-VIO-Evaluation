@@ -1,3 +1,6 @@
+# ignore notebooks now that jupytext is active
+*.ipynb
+
 # Remove website output
 website/vio_ape_euroc.html
 website/datasets.html
