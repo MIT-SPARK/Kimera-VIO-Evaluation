@@ -1,7 +1,5 @@
 # Kimera VIO Evaluation
 
-Note that this repo is a mirror of [https://github.com/ToniRV/Kimera-VIO-Evaluation](https://github.com/ToniRV/Kimera-VIO-Evaluation)
-
 ![](https://travis-ci.org/ToniRV/Kimera-VIO-Evaluation.svg?branch=master)
 
 Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
