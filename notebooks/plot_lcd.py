@@ -6,11 +6,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.11.1
+#       jupytext_version: 1.8.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 2
 #     language: python
-#     name: python3
+#     name: python2
 # ---
 
 # %% [markdown]
@@ -60,8 +60,8 @@ import matplotlib.pyplot as plt
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/sparklab/code/SparkVIO/output_logs/"
-gt_data_file = "/home/sparklab/datasets/EuRoC/mh_04_difficult/mav0/state_groundtruth_estimate0/data.csv"
+vio_output_dir = ""
+gt_data_file = ""
 
 
 # %%
@@ -512,21 +512,23 @@ for entry in tram_summary_stats:
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 
 output_poses_filename = os.path.join(
-    os.path.expandvars(vio_output_dir), "output_posesVIO.csv"
+    os.path.expandvars(vio_output_dir), "traj_vio.csv"
 )
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
 
 output_pgo_poses_filename = os.path.join(
-    os.path.expandvars(vio_output_dir), "output_lcd_optimized_traj.csv"
+    os.path.expandvars(vio_output_dir), "traj_pgo.csv"
 )
 output_pgo_poses_df = pd.read_csv(output_pgo_poses_filename, sep=",", index_col=0)
 
 # %%
 gt_df = gt_df[~gt_df.index.duplicated()]
-
 rename_euroc_gt_df(gt_df)
 
 # %%
+discard_n_start_poses = 0
+discard_n_end_poses = 0
+
 # Convert the gt relative-pose DataFrame to a trajectory object.
 traj_ref = pandas_bridge.df_to_trajectory(gt_df)
 
@@ -567,20 +569,35 @@ print("traj_est: ", traj_est)
 # %%
 # Plot APE of trajectory rotation and translation parts.
 num_of_poses = traj_est.num_poses
-traj_est.reduce_to_ids(
+
+traj_ref.reduce_to_ids(
     range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
 )
-traj_ref.reduce_to_ids(
+traj_ref_cp.reduce_to_ids(
     range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
 )
 traj_vio.reduce_to_ids(
     range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
 )
+traj_est.reduce_to_ids(
+    range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
+)
 
+# %%
+seconds_from_start = [t - traj_vio.timestamps[0] for t in traj_vio.timestamps]
+
+ape_rot_pgo = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
+ape_tran_pgo = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
+plot_ape(seconds_from_start, ape_rot_pgo, title="VIO ARE in Degrees")
+plot_ape(seconds_from_start, ape_tran_pgo, title="VIO ATE in Meters")
+
+# %%
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
 
-ape_tran = get_ape((traj_ref, traj_est), metrics.PoseRelation.translation_part)
-plot_ape(seconds_from_start, ape_tran, title="VIO+PGO ATE in Meters")
+ape_rot_pgo = get_ape((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
+ape_tran_pgo = get_ape((traj_ref, traj_est), metrics.PoseRelation.translation_part)
+plot_ape(seconds_from_start, ape_rot_pgo, title="VIO+PGO ARE in Degrees")
+plot_ape(seconds_from_start, ape_tran_pgo, title="VIO+PGO ATE in Meters")
 
 # %%
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
@@ -593,10 +610,10 @@ plot.traj(ax, plot_mode, traj_vio, ".", "gray", "vio without pgo")
 plot.traj_colormap(
     ax,
     traj_est,
-    ape_tran.error,
+    ape_tran_pgo.error,
     plot_mode,
-    min_map=ape_tran.get_all_statistics()["min"],
-    max_map=ape_tran.get_all_statistics()["max"],
+    min_map=ape_tran_pgo.get_all_statistics()["min"],
+    max_map=ape_tran_pgo.get_all_statistics()["max"],
     title="VIO+PGO Trajectory Tracking - Color Coded by ATE",
 )
 ax.legend()
@@ -609,22 +626,32 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot = get_rpe((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
-rpe_tran = get_rpe((traj_ref, traj_est), metrics.PoseRelation.translation_part)
+rpe_rot_vio = get_rpe((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
+rpe_tran_vio = get_rpe((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
+
+rpe_rot_pgo = get_rpe((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
+rpe_tran_pgo = get_rpe((traj_ref, traj_est), metrics.PoseRelation.translation_part)
+
+# %%
+# Plot RPE of trajectory rotation and translation parts.
+seconds_from_start = [t - traj_vio.timestamps[0] for t in traj_vio.timestamps[1:]]
+
+plot_rpe(seconds_from_start, rpe_rot_vio, title="VIO RRE in Degrees")
+plot_rpe(seconds_from_start, rpe_tran_vio, title="VIO RTE in Meters")
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps[1:]]
 
-plot_rpe(seconds_from_start, rpe_rot, title="VIO+PGO RRE in Degrees")
-plot_rpe(seconds_from_start, rpe_tran, title="VIO+PGO RTE in Meters")
+plot_rpe(seconds_from_start, rpe_rot_pgo, title="VIO+PGO RRE in Degrees")
+plot_rpe(seconds_from_start, rpe_tran_pgo, title="VIO+PGO RTE in Meters")
 
 # %%
 # important: restrict data to delta ids for plot.
 traj_ref_plot = copy.deepcopy(traj_ref)
 traj_est_plot = copy.deepcopy(traj_est)
-traj_ref_plot.reduce_to_ids(rpe_rot.delta_ids)
-traj_est_plot.reduce_to_ids(rpe_rot.delta_ids)
+traj_ref_plot.reduce_to_ids(rpe_rot_pgo.delta_ids)
+traj_est_plot.reduce_to_ids(rpe_rot_pgo.delta_ids)
 
 # Plot the ground truth and estimated trajectories against each other with RPE overlaid.
 
@@ -635,10 +662,10 @@ plot.traj(ax, plot_mode, traj_ref_plot, "--", "gray", "reference")
 plot.traj_colormap(
     ax,
     traj_est_plot,
-    rpe_rot.error,
+    rpe_rot_pgo.error,
     plot_mode,
-    min_map=rpe_rot.get_all_statistics()["min"],
-    max_map=rpe_rot.get_all_statistics()["max"],
+    min_map=rpe_rot_pgo.get_all_statistics()["min"],
+    max_map=rpe_rot_pgo.get_all_statistics()["max"],
     title="VIO+PGO Trajectory Tracking - Color Coded by RRE",
 )
 ax.legend()
