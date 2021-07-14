@@ -173,6 +173,11 @@ def downsize_lc_df(df):
     return res
 
 
+def closest_num(ls, query):
+    ls_len = len(ls)
+    return ls[min(range(ls_len), key = lambda i: abs(ls[i]-query))]
+
+
 def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
     """Converts an absolute-pose trajectory to a relative-pose trajectory.
 
@@ -205,11 +210,18 @@ def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
     for i in range(len(lcd_df.index)):
         match_ts = lcd_df.timestamp_match[lcd_df.index[i]]
         query_ts = lcd_df.timestamp_query[lcd_df.index[i]]
+        
+        if match_ts == 0 and query_ts == 0:
+            continue
 
         try:
-            w_t_bi = np.array([df.at[match_ts, idx] for idx in ["x", "y", "z"]])
+            closest_ts = closest_num(df.index, match_ts)
+            if closest_ts != match_ts:
+                print("using closest match for timestamps")
+            
+            w_t_bi = np.array([df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
             w_q_bi = np.array(
-                [df.at[match_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
+                [df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
             )
             w_T_bi = transformations.quaternion_matrix(w_q_bi)
             w_T_bi[:3, 3] = w_t_bi
@@ -222,9 +234,13 @@ def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
             continue
 
         try:
-            w_t_bidelta = np.array([df.at[query_ts, idx] for idx in ["x", "y", "z"]])
+            closest_ts = closest_num(df.index, query_ts)
+            if closest_ts != query_ts:
+                print("using closest match for timestamps")
+            
+            w_t_bidelta = np.array([df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
             w_q_bidelta = np.array(
-                [df.at[query_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
+                [df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
             )
             w_T_bidelta = transformations.quaternion_matrix(w_q_bidelta)
             w_T_bidelta[:3, 3] = w_t_bidelta
