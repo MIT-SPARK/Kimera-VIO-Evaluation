@@ -24,6 +24,7 @@ import os
 import copy
 import pandas as pd
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 import logging
 
@@ -60,8 +61,8 @@ import matplotlib.pyplot as plt
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = ""
-gt_data_file = ""
+vio_output_dir = "/home/marcus/ford_ws/src/ford-Kimera-VIO/output_logs/"
+gt_data_file = "/home/marcus/ford_ws/src/ford-Kimera-VIO/output_logs/traj_gt.csv"
 
 
 # %%
@@ -178,6 +179,74 @@ def closest_num(ls, query):
     return ls[min(range(ls_len), key = lambda i: abs(ls[i]-query))]
 
 
+def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
+    """Returns the relative pose from match to query for given timestamps.
+    
+    Args:
+        gt_df: A pandas.DataFrame object with timestamps as indices containing, at a minimum,
+            columns representing the xyz position and wxyz quaternion-rotation at each
+            timestamp, corresponding to the absolute pose at that time.
+        match_ts: An integer representing the match frame timestamp.
+        query_ts: An integer representing the query frame timestamp.
+        to_scale: A boolean. If set to False, relative poses will have their translation
+            part normalized.
+    Returns:
+        A 4x4 numpy array representing the relative pose from match to query frame.
+    """
+    w_T_bmatch = None
+    w_T_bquery = None
+    
+    try:
+        closest_ts = closest_num(gt_df.index, match_ts)
+        if closest_ts != match_ts:
+            print("using closest match for timestamps")
+
+        w_t_bmatch = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
+        w_q_bmatch = np.array(
+            [gt_df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
+        )
+        w_T_bmatch = transformations.quaternion_matrix(w_q_bmatch)
+        w_T_bmatch[:3, 3] = w_t_bmatch
+    except:
+        print(
+            "Failed to convert an abs pose to a rel pose. Timestamp ",
+            match_ts,
+            " is not available in ground truth df.",
+        )
+        return None
+        
+    try:
+        closest_ts = closest_num(gt_df.index, query_ts)
+        if closest_ts != query_ts:
+            print("using closest match for timestamps")
+
+        w_t_bquery = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
+        w_q_bquery = np.array(
+            [gt_df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
+        )
+        w_T_bquery = transformations.quaternion_matrix(w_q_bquery)
+        w_T_bquery[:3, 3] = w_t_bquery
+    except:
+        print(
+            "Failed to convert an abs pose to a rel pose. Timestamp ",
+            query_ts,
+            " is not available in ground truth df.",
+        )
+        return None
+        
+    bmatch_T_bquery = lie.relative_se3(w_T_bmatch, w_T_bquery)
+    bmatch_t_bquery = bmatch_T_bquery[:3, 3]
+
+    if not to_scale:
+        norm = np.linalg.norm(bmatch_t_bquery)
+        if norm > 1e-6:
+            bmatch_t_bquery = bmatch_t_bquery / np.linalg.norm(bmatch_t_bquery)
+            
+    bmatch_T_bquery[:3, 3] = bmatch_t_bquery
+    
+    return bmatch_T_bquery
+
+
 def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
     """Converts an absolute-pose trajectory to a relative-pose trajectory.
 
@@ -214,70 +283,71 @@ def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
         if match_ts == 0 and query_ts == 0:
             continue
 
-        try:
-            closest_ts = closest_num(df.index, match_ts)
-            if closest_ts != match_ts:
-                print("using closest match for timestamps")
-            
-            w_t_bi = np.array([df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-            w_q_bi = np.array(
-                [df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
-            )
-            w_T_bi = transformations.quaternion_matrix(w_q_bi)
-            w_T_bi[:3, 3] = w_t_bi
-        except:
-            print(
-                "Failed to convert an abs pose to a rel pose. Timestamp ",
-                match_ts,
-                " is not available in ground truth df.",
-            )
-            continue
+        bi_T_bidelta = get_gt_rel_pose(df, match_ts, query_ts, to_scale)
+        
+        if bi_T_bidelta is not None:
+            bi_R_bidelta = copy.deepcopy(bi_T_bidelta)
+            bi_R_bidelta[:, 3] = np.array([0, 0, 0, 1])
+            bi_q_bidelta = transformations.quaternion_from_matrix(bi_R_bidelta)
+            bi_t_bidelta = bi_T_bidelta[:3, 3]
 
-        try:
-            closest_ts = closest_num(df.index, query_ts)
-            if closest_ts != query_ts:
-                print("using closest match for timestamps")
-            
-            w_t_bidelta = np.array([df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-            w_q_bidelta = np.array(
-                [df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
-            )
-            w_T_bidelta = transformations.quaternion_matrix(w_q_bidelta)
-            w_T_bidelta[:3, 3] = w_t_bidelta
-        except:
-            print(
-                "Failed to convert an abs pose to a rel pose. Timestamp ",
-                query_ts,
-                " is not available in ground truth df.",
-            )
-            continue
-
-        index_list.append(lcd_df.index[i])
-
-        bi_T_bidelta = lie.relative_se3(w_T_bi, w_T_bidelta)
-
-        bi_R_bidelta = copy.deepcopy(bi_T_bidelta)
-        bi_R_bidelta[:, 3] = np.array([0, 0, 0, 1])
-        bi_q_bidelta = transformations.quaternion_from_matrix(bi_R_bidelta)
-        bi_t_bidelta = bi_T_bidelta[:3, 3]
-
-        if not to_scale:
-            norm = np.linalg.norm(bi_t_bidelta)
-            if norm > 1e-6:
-                bi_t_bidelta = bi_t_bidelta / np.linalg.norm(bi_t_bidelta)
-
-        new_row = {
-            "x": bi_t_bidelta[0],
-            "y": bi_t_bidelta[1],
-            "z": bi_t_bidelta[2],
-            "qw": bi_q_bidelta[0],
-            "qx": bi_q_bidelta[1],
-            "qy": bi_q_bidelta[2],
-            "qz": bi_q_bidelta[3],
-        }
-        rows_list.append(new_row)
+            new_row = {
+                "x": bi_t_bidelta[0],
+                "y": bi_t_bidelta[1],
+                "z": bi_t_bidelta[2],
+                "qw": bi_q_bidelta[0],
+                "qx": bi_q_bidelta[1],
+                "qy": bi_q_bidelta[2],
+                "qz": bi_q_bidelta[3],
+            }
+            rows_list.append(new_row)
+            index_list.append(lcd_df.index[i])
 
     return pd.DataFrame(data=rows_list, index=index_list)
+
+
+def plot_rel_pose_errors(gt_df, output_loop_closures_df):
+    """
+    """
+    est_angles = []
+    gt_angles = []
+    pos_error = []
+
+    for i in range(len(output_loop_closures_df)):
+        match_ts = output_loop_closures_df.timestamp_match[output_loop_closures_df.index[i]]
+        query_ts = output_loop_closures_df.timestamp_query[output_loop_closures_df.index[i]]
+        gt_pose = get_gt_rel_pose(gt_df, match_ts, query_ts, False)
+
+        match_t_query = np.array(
+            [output_loop_closures_df.at[output_loop_closures_df.index[i], idx] for idx in ["x", "y", "z"]]
+        )
+        match_q_query = np.array(
+            [output_loop_closures_df.at[output_loop_closures_df.index[i], idx] for idx in ["qw", "qx", "qy", "qz"]]
+        )
+        match_R_query = transformations.quaternion_matrix(match_q_query)[:3,:3]
+
+        est_angles.append(np.linalg.norm(R.from_dcm(match_R_query[:3,:3]).as_rotvec()))
+        gt_angles.append(np.linalg.norm(R.from_dcm(gt_pose[:3,:3]).as_rotvec()))
+        pos_error.append(np.linalg.norm(gt_pose[:3,3] - match_t_query))
+
+
+    plt.figure(figsize=(18, 10))
+    plt.plot(output_loop_closures_df.index.to_list(), np.rad2deg(est_angles), "r", label="2d2d Ransac")
+    plt.plot(output_loop_closures_df.index.to_list(), np.rad2deg(gt_angles), "b", label="GT")
+    plt.legend(loc="upper right")
+    ax = plt.gca()
+    ax.set_title("Relative Angles Est vs GT")
+    ax.set_xlabel("Timestamps")
+    ax.set_ylabel("Relative Angles [deg]")
+
+    plt.figure(figsize=(18,10))
+    plt.plot(output_loop_closures_df.index.to_list(), pos_error, label="Position Error")
+    ax = plt.gca()
+    ax.set_title("Position Error (Normalized)")
+    ax.set_xlabel("Timestamps")
+    ax.set_ylabel("Position Error [m]")
+
+    plt.show()
 
 
 def rename_euroc_gt_df(df):
@@ -326,7 +396,12 @@ def rename_lcd_result_df(df):
         df: A pandas.DataFrame object.
     """
     df.index.names = ["timestamp"]
-    df.rename(columns={"px": "x", "py": "y", "pz": "z"}, inplace=True)
+    df.rename(columns={
+        "#timestamp_match": "timestamp_match",
+        "px": "x",
+        "py": "y",
+        "pz": "z",
+    }, inplace=True)
 
 
 # %% [markdown]
@@ -431,90 +506,51 @@ for entry in summary_stats:
 # Plot ransac inlier and iteration statistics.
 fig1, axes1 = plt.subplots(nrows=1, ncols=2, figsize=(18, 10), squeeze=False)
 
-lcd_debuginfo_small_df.plot(kind="hist", y="mono_inliers", ax=axes1[0, 0])
-lcd_debuginfo_small_df.plot(kind="hist", y="stereo_inliers", ax=axes1[0, 0])
-lcd_debuginfo_small_df.plot(kind="hist", y="mono_iters", ax=axes1[0, 1])
-lcd_debuginfo_small_df.plot(kind="hist", y="stereo_iters", ax=axes1[0, 1])
+lcd_debuginfo_small_df.plot(kind="line", y="mono_inliers", ax=axes1[0, 0])
+lcd_debuginfo_small_df.plot(kind="line", y="mono_input_size", ax=axes1[0, 0])
+lcd_debuginfo_small_df.plot(kind="line", y="mono_iters", ax=axes1[0, 0])
+
+lcd_debuginfo_small_df.plot(kind="line", y="stereo_inliers", ax=axes1[0, 1])
+lcd_debuginfo_small_df.plot(kind="line", y="stereo_input_size", ax=axes1[0, 1])
+lcd_debuginfo_small_df.plot(kind="line", y="stereo_iters", ax=axes1[0, 1])
 
 plt.show()
 
 # %% [markdown]
-# ### LCD Relative Pose Error Plotting
+# ### Geometric Verification (2d2d RANSAC) Error Plotting
 #
-# Calculate error statistics for all individual loop closures and plot their error as compared to ground truth. These plots give insight into how reliable the pose determination between two frames is for each loop closure. This pose determination is done via a combination of 5-pt and 3-pt RANSAC matching of the stereo images from the camera.
+# Calculate error statistics for the 2d2d RANSAC pose estimate for all loop closure candidates that make it to the geometric verification check step.
+#
+# The first plot is the relative angles for the 2d2d ransac and the ground truth. You want the two plots to be very similar; any disparity is error.
+#
+# The second plot only has one line and is the norm of the error in position from the 2d2d ransac result to the ground truth. You want this as close to zero as possible all the way through.
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 rename_euroc_gt_df(gt_df)
 
-output_loop_closures_filename = os.path.join(
-    os.path.expandvars(vio_output_dir), "output_lcd_result.csv"
-)
-output_loop_closures_df = pd.read_csv(
-    output_loop_closures_filename, sep=",", index_col=0
-)
+output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_geom_verif.csv")
+output_loop_closures_df = pd.read_csv(output_loop_closures_filename, sep=",")
+rename_lcd_result_df(output_loop_closures_df)
 
 # %%
-small_lc_df = downsize_lc_df(output_loop_closures_df)
-rename_lcd_result_df(small_lc_df)
-gt_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, small_lc_df, to_scale=True)
+plot_rel_pose_errors(gt_df, output_loop_closures_df)
+
+# %% [markdown]
+# ### Pose Recovery (3d3d or 2d3d RANSAC) Error Plotting
+#
+# Same as the previous section, but for final pose recovery. These are the loop closure relative poses that are passed to the PGO. They're obtained via 3d3d ransac or PnP (2d3d).
 
 # %%
-# Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref = pandas_bridge.df_to_trajectory(gt_rel_df)
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
+rename_euroc_gt_df(gt_df)
 
-# Use the mono ransac file as estimated trajectory.
-traj_est = pandas_bridge.df_to_trajectory(small_lc_df)
-traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
-
-print("traj_ref: ", traj_ref)
-print("traj_est: ", traj_est)
+output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_pose_recovery.csv")
+output_loop_closures_df = pd.read_csv(output_loop_closures_filename, sep=",")
+rename_lcd_result_df(output_loop_closures_df)
 
 # %%
-# Get RPE for entire relative trajectory.
-rpe_rot = get_rpe((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
-rpe_tran = get_rpe((traj_ref, traj_est), metrics.PoseRelation.translation_part)
-
-# Print rotation RPE statistics:
-rot_summary_stats = [
-    ("mean", rpe_rot.get_statistic(metrics.StatisticsType.mean)),
-    ("median", rpe_rot.get_all_statistics()["median"]),
-    ("rmse", rpe_rot.get_statistic(metrics.StatisticsType.rmse)),
-    ("std", rpe_rot.get_statistic(metrics.StatisticsType.std)),
-    ("min", rpe_rot.get_statistic(metrics.StatisticsType.min)),
-    ("max", rpe_rot.get_statistic(metrics.StatisticsType.max)),
-]
-
-attrib_len = [len(attrib[0]) for attrib in rot_summary_stats]
-max_attrib_len = max(attrib_len)
-
-print("\nRotation RPE Statistics Summary:\n")
-for entry in rot_summary_stats:
-    attrib = entry[0]
-    value = entry[1]
-    spacing = max_attrib_len - len(attrib)
-    print(attrib + " " * spacing + ": " + str(value))
-
-
-# Print translation RPE statistics:
-tram_summary_stats = [
-    ("mean", rpe_tran.get_statistic(metrics.StatisticsType.mean)),
-    ("median", rpe_tran.get_all_statistics()["median"]),
-    ("rmse", rpe_tran.get_statistic(metrics.StatisticsType.rmse)),
-    ("std", rpe_tran.get_statistic(metrics.StatisticsType.std)),
-    ("min", rpe_tran.get_statistic(metrics.StatisticsType.min)),
-    ("max", rpe_tran.get_statistic(metrics.StatisticsType.max)),
-]
-
-attrib_len = [len(attrib[0]) for attrib in tram_summary_stats]
-max_attrib_len = max(attrib_len)
-
-print("\nTranslation RPE Statistics Summary:\n")
-for entry in tram_summary_stats:
-    attrib = entry[0]
-    value = entry[1]
-    spacing = max_attrib_len - len(attrib)
-    print(attrib + " " * spacing + ": " + str(value))
+plot_rel_pose_errors(gt_df, output_loop_closures_df)
 
 # %% [markdown]
 # ## LoopClosureDetector PGO-Optimized Trajectory Plotting
@@ -527,14 +563,10 @@ for entry in tram_summary_stats:
 # Load ground truth and estimated data as csv DataFrames.
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 
-output_poses_filename = os.path.join(
-    os.path.expandvars(vio_output_dir), "traj_vio.csv"
-)
+output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
 
-output_pgo_poses_filename = os.path.join(
-    os.path.expandvars(vio_output_dir), "traj_pgo.csv"
-)
+output_pgo_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_pgo.csv")
 output_pgo_poses_df = pd.read_csv(output_pgo_poses_filename, sep=",", index_col=0)
 
 # %%
@@ -542,8 +574,8 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 rename_euroc_gt_df(gt_df)
 
 # %%
-discard_n_start_poses = 0
-discard_n_end_poses = 0
+discard_n_start_poses = 10
+discard_n_end_poses = 10
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
 traj_ref = pandas_bridge.df_to_trajectory(gt_df)
@@ -602,10 +634,10 @@ traj_est.reduce_to_ids(
 # %%
 seconds_from_start = [t - traj_vio.timestamps[0] for t in traj_vio.timestamps]
 
-ape_rot_pgo = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
-ape_tran_pgo = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
-plot_ape(seconds_from_start, ape_rot_pgo, title="VIO ARE in Degrees")
-plot_ape(seconds_from_start, ape_tran_pgo, title="VIO ATE in Meters")
+ape_rot_vio = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
+ape_tran_vio = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
+plot_ape(seconds_from_start, ape_rot_vio, title="VIO ARE in Degrees")
+plot_ape(seconds_from_start, ape_tran_vio, title="VIO ATE in Meters")
 
 # %%
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
@@ -630,7 +662,7 @@ plot.traj_colormap(
     plot_mode,
     min_map=ape_tran_pgo.get_all_statistics()["min"],
     max_map=ape_tran_pgo.get_all_statistics()["max"],
-    title="VIO+PGO Trajectory Tracking - Color Coded by ATE",
+    title="PGO+VIO Trajectory Tracking - Color Coded by ATE",
 )
 ax.legend()
 plt.show()
