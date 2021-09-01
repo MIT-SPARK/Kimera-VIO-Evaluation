@@ -39,6 +39,7 @@ if not log.handlers:
 from evo.tools import file_interface
 from evo.tools import plot
 from evo.tools import pandas_bridge
+from evo.tools.settings import SETTINGS
 
 from evo.core import sync
 from evo.core import trajectory
@@ -46,9 +47,20 @@ from evo.core import metrics
 from evo.core import transformations
 from evo.core import lie_algebra as lie
 
+from evaluation.evaluation_lib import (
+    get_ape_trans,
+    get_ape_rot,
+    get_rpe_trans,
+    get_rpe_rot,
+    plot_metric,
+    convert_rel_traj_from_body_to_cam,
+)
+
 # %matplotlib inline
 # # %matplotlib notebook
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 # %% [markdown]
 # ## Data Locations
@@ -61,101 +73,21 @@ import matplotlib.pyplot as plt
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/marcus/ford_ws/src/ford-Kimera-VIO/output_logs/"
-gt_data_file = "/home/marcus/ford_ws/src/ford-Kimera-VIO/output_logs/traj_gt.csv"
+vio_output_dir = ""
+gt_data_file = vio_output_dir + "traj_gt.csv"
+left_cam_calibration_file = ""
+
+# %%
+# Load calibration data
+with open(left_cam_calibration_file) as f:
+    f.readline()  # skip first line
+    left_calibration_data = yaml.safe_load(f)
+    body_T_leftCam = np.reshape(np.array(left_calibration_data["T_BS"]["data"]), (4, 4))
+    print("Left cam calibration matrix: ")
+    print(body_T_leftCam)
 
 
 # %%
-def get_ape(data, metric):
-    """Gets APE and APE statistics for two trajectories and a given pose_relation.
-
-    Args:
-        data:   tuple of trajectories, the first being the reference trajectory
-                and the second being the estimated trajectory.
-        metric: a metrics.PoseRelation instance representing the pose relation
-                to use when computing APE.
-
-    Returns:
-        A metrics.APE instance containing the APE for both trajectories according
-        to the given metric.
-    """
-    ape = metrics.APE(metric)
-    ape.process_data(data)
-
-    return ape
-
-
-def plot_ape(x_axis, ape, size=(18, 10), title=None):
-    """Plots APE error against time for a given metrics.APE instance.
-
-    Args:
-        x_axis: An array-type of values for all the x-axis values (time).
-        rpe:    A metrics.APE instance with pre-processed data.
-        size:   A tuple optionally containing the size of the figure to be plotted.
-    """
-    if title is None:
-        title = "APE w.r.t. " + ape.pose_relation.value
-
-    fig = plt.figure(figsize=size)
-    plot.error_array(
-        fig,
-        ape.error,
-        x_array=x_axis,
-        statistics=ape.get_all_statistics(),
-        name="APE",
-        title=title,
-        xlabel="$t$ (s)",
-    )
-    plt.show()
-
-
-def get_rpe(data, metric):
-    """Gets RPE and RPE statistics for two trajectories and a given pose_relation.
-
-    Args:
-        data:   tuple of trajectories, the first being the reference trajectory
-                and the second being the estimated trajectory.
-        metric: a metrics.PoseRelation instance representing the pose relation
-                to use when computing RPE.
-
-    Returns:
-        A metrics.RPE instance containing the RPE for both trajectories according
-        to the given metric.
-    """
-    # normal mode
-    delta = 1
-    delta_unit = metrics.Unit.frames
-    all_pairs = False
-
-    rpe = metrics.RPE(metric, delta, delta_unit, all_pairs)
-    rpe.process_data(data)
-    return rpe
-
-
-def plot_rpe(x_axis, rpe, size=(18, 10), title=None):
-    """Plots RPE error against time for a given metrics.RPE instance.
-
-    Args:
-        x_axis: An array-type of values for all the x-axis values (time).
-        rpe:    A metrics.RPE instance with pre-processed data.
-        size:   A tuple optionally containing the size of the figure to be plotted.
-    """
-    if title == None:
-        title = "RPE w.r.t. " + rpe.pose_relation.value
-
-    fig = plt.figure(figsize=size)
-    plot.error_array(
-        fig,
-        rpe.error,
-        x_array=x_axis,
-        statistics=rpe.get_all_statistics(),
-        name="RPE",
-        title=title,
-        xlabel="$t$ (s)",
-    )
-    plt.show()
-
-
 def downsize_lc_df(df):
     """Remove all entries from a pandas DataFrame object that have '0' for the timestamp, which
     includes all entries that do not have loop closures. Returns this cleaned DataFrame.
@@ -170,7 +102,18 @@ def downsize_lc_df(df):
     ts = np.array(df.index.tolist())
     good_ts = ts[np.where(ts > 0)]
     res = df.reindex(index=good_ts)
+    return res
 
+
+def downsize_lc_result_df(df):
+    """Same as downsize_lc_df but checks the `isloop` field of the DataFrame for the LCD result 
+    DataFrame, instead of the timestamp.
+    """
+    df = df[~df.index.duplicated()]
+    ts = np.array(df.index.tolist())
+    isloop = np.array(df.isLoop.tolist())
+    good_ts = ts[np.where(isloop == 1)]
+    res = df.reindex(index=good_ts)
     return res
 
 
@@ -199,7 +142,8 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
     try:
         closest_ts = closest_num(gt_df.index, match_ts)
         if closest_ts != match_ts:
-            print("using closest match for timestamps")
+#             print("using closest match for timestamps")
+            pass
 
         w_t_bmatch = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
         w_q_bmatch = np.array(
@@ -218,7 +162,8 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
     try:
         closest_ts = closest_num(gt_df.index, query_ts)
         if closest_ts != query_ts:
-            print("using closest match for timestamps")
+#             print("using closest match for timestamps")
+            pass
 
         w_t_bquery = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
         w_q_bquery = np.array(
@@ -304,50 +249,6 @@ def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
             index_list.append(lcd_df.index[i])
 
     return pd.DataFrame(data=rows_list, index=index_list)
-
-
-def plot_rel_pose_errors(gt_df, output_loop_closures_df):
-    """
-    """
-    est_angles = []
-    gt_angles = []
-    pos_error = []
-
-    for i in range(len(output_loop_closures_df)):
-        match_ts = output_loop_closures_df.timestamp_match[output_loop_closures_df.index[i]]
-        query_ts = output_loop_closures_df.timestamp_query[output_loop_closures_df.index[i]]
-        gt_pose = get_gt_rel_pose(gt_df, match_ts, query_ts, False)
-
-        match_t_query = np.array(
-            [output_loop_closures_df.at[output_loop_closures_df.index[i], idx] for idx in ["x", "y", "z"]]
-        )
-        match_q_query = np.array(
-            [output_loop_closures_df.at[output_loop_closures_df.index[i], idx] for idx in ["qw", "qx", "qy", "qz"]]
-        )
-        match_R_query = transformations.quaternion_matrix(match_q_query)[:3,:3]
-
-        est_angles.append(np.linalg.norm(R.from_dcm(match_R_query[:3,:3]).as_rotvec()))
-        gt_angles.append(np.linalg.norm(R.from_dcm(gt_pose[:3,:3]).as_rotvec()))
-        pos_error.append(np.linalg.norm(gt_pose[:3,3] - match_t_query))
-
-
-    plt.figure(figsize=(18, 10))
-    plt.plot(output_loop_closures_df.index.to_list(), np.rad2deg(est_angles), "r", label="2d2d Ransac")
-    plt.plot(output_loop_closures_df.index.to_list(), np.rad2deg(gt_angles), "b", label="GT")
-    plt.legend(loc="upper right")
-    ax = plt.gca()
-    ax.set_title("Relative Angles Est vs GT")
-    ax.set_xlabel("Timestamps")
-    ax.set_ylabel("Relative Angles [deg]")
-
-    plt.figure(figsize=(18,10))
-    plt.plot(output_loop_closures_df.index.to_list(), pos_error, label="Position Error")
-    ax = plt.gca()
-    ax.set_title("Position Error (Normalized)")
-    ax.set_xlabel("Timestamps")
-    ax.set_ylabel("Position Error [m]")
-
-    plt.show()
 
 
 def rename_euroc_gt_df(df):
@@ -437,7 +338,7 @@ print(
 if "LOOP_DETECTED" in status_freq_map:
     print("Loop Closures Detected:                 ", status_freq_map["LOOP_DETECTED"])
 else:
-    print("Loop Closures Detected:                 0")
+    print("Loop Closures Detected:                 ", 0)
 
 print(
     "Loop Closures Registered by PGO by End: ",
@@ -526,31 +427,232 @@ plt.show()
 # The second plot only has one line and is the norm of the error in position from the 2d2d ransac result to the ground truth. You want this as close to zero as possible all the way through.
 
 # %%
-gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
-rename_euroc_gt_df(gt_df)
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)  # Absolute gt in body frame
+rename_euroc_gt_df(gt_df)  # some pre-processing for euroc only (doesn't affect non-euroc)
 
+# Get 2d2d ransac results (camera frame, relative, only for LC candidates) as dataframe
 output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_geom_verif.csv")
-output_loop_closures_df = pd.read_csv(output_loop_closures_filename, sep=",")
-rename_lcd_result_df(output_loop_closures_df)
+lcd_2d2d_df = pd.read_csv(output_loop_closures_filename, sep=",")
+rename_lcd_result_df(lcd_2d2d_df)
+
+# Build trajectory objects
+traj_est_rel = pandas_bridge.df_to_trajectory(lcd_2d2d_df)
+ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_2d2d_df, True)  # keep scale and normalize later
+traj_ref_rel = pandas_bridge.df_to_trajectory(ref_rel_df)
+traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+
+print("traj_ref_rel: ", str(traj_ref_rel))
+print("traj_ref_cam_rel: ", str(traj_ref_cam_rel))
+print("traj_est_rel: ", str(traj_est_rel))
 
 # %%
-plot_rel_pose_errors(gt_df, output_loop_closures_df)
+# Plot rotation part error
+est_angles = []
+gt_angles = []
+gt_angles_timestamps = []
+rot_errors = []
+
+assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
+for i in range(len(traj_est_rel.poses_se3)):
+    est_rot = R.from_dcm(traj_est_rel.poses_se3[i][:3,:3])
+    gt_rot = R.from_dcm(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    
+    est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
+    gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
+    gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
+    
+    error = gt_rot.inv() * est_rot
+    error_angle = np.linalg.norm(error.as_rotvec())
+    rot_errors.append(error_angle)
+
+plt.figure(figsize=(18, 10))
+# plt.plot(gt_angles_timestamps, np.rad2deg(gt_angles), "b", label="GT")
+# plt.plot(gt_angles_timestamps, np.rad2deg(est_angles), "g", label="Est")
+plt.plot(gt_angles_timestamps, np.rad2deg(rot_errors), "r", label="Error")
+plt.legend(loc="upper right")
+ax = plt.gca()
+ax.set_xlabel("Timestamps [-]")
+ax.set_ylabel("Rotation Part Error [deg]")
+ax.set_title("Geometric Verification (2d2d Ransac) Rotation Part Error")
+
+plt.show()
+
+# %%
+# calculate the translation errors up-to-scale
+trans_errors = []
+for i in range(len(traj_ref_cam_rel.timestamps)):
+
+    # normalized translation vector from gt
+    t_ref = traj_ref_cam_rel.poses_se3[i][0:3, 3]
+    if np.linalg.norm(t_ref) > 1e-6:
+        t_ref /= np.linalg.norm(t_ref)
+
+    # normalized translation vector from mono ransac
+    t_est = traj_est_rel.poses_se3[i][0:3, 3]
+    if np.linalg.norm(t_est) > 1e-6:
+        t_est /= np.linalg.norm(t_est)
+
+    # calculate error (up to scale, equivalent to the angle between the two translation vectors)
+    trans_errors.append(np.linalg.norm(t_ref - t_est))
+
+plt.figure(figsize=(18, 10))
+plt.plot(traj_ref_cam_rel.timestamps, trans_errors, "r", label="Error")
+plt.legend(loc="upper right")
+ax = plt.gca()
+ax.set_xlabel("Timestamps [-]")
+ax.set_ylabel("Translation Part Error (up-to-scale)")
+ax.set_title("Geometric Verification (2d2d Ransac) Translation Part Errors")
+
+plt.show()
 
 # %% [markdown]
 # ### Pose Recovery (3d3d or 2d3d RANSAC) Error Plotting
 #
-# Same as the previous section, but for final pose recovery. These are the loop closure relative poses that are passed to the PGO. They're obtained via 3d3d ransac or PnP (2d3d).
+# Same as the previous section, but for final pose recovery. These are the loop closure relative poses that are passed to the PGO, if they pass the check. They're obtained via 3d3d ransac or PnP (2d3d) depending on user selection.
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 rename_euroc_gt_df(gt_df)
 
+# Get 3d3d or 2d3d ransac results (camera frame, relative, only for LC candidates) as dataframe
 output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_pose_recovery.csv")
-output_loop_closures_df = pd.read_csv(output_loop_closures_filename, sep=",")
-rename_lcd_result_df(output_loop_closures_df)
+lcd_3d3d_df = pd.read_csv(output_loop_closures_filename, sep=",")
+rename_lcd_result_df(lcd_3d3d_df)
+
+# Build trajectory objects
+traj_est_rel = pandas_bridge.df_to_trajectory(lcd_3d3d_df)
+ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_3d3d_df, True)
+traj_ref_rel = pandas_bridge.df_to_trajectory(ref_rel_df)
+traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+
+print("traj_ref_rel: ", str(traj_ref_rel))
+print("traj_ref_cam_rel: ", str(traj_ref_cam_rel))
+print("traj_est_rel: ", str(traj_est_rel))
 
 # %%
-plot_rel_pose_errors(gt_df, output_loop_closures_df)
+# Plot rotation part error
+est_angles = []
+gt_angles = []
+gt_angles_timestamps = []
+rot_errors = []
+
+assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
+for i in range(len(traj_est_rel.poses_se3)):
+    est_rot = R.from_dcm(traj_est_rel.poses_se3[i][:3,:3])
+    gt_rot = R.from_dcm(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    
+    est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
+    gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
+    gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
+    
+    error = gt_rot.inv() * est_rot
+    error_angle = np.linalg.norm(error.as_rotvec())
+    rot_errors.append(error_angle)
+
+plt.figure(figsize=(18, 10))
+# plt.plot(gt_angles_timestamps, np.rad2deg(gt_angles), "b", label="GT")
+# plt.plot(gt_angles_timestamps, np.rad2deg(est_angles), "g", label="Est")
+plt.plot(gt_angles_timestamps, np.rad2deg(rot_errors), "r", label="Error")
+plt.legend(loc="upper right")
+ax = plt.gca()
+ax.set_xlabel("Timestamps [-]")
+ax.set_ylabel("Rotation Part Error [deg]")
+ax.set_title("Pose Recovery (3d3d or 2d3d Ransac) Rotation Part Error")
+
+plt.show()
+
+# %%
+# Get RPE for entire relative trajectory.
+ape_rot = get_ape_rot((traj_ref_cam_rel, traj_est_rel))
+ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
+
+# calculate the translation errors
+trans_errors = []
+for i in range(len(traj_ref_cam_rel.timestamps)):
+    t_ref = traj_ref_cam_rel.poses_se3[i][:3,3]
+    t_est = traj_est_rel.poses_se3[i][:3,3]
+    
+    trans_errors.append(np.linalg.norm(t_ref - t_est))
+
+plt.figure(figsize=(18, 10))
+plt.plot(traj_ref_cam_rel.timestamps, trans_errors, "r", label="Error")
+plt.legend(loc="upper right")
+ax = plt.gca()
+ax.set_xlabel("Timestamps [-]")
+ax.set_ylabel("Translation Part Error [m]")
+ax.set_title("Pose Recovery (3d3d or 2d3d Ransac) Translation Part Errors")
+
+plt.show()
+
+# %% [markdown]
+# ## Loop Closure Error Plotting on Trajectory
+#
+# Visualize the loop closures directly on the GT and VIO trajectories, and color-code by error.
+#
+# We use the pose-recovery data because pose-recovery is the final step in the LCD process, before RPGO uses PCM and/or GNC to perform outlier-rejection. The poses obtained at this step are the final between-poses passed to the RPGO backend. We re-use the errors calculated in the last section for color-coding.
+
+# %%
+# Load ground truth and estimated data as csv DataFrames.
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
+gt_df = gt_df[~gt_df.index.duplicated()]
+rename_euroc_gt_df(gt_df)
+
+# Load VIO trajectory
+output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
+output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
+traj_ref = pandas_bridge.df_to_trajectory(gt_df)
+
+# %%
+# Get coordinates for all LC lines to plot
+xs = []
+ys = []
+for i in range(len(lcd_3d3d_df)):
+    match_ts = lcd_3d3d_df.timestamp_match[i]
+    query_ts = lcd_3d3d_df.timestamp_query[i]
+    
+    closest_ts = closest_num(gt_df.index, match_ts)
+    w_t_bmatch_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
+    
+    closest_ts = closest_num(gt_df.index, query_ts)
+    w_t_bquery_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
+    
+    xs.append([w_t_bquery_gt[0], w_t_bmatch_gt[0]])
+    ys.append([w_t_bquery_gt[1], w_t_bmatch_gt[1]])
+
+plot_mode = plot.PlotMode.xy
+fig = plt.figure(figsize=(18, 10))
+ax = plot.prepare_axis(fig, plot_mode)
+
+# Get colors based on rotation error
+err = np.rad2deg(rot_errors)
+norm = mpl.colors.Normalize(vmin=min(err), vmax=max(err), clip=True)
+mapper = cm.ScalarMappable(
+    norm=norm,
+    cmap=SETTINGS.plot_trajectory_cmap)  # cm.*_r is reversed cmap
+mapper.set_array(err)
+colors = [mapper.to_rgba(a) for a in err]
+cbar = fig.colorbar(
+    mapper, ticks=[min(err), (max(err) - (max(err) - min(err)) / 2), max(err)])
+cbar.ax.set_yticklabels([
+    "{0:0.3f}".format(min(err)),
+    "{0:0.3f}".format(max(err) - (max(err) - min(err)) / 2),
+    "{0:0.3f}".format(max(err))
+])
+
+# Plot the ground truth and estimated trajectories against each other with APE overlaid.
+ax.set_title("Ground-Truth Trajectory with Loop Closures (Colored-Coded by Rotation Error in Deg)")
+plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+
+# Plot accepted loop closures
+assert(len(xs) == len(ys))
+for i in range(len(xs)):
+    x = xs[i]
+    y = ys[i]
+    color = colors[i]
+    plt.plot(x, y, color=color)
+
+ax.legend()
+plt.show()
 
 # %% [markdown]
 # ## LoopClosureDetector PGO-Optimized Trajectory Plotting
@@ -605,9 +707,9 @@ traj_est = trajectory.align_trajectory(
     discard_n_end_poses=int(discard_n_end_poses),
 )
 
-print("traj_ref: ", traj_ref)
-print("traj_vio: ", traj_vio)
-print("traj_est: ", traj_est)
+print("traj_ref: ", str(traj_ref))
+print("traj_vio: ", str(traj_vio))
+print("traj_est: ", str(traj_est))
 
 # %% [markdown]
 # ## Absolute-Pose-Error Plotting
@@ -632,29 +734,26 @@ traj_est.reduce_to_ids(
 )
 
 # %%
-seconds_from_start = [t - traj_vio.timestamps[0] for t in traj_vio.timestamps]
-
-ape_rot_vio = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
-ape_tran_vio = get_ape((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
-plot_ape(seconds_from_start, ape_rot_vio, title="VIO ARE in Degrees")
-plot_ape(seconds_from_start, ape_tran_vio, title="VIO ATE in Meters")
+ape_rot_vio = get_ape_rot((traj_ref_cp, traj_vio))
+ape_tran_vio = get_ape_trans((traj_ref_cp, traj_vio))
+plot_metric(ape_rot_vio, "VIO ARE in Degrees", figsize=(18, 10))
+plot_metric(ape_tran_vio, "VIO ATE in Meters", figsize=(18, 10))
+plt.show()
 
 # %%
-seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
-
-ape_rot_pgo = get_ape((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
-ape_tran_pgo = get_ape((traj_ref, traj_est), metrics.PoseRelation.translation_part)
-plot_ape(seconds_from_start, ape_rot_pgo, title="VIO+PGO ARE in Degrees")
-plot_ape(seconds_from_start, ape_tran_pgo, title="VIO+PGO ATE in Meters")
+ape_rot_pgo = get_ape_rot((traj_ref, traj_est))
+ape_tran_pgo = get_ape_trans((traj_ref, traj_est))
+plot_metric(ape_rot_pgo, "VIO+PGO ARE in Degrees", figsize=(18, 10))
+plot_metric(ape_tran_pgo, "VIO+PGO ATE in Meters", figsize=(18, 10))
+plt.show()
 
 # %%
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-
 plot_mode = plot.PlotMode.xy
 fig = plt.figure(figsize=(18, 10))
 ax = plot.prepare_axis(fig, plot_mode)
 plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
-plot.traj(ax, plot_mode, traj_vio, ".", "gray", "vio without pgo")
+# plot.traj(ax, plot_mode, traj_vio, ".", "gray", "vio without pgo")
 plot.traj_colormap(
     ax,
     traj_est,
@@ -662,7 +761,7 @@ plot.traj_colormap(
     plot_mode,
     min_map=ape_tran_pgo.get_all_statistics()["min"],
     max_map=ape_tran_pgo.get_all_statistics()["max"],
-    title="PGO+VIO Trajectory Tracking - Color Coded by ATE",
+    title="VIO+PGO Trajectory Tracking - Color Coded by ATE",
 )
 ax.legend()
 plt.show()
@@ -674,25 +773,23 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot_vio = get_rpe((traj_ref_cp, traj_vio), metrics.PoseRelation.rotation_angle_deg)
-rpe_tran_vio = get_rpe((traj_ref_cp, traj_vio), metrics.PoseRelation.translation_part)
+rpe_rot_vio = get_rpe_rot((traj_ref_cp, traj_vio))
+rpe_tran_vio = get_rpe_trans((traj_ref_cp, traj_vio))
 
-rpe_rot_pgo = get_rpe((traj_ref, traj_est), metrics.PoseRelation.rotation_angle_deg)
-rpe_tran_pgo = get_rpe((traj_ref, traj_est), metrics.PoseRelation.translation_part)
-
-# %%
-# Plot RPE of trajectory rotation and translation parts.
-seconds_from_start = [t - traj_vio.timestamps[0] for t in traj_vio.timestamps[1:]]
-
-plot_rpe(seconds_from_start, rpe_rot_vio, title="VIO RRE in Degrees")
-plot_rpe(seconds_from_start, rpe_tran_vio, title="VIO RTE in Meters")
+rpe_rot_pgo = get_rpe_rot((traj_ref, traj_est))
+rpe_tran_pgo = get_rpe_trans((traj_ref, traj_est))
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps[1:]]
+plot_metric(rpe_rot_vio, "VIO RRE in Degrees", figsize=(18, 10))
+plot_metric(rpe_tran_vio, "VIO RTE in Meters", figsize=(18, 10))
+plt.show()
 
-plot_rpe(seconds_from_start, rpe_rot_pgo, title="VIO+PGO RRE in Degrees")
-plot_rpe(seconds_from_start, rpe_tran_pgo, title="VIO+PGO RTE in Meters")
+# %%
+# Plot RPE of trajectory rotation and translation parts.
+plot_metric(rpe_rot_pgo, "VIO+PGO RRE in Degrees", figsize=(18, 10))
+plot_metric(rpe_tran_pgo, "VIO+PGO RTE in Meters", figsize=(18, 10))
+plt.show()
 
 # %%
 # important: restrict data to delta ids for plot.
