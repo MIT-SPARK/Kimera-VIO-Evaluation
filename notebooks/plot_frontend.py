@@ -6,11 +6,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.11.1
+#       jupytext_version: 1.8.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 2
 #     language: python
-#     name: python3
+#     name: python2
 # ---
 
 # %% [markdown]
@@ -74,7 +74,7 @@ import matplotlib.pyplot as plt
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
 vio_output_dir = ""
-gt_data_file = ""
+gt_data_file = vio_output_dir + "traj_gt.csv"
 left_cam_calibration_file = ""
 
 # %% [markdown]
@@ -278,10 +278,10 @@ for i in range(len(traj_est_rel._orientations_quat_wxyz)):
 # Plot the GT angles
 gt_angles = []
 gt_angles_timestamps = []
-for i in range(len(traj_ref_rel._poses_se3)):
-    gt_angles_timestamps.append(traj_ref_rel.timestamps[i])
+for i in range(len(traj_ref_cam_rel._poses_se3)):
+    gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
     # rotation matrix to axisangle
-    rotm = traj_ref_rel._poses_se3[i][0:3, 0:3]
+    rotm = traj_ref_cam_rel._poses_se3[i][0:3, 0:3]
     r = R.from_dcm(rotm)
 
     rot_vec = r.as_rotvec()
@@ -330,8 +330,6 @@ for i in range(len(traj_ref_cam_rel.timestamps)):
 
 plt.figure(figsize=(18, 10))
 plt.plot(traj_ref_cam_rel.timestamps, trans_errors)
-plt.xlim(3370, 3450)
-plt.ylim(0, 0.17)
 
 ax = plt.gca()
 ax.set_xlabel("Timestamps")
@@ -342,10 +340,8 @@ plt.show()
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-seconds_from_start = [t - traj_est_rel.timestamps[0] for t in traj_est_rel.timestamps]
-
-fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part (degrees)", figsize=(18, 10))
-# fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18,10))
+fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part", figsize=(18, 10))
+fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18,10))
 plt.show()
 
 # %% [markdown]
@@ -408,8 +404,6 @@ rpe_tran = get_ape_trans((traj_ref_rel, traj_est_rel))
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-seconds_from_start = [t - traj_est_rel.timestamps[0] for t in traj_est_rel.timestamps]
-
 plot_metric(rpe_rot, "Stereo Ransac RPE Rotation Part (degrees)", figsize=(18, 10))
 plot_metric(rpe_tran, "Stereo Ransac RPE Translation Part (meters)", figsize=(18, 10))
 plt.show()

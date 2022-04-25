@@ -78,8 +78,8 @@ from evaluation.tools import website_utils as web
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/tonirv/datasets/kimera_rig/output_logs/"
-gt_data_file = ""
+vio_output_dir = ""
+gt_data_file = vio_output_dir + "traj_gt.csv"
 
 
 # %%
