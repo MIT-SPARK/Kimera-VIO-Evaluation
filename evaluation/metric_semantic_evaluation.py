@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import os
-import os.path
 from os import path
 import glog as log
 import copy
@@ -356,7 +354,6 @@ def parser():
 
 if __name__ == '__main__':
     import argcomplete
-    import sys
 
     # Parse args
     log.setLevel("INFO")

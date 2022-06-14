@@ -73,9 +73,9 @@ import matplotlib.pyplot as plt
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = ""
+vio_output_dir = "/home/nathan/uhumans2_test/office_06h/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = ""
+left_cam_calibration_file = "/home/nathan/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
 
 # %% [markdown]
 # ## Frontend Statistics

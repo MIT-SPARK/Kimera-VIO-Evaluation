@@ -78,7 +78,7 @@ from evaluation.tools import website_utils as web
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = ""
+vio_output_dir = "/home/nathan/uhumans2_test/office_06h/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
 
 
