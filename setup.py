@@ -1,5 +1,4 @@
 from setuptools import setup
-import fastentrypoints
 
 setup(
     name="kimera_vio_evaluation",
@@ -15,7 +14,7 @@ setup(
         "glog",
         "tqdm",
         "ruamel.yaml",
-        "evo-1",
+        "evo",
         "open3d",
         "plotly",
         "chart_studio",

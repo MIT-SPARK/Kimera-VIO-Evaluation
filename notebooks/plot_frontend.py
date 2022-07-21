@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.8
+#       jupytext_version: 1.14.0
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: Python 3
 #     language: python
 #     name: python3
 # ---
@@ -22,32 +22,14 @@
 # %%
 import yaml
 import os
-import copy
 import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 import logging
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
-
-from evo.tools import file_interface
-from evo.tools import plot
-from evo.tools import pandas_bridge
-
 from evo.core import sync
 from evo.core import trajectory
-from evo.core import metrics
-from evo.core import transformations
-from evo.core import lie_algebra as lie
-
-import plotly.graph_objects as go
 
 import evaluation.tools as evt
 from evaluation.evaluation_lib import (
@@ -59,30 +41,42 @@ from evaluation.evaluation_lib import (
 )
 
 # %matplotlib inline
-# # %matplotlib notebookw_T_bi
+# # %matplotlib notebook
 import matplotlib.pyplot as plt
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+if not log.handlers:
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    log.addHandler(ch)
 
 # %% [markdown]
 # ## Data Locations
 #
 # Make sure to set the following paths.
 #
-# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained from logging a run of SparkVio.
+# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained
+# from logging a run of SparkVio.
 #
-# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for the absolute pose at each timestamp of the dataset.
+# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for
+# the absolute pose at each timestamp of the dataset.
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/nathan/uhumans2_test/office_06h/"
-gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = "/home/nathan/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/d455/"
+gt_data_file = vio_output_dir + "traj_vio.csv"
+left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/config/d455_vio/LeftCameraParams.yaml"
 
 # %% [markdown]
 # ## Frontend Statistics
 #
 # Calculate and plot important statistics from the frontend of the VIO module
 #
-# These statistics include the number of tracked and detected features, data relating the RANSAC runs for both mono 5-point and stereo 3-point methods, timing data and sparse-stereo-matching statistics.
+# These statistics include the number of tracked and detected features, data relating
+# the RANSAC runs for both mono 5-point and stereo 3-point methods, timing data and
+# sparse-stereo-matching statistics.
 
 # %%
 # Parse frontend statistics csv file.
@@ -194,11 +188,17 @@ else:
 #
 # This section shows the performance of mono RANSAC portion of the pipeline.
 #
-# We import the csv data as Pandas DataFrame objects and perform our own data association. Relative poses for ground truth data are computed explicitly here. Rotation error and translation error (up to a scaling factor) are then calculated for each pair of consecutive keyframes.
+# We import the csv data as Pandas DataFrame objects and perform our own data
+# association. Relative poses for ground truth data are computed explicitly here.
+# Rotation error and translation error (up to a scaling factor) are then calculated for
+# each pair of consecutive keyframes.
 #
-# This gives insight into the accuracy of the RANSAC 5-point method employed in the frontend.
+# This gives insight into the accuracy of the RANSAC 5-point method employed in
+# the frontend.
 #
-# NOTE: gt_df is read from the ground-truth csv. It expects the timestamp to be the first column. Make sure to comment out `rename_euroc_gt_df(gt_df)` in the second cell below if you are not using a csv with the EuRoC header.
+# NOTE: gt_df is read from the ground-truth csv. It expects the timestamp to be the
+# first column. Make sure to comment out `rename_euroc_gt_df(gt_df)` in the second cell
+# below if you are not using a csv with the EuRoC header.
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
@@ -223,10 +223,10 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 # %%
 # Generate some trajectories for later plots
 # Convert to evo trajectory objects
-traj_ref_unassociated = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref_unassociated = evt.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
-traj_est_unassociated = pandas_bridge.df_to_trajectory(mono_df)
+traj_est_unassociated = evt.df_to_trajectory(mono_df)
 
 # Associate the trajectories
 traj_ref_abs, traj_est_rel = sync.associate_trajectories(
@@ -260,7 +260,11 @@ print("traj_est_rel: ", str(traj_est_rel))
 
 # %% [markdown]
 # ### Frontend Mono and GT Relative Angles
-# This plot shows the relative angles from one frame to another from both mono RANSAC and ground-truth data. Note that the magnitudes of both lines should align very closely with each other. This plot is not affected by extrinsic calibration (as it is showing the relative angles). It can be used as an indicator for whether mono RANSAC is underestimating/overestimating the robot's rotations.
+# This plot shows the relative angles from one frame to another from both mono RANSAC
+# and ground-truth data. Note that the magnitudes of both lines should align very
+# closely with each other. This plot is not affected by extrinsic calibration
+# (as it is showing the relative angles). It can be used as an indicator for whether
+# mono RANSAC is underestimating/overestimating the robot's rotations.
 
 # %%
 # Plot the mono ransac angles
@@ -301,9 +305,10 @@ plt.show()
 # %% [markdown]
 # ### Mono Relative-pose Errors (RPE)
 #
-# Calculate relative-pose-error (RPE) for the mono ransac poses obtained in the frontend.
+# Calculate relative-pose-error (RPE) for the mono ransac poses obtained in the frontend
 #
-# These are relative poses between keyframes and do not represent an entire trajectory. As such, they cannot be processed using the normal EVO evaluation pipeline.
+# These are relative poses between keyframes and do not represent an entire trajectory.
+# As such, they cannot be processed using the normal EVO evaluation pipeline.
 #
 
 # %%
@@ -325,7 +330,8 @@ for i in range(len(traj_ref_cam_rel.timestamps)):
     if np.linalg.norm(t_est) > 1e-6:
         t_est /= np.linalg.norm(t_est)
 
-    # calculate error (up to scale, equivalent to the angle between the two translation vectors)
+    # calculate error up to scale, equivalent to the angle between
+    # the two translation vectors
     trans_errors.append(np.linalg.norm(t_ref - t_est))
 
 plt.figure(figsize=(18, 10))
@@ -341,19 +347,23 @@ plt.show()
 # %%
 # Plot RPE of trajectory rotation and translation parts.
 fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part", figsize=(18, 10))
-fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18,10))
+fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18, 10))
 plt.show()
 
 # %% [markdown]
 # ## Frontend Stereo RANSAC Poses (RPE)
 #
-# Calculate relative-pose-error (RPE) for the stereo ransac poses obtained in the frontend.
+# Calculate relative-pose-error (RPE) for the stereo ransac poses obtained in the
+# frontend.
 #
 # This is done in the same way as in the mono module.
 #
-# This gives insight into the accuracy of the RANSAC 3-point method employed in the frontend.
+# This gives insight into the accuracy of the RANSAC 3-point method employed in the
+# frontend.
 #
-# NOTE: gt_df is read from the ground-truth csv. It expects the timestamp to be the first column. Make sure to comment out `rename_euroc_gt_df(gt_df)` in the second cell below if you are not using a csv with the EuRoC header.
+# NOTE: gt_df is read from the ground-truth csv. It expects the timestamp to be the
+# first column. Make sure to comment out `rename_euroc_gt_df(gt_df)` in the second cell
+# below if you are not using a csv with the EuRoC header.
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
@@ -369,10 +379,10 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert to evo trajectory objects
-traj_ref_unassociated = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref_unassociated = evt.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
-traj_est_unassociated = pandas_bridge.df_to_trajectory(stereo_df)
+traj_est_unassociated = evt.df_to_trajectory(stereo_df)
 
 # Associate the trajectories
 traj_ref_abs, traj_est_rel = sync.associate_trajectories(

@@ -16,10 +16,10 @@
 # %% [markdown]
 # # Plot Backend
 #
-# Plots the APE, RPE and trajectory against ground truth for the final backend output trajectory.
+# Plots the APE, RPE and trajectory against ground truth for the final backend
+# output trajectory.
 
 # %%
-import yaml
 import os
 import copy
 import pandas as pd
@@ -28,23 +28,8 @@ from scipy.spatial.transform import Rotation as R
 
 import logging
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
-
-from evo.tools import file_interface
 from evo.tools import plot
-from evo.tools import pandas_bridge
-
 from evo.core import sync
-from evo.core import trajectory
-from evo.core import metrics
-from evo.core import transformations
-from evo.core import lie_algebra as lie
 
 from evaluation.evaluation_lib import (
     get_ape_trans,
@@ -57,6 +42,7 @@ from evaluation.evaluation_lib import (
     convert_abs_traj_to_rel_traj,
     convert_rel_traj_to_abs_traj,
 )
+import evaluation.tools as evt
 
 # #%matplotlib inline
 # #%matplotlib widget
@@ -65,16 +51,25 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import mpl_toolkits.mplot3d.art3d as art3d
 
-from evaluation.tools import website_utils as web
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+if not log.handlers:
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    log.addHandler(ch)
+
 
 # %% [markdown]
 # ## Data Locations
 #
 # Make sure to set the following paths.
 #
-# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained from logging a run of SparkVio.
+# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained
+# from logging a run of SparkVio.
 #
-# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for the absolute pose at each timestamp of the dataset.
+# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for
+# the absolute pose at each timestamp of the dataset.
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
@@ -85,7 +80,7 @@ gt_data_file = vio_output_dir + "traj_gt.csv"
 # %%
 def rename_pim_df(df):
     """
-    Renames a DataFrame built from a PIM measurements csv file to be converted to a trajectory.
+    Renames a DataFrame built from PIM measurements to be converted to a trajectory.
 
     This is an 'inplace' argument and returns nothing.
 
@@ -184,7 +179,9 @@ def draw_start_and_end(ax, traj, plot_mode):
 # %% [markdown]
 # ## Backend Trajectory
 #
-# Associate, align and process the trajectory as determined by the backend. Note that this does not include loop closure factors or other optimizations. This is pure VIO.
+# Associate, align and process the trajectory as determined by the backend.
+# Note that this does not include loop closure factors or other optimizations.
+# This is pure VIO.
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
@@ -198,17 +195,17 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref_complete = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref_complete = evt.df_to_trajectory(gt_df)
 
 # Use the backend poses as trajectory.
-traj_est_unaligned = pandas_bridge.df_to_trajectory(output_poses_df)
+traj_est_unaligned = evt.df_to_trajectory(output_poses_df)
 discard_n_start_poses = 0
 discard_n_end_poses = 0
 
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
-traj_est = trajectory.align_trajectory(
+traj_est = evt.align_trajectory(
     traj_est,
     traj_ref,
     correct_scale=False,
@@ -251,7 +248,7 @@ gt_df_downsampled = gt_df.iloc[:1200:100]
 
 
 # reference trajectory
-traj_ref_downsampled = pandas_bridge.df_to_trajectory(gt_df_downsampled)
+traj_ref_downsampled = evt.df_to_trajectory(gt_df_downsampled)
 draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
 draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
 plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
@@ -263,12 +260,14 @@ plt.show()
 # %% [markdown]
 # ## Absolute-Pose-Error Plotting
 #
-# Plot absolute-pose-error along the entire trajectory. APE gives a good sense of overall VIO performance across the entire trajectory.
+# Plot absolute-pose-error along the entire trajectory.
+# APE gives a good sense of overall VIO performance across the entire trajectory.
 
 # %% [markdown]
 # ### Absolute Translation Errors
 #
-# The following two plots show 1) VIO's absolute translation errors (ATE) in meters with respect to time, and 2) estimated trajectory color coded by magnitudes of the ATE.
+# The following two plots show 1) VIO's absolute translation errors (ATE) in meters with
+# respect to time, and 2) estimated trajectory color coded by magnitudes of the ATE.
 
 # %%
 # Plot APE of trajectory rotation and translation parts.
@@ -299,7 +298,10 @@ plt.show()
 # %% [markdown]
 # ### Absolute Rotation Errors
 #
-# The following two plots show 1) VIO's absolute rotation errors (ARE) in meters with respect to time, and 2) estimated trajectory color coded by magnitudes of the ARE. Note that the estimated trajectory used here, unlike ATE, is the unaligned, original estimated trajectory.
+# The following two plots show 1) VIO's absolute rotation errors (ARE) in meters with
+# respect to time, and 2) estimated trajectory color coded by magnitudes of the ARE.
+# Note that the estimated trajectory used here, unlike ATE, is the unaligned,
+# original estimated trajectory.
 
 # %%
 # Plot ARE
@@ -340,7 +342,8 @@ plt.show()
 # %% [markdown]
 # ## Relative-Pose-Error Plotting
 #
-# Plot relative-pose-error along the entire trajectory. RPE gives a good sense of overall VIO performance from one frame to the next.
+# Plot relative-pose-error along the entire trajectory.
+# RPE gives a good sense of overall VIO performance from one frame to the next.
 
 # %%
 # Get RPE for entire relative trajectory.
@@ -407,9 +410,12 @@ plt.show()
 # %% [markdown]
 # ## PIM Plotting
 #
-# Plot preintegrated-imu-measurement estimates of current state over time. This comes in as a trajectory. The plots of error serve to help visualize the error in pim values over time.
+# Plot preintegrated-imu-measurement estimates of current state over time.
+# This comes in as a trajectory.
+# The plots of error serve to help visualize the error in pim values over time.
 #
-# Note that these pim values are built off the backend's estimation, not off of ground truth.
+# Note that these pim values are built off the backend's estimation,
+# not off of ground truth.
 
 # %%
 pim_filename = os.path.join(
@@ -425,16 +431,16 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref = evt.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
 # traj_est_unassociated = file_interface.read_swe_csv_trajectory(ransac_mono_filename)
-traj_est_unaligned = pandas_bridge.df_to_trajectory(pim_df)
+traj_est_unaligned = evt.df_to_trajectory(pim_df)
 
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
-traj_est = trajectory.align_trajectory(traj_est, traj_ref, correct_scale=False)
+traj_est = evt.align_trajectory(traj_est, traj_ref, correct_scale=False)
 
 print("traj_ref: ", str(traj_ref))
 print("traj_est: ", str(traj_est))
@@ -582,10 +588,10 @@ output_external_odom_filename = os.path.join(os.path.expandvars(vio_output_dir),
 output_external_odom_df = pd.read_csv(output_external_odom_filename, sep=',', index_col=0)
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref_complete = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref_complete = evt.df_to_trajectory(gt_df)
 
 # Use the backend poses as trajectory.
-traj_est_unaligned_rel = pandas_bridge.df_to_trajectory(output_external_odom_df)
+traj_est_unaligned_rel = evt.df_to_trajectory(output_external_odom_df)
 
 # Convert to absolute trajectory by concatenating all between poses
 traj_est_unaligned = convert_rel_traj_to_abs_traj(traj_est_unaligned_rel)
@@ -595,7 +601,7 @@ discard_n_end_poses = 0
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
-traj_est = trajectory.align_trajectory(traj_est, traj_ref, correct_scale=False,
+traj_est = evt.align_trajectory(traj_est, traj_ref, correct_scale=False,
                                        discard_n_start_poses = int(discard_n_start_poses),
                                        discard_n_end_poses = int(discard_n_end_poses))
 
@@ -630,9 +636,9 @@ ax = plot.prepare_axis(fig, plot_mode)
 gt_df_downsampled = gt_df.iloc[:1200:100]
 
 # reference trajectory
-traj_ref_downsampled = pandas_bridge.df_to_trajectory(gt_df_downsampled)
-draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode,marker_scale=3)
-draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode,marker_scale=3)
+traj_ref_downsampled = evt.df_to_trajectory(gt_df_downsampled)
+draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
+draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
 plot.traj(ax, plot_mode, traj_ref, '--', "gray", "reference")
 plot.traj(ax, plot_mode, traj_est, '--', "green", "estimate (aligned)")
 
@@ -671,6 +677,7 @@ plt.show()
 # # Website Builder
 
 # %%
+import evaluation.tools.website_builder as web
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 jinja_env = Environment(

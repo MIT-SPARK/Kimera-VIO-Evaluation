@@ -7,3 +7,4 @@ from .math_utils import *
 from .utils import *
 from .mesh import Mesh
 from .website_utils import WebsiteBuilder
+from evaluation.tools.trajectory_tools import *

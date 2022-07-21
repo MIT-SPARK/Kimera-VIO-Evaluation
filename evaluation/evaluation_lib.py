@@ -794,9 +794,10 @@ def plot_metric(metric, plot_title="", figsize=(8,8)):
             A plt figure.
     """
     fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot()
     stats = metric.get_all_statistics()
 
-    plot.error_array(fig, metric.error, statistics=stats,
+    plot.error_array(ax, metric.error, statistics=stats,
                         title=plot_title,
                         xlabel="Keyframe index [-]",
                         ylabel=plot_title + " " + metric.unit.value)
