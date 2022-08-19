@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.8
+#       jupytext_version: 1.14.0
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: Python 3
 #     language: python
 #     name: python3
 # ---
@@ -73,7 +73,8 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/nathan/uhumans2_test/office_06h/"
+vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/uh2_rgbd/"
+# vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
 
 
@@ -330,7 +331,10 @@ plt.show()
 
 # %%
 gt_vel = np.linalg.norm(np.column_stack((gt_df.vx, gt_df.vy, gt_df.vz)), axis=1)
-est_vel = np.linalg.norm(np.column_stack((output_poses_df.vx, output_poses_df.vy, output_poses_df.vz)), axis=1)
+est_vel = np.linalg.norm(
+    np.column_stack((output_poses_df.vx, output_poses_df.vy, output_poses_df.vz)),
+    axis=1,
+)
 
 fig = plt.figure()
 plt.plot(gt_df.index, gt_vel, label="Ground Truth")
@@ -535,22 +539,40 @@ output_sf_df = pd.read_csv(output_sf_filename, sep=",", index_col=0)
 fig = plt.figure()
 
 # plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numSF, label='numSF')
-plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numValid, label='numValid')
+plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numValid, label="numValid")
 
 if np.any(output_sf_df.numDegenerate > 0):
-    plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numDegenerate, label='numDegenerate')
+    plt.plot(
+        output_sf_df.timestamp_kf / 1e9,
+        output_sf_df.numDegenerate,
+        label="numDegenerate",
+    )
 if np.any(output_sf_df.numFarPoints > 0):
-    plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numFarPoints, label='numFarPoints')
-# if np.any(output_sf_df.numNonInitialized > 0):
-#     plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numNonInitialized, label='numNonInitialized')
+    plt.plot(
+        output_sf_df.timestamp_kf / 1e9, output_sf_df.numFarPoints, label="numFarPoints"
+    )
+if np.any(output_sf_df.numNonInitialized > 0):
+    plt.plot(
+        output_sf_df.timestamp_kf / 1e9,
+        output_sf_df.numNonInitialized,
+        label="numNonInitialized",
+    )
 if np.any(output_sf_df.numCheirality > 0):
-    plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numCheirality, label='numCheirality')
+    plt.plot(
+        output_sf_df.timestamp_kf / 1e9,
+        output_sf_df.numCheirality,
+        label="numCheirality",
+    )
 if np.any(output_sf_df.numOutliers > 0):
-    plt.plot(output_sf_df.timestamp_kf / 1e9, output_sf_df.numOutliers, label='numOutliers')
+    plt.plot(
+        output_sf_df.timestamp_kf / 1e9, output_sf_df.numOutliers, label="numOutliers"
+    )
 
 plt.ylabel("Number of Smart Factors")
 plt.xlabel("Timestamps")
-plt.legend()
+plt.legend(ncol=6)
+plt.gcf().set_size_inches([9, 6])
+plt.tight_layout()
 plt.show()
 
 # %% [markdown]
@@ -559,17 +581,17 @@ plt.show()
 
 # %%
 fig1 = plt.figure()
-plt.plot(output_poses_df.index, output_poses_df.bgx, label='bgx')
-plt.plot(output_poses_df.index, output_poses_df.bgy, label='bgy')
-plt.plot(output_poses_df.index, output_poses_df.bgz, label='bgz')
+plt.plot(output_poses_df.index, output_poses_df.bgx, label="bgx")
+plt.plot(output_poses_df.index, output_poses_df.bgy, label="bgy")
+plt.plot(output_poses_df.index, output_poses_df.bgz, label="bgz")
 plt.ylabel("Gyro Biases")
 plt.xlabel("Timestamps")
 plt.legend()
 
 fig2 = plt.figure()
-plt.plot(output_poses_df.index, output_poses_df.bax, label='bax')
-plt.plot(output_poses_df.index, output_poses_df.bay, label='bay')
-plt.plot(output_poses_df.index, output_poses_df.baz, label='baz')
+plt.plot(output_poses_df.index, output_poses_df.bax, label="bax")
+plt.plot(output_poses_df.index, output_poses_df.bay, label="bay")
+plt.plot(output_poses_df.index, output_poses_df.baz, label="baz")
 plt.ylabel("Acceleration Biases")
 plt.xlabel("Timestamps")
 plt.legend()
@@ -580,12 +602,15 @@ plt.show()
 # Plot external odometry trajectory against ground truth.
 
 # %%
-gt_df = pd.read_csv(gt_data_file, sep=',', index_col=0)
+gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 gt_df = gt_df[~gt_df.index.duplicated()]
 
-output_external_odom_filename = os.path.join(os.path.expandvars(vio_output_dir),
-                                             "output_backend_external_odometry.csv")
-output_external_odom_df = pd.read_csv(output_external_odom_filename, sep=',', index_col=0)
+output_external_odom_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_backend_external_odometry.csv"
+)
+output_external_odom_df = pd.read_csv(
+    output_external_odom_filename, sep=",", index_col=0
+)
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
 traj_ref_complete = evt.df_to_trajectory(gt_df)
@@ -601,9 +626,13 @@ discard_n_end_poses = 0
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
-traj_est = evt.align_trajectory(traj_est, traj_ref, correct_scale=False,
-                                       discard_n_start_poses = int(discard_n_start_poses),
-                                       discard_n_end_poses = int(discard_n_end_poses))
+traj_est = evt.align_trajectory(
+    traj_est,
+    traj_ref,
+    correct_scale=False,
+    discard_n_start_poses=int(discard_n_start_poses),
+    discard_n_end_poses=int(discard_n_end_poses),
+)
 
 print("traj_ref: ", str(traj_ref))
 print("traj_est: ", str(traj_est))
@@ -613,10 +642,12 @@ print("traj_est: ", str(traj_est))
 plot_mode = plot.PlotMode.xy
 fig = plt.figure()
 ax = plot.prepare_axis(fig, plot_mode)
-draw_coordinate_axes(ax, traj_ref_complete, marker_scale=2, downsample_ratio=20, plot_mode=plot_mode)
+draw_coordinate_axes(
+    ax, traj_ref_complete, marker_scale=2, downsample_ratio=20, plot_mode=plot_mode
+)
 draw_start_and_end(ax, traj_ref_complete, plot_mode)
-plot.traj(ax, plot_mode, traj_ref_complete, '--', "gray", "reference")
-plt.title('Reference trajectory with pose')
+plot.traj(ax, plot_mode, traj_ref_complete, "--", "gray", "reference")
+plt.title("Reference trajectory with pose")
 plt.show()
 
 # plot unaligned trajectory with pose
@@ -625,8 +656,8 @@ fig = plt.figure()
 ax = plot.prepare_axis(fig, plot_mode)
 draw_coordinate_axes(ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode)
 draw_start_and_end(ax, traj_est_unaligned, plot_mode)
-plot.traj(ax, plot_mode, traj_est_unaligned, '--', "gray", "reference")
-plt.title('External odometry estimated trajectory with pose')
+plot.traj(ax, plot_mode, traj_est_unaligned, "--", "gray", "reference")
+plt.title("External odometry estimated trajectory with pose")
 plt.show()
 
 plot_mode = plot.PlotMode.xyz
@@ -639,17 +670,21 @@ gt_df_downsampled = gt_df.iloc[:1200:100]
 traj_ref_downsampled = evt.df_to_trajectory(gt_df_downsampled)
 draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
 draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
-plot.traj(ax, plot_mode, traj_ref, '--', "gray", "reference")
-plot.traj(ax, plot_mode, traj_est, '--', "green", "estimate (aligned)")
+plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+plot.traj(ax, plot_mode, traj_est, "--", "green", "estimate (aligned)")
 
-plt.title('Trajectory with pose')
+plt.title("Trajectory with pose")
 plt.show()
 
 # %%
 # Plot APE of trajectory rotation and translation parts.
 num_of_poses = traj_est.num_poses
-traj_est.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
-traj_ref.reduce_to_ids(range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1))
+traj_est.reduce_to_ids(
+    range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
+)
+traj_ref.reduce_to_ids(
+    range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
+)
 
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
 
@@ -658,8 +693,12 @@ fig1 = plot_metric(ape_tran, "External Odometry ATE in Meters")
 plt.show()
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig2 = plot_traj_colormap_ape(ape_tran, traj_ref, traj_est,
-                              plot_title="External Odometry Trajectory Tracking - Color Coded by ATE")
+fig2 = plot_traj_colormap_ape(
+    ape_tran,
+    traj_ref,
+    traj_est,
+    plot_title="External Odometry Trajectory Tracking - Color Coded by ATE",
+)
 plt.show()
 
 # Plot ARE
@@ -669,8 +708,12 @@ fig3 = plot_metric(ape_rot, "External Odometry ARE in Degrees")
 plt.show()
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig4 = plot_traj_colormap_ape(ape_rot, traj_ref, traj_est,
-                             plot_title="External Odometry Trajectory Tracking - Color Coded by ARE")
+fig4 = plot_traj_colormap_ape(
+    ape_rot,
+    traj_ref,
+    traj_est,
+    plot_title="External Odometry Trajectory Tracking - Color Coded by ARE",
+)
 plt.show()
 
 # %% [markdown]

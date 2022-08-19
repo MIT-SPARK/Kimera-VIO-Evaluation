@@ -153,6 +153,9 @@ if not use_plotly:
     df_stats.plot(kind="line", y="nrStereoPutatives", ax=axes1[0, 1])
     df_stats.plot(kind="line", y="monoRansacIters", ax=axes1[0, 2])
     df_stats.plot(kind="line", y="stereoRansacIters", ax=axes1[0, 2])
+    axes1[0, 0].set_ylim([0.0, axes1[0, 0].get_ylim()[1]])
+    axes1[0, 1].set_ylim([0.0, axes1[0, 1].get_ylim()[1]])
+    axes1[0, 2].set_ylim([0.0, axes1[0, 2].get_ylim()[1]])
     plt.show()
 else:
     evt.draw_mono_stereo_inliers_outliers(df_stats, True)
