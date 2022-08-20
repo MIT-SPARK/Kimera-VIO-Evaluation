@@ -781,7 +781,17 @@ def get_rpe_trans(data):
     return rpe_trans
 
 
-def plot_metric(metric, plot_title="", figsize=(8,8)):
+DEFAULT_STAT_TYPES = [
+    metrics.StatisticsType.rmse,
+    metrics.StatisticsType.mean,
+    metrics.StatisticsType.median,
+    metrics.StatisticsType.std,
+    metrics.StatisticsType.min,
+    metrics.StatisticsType.max,
+]
+
+
+def plot_metric(metric, plot_title="", figsize=(8, 8), stat_types=None):
     """ Adds a metric plot to a plot collection.
 
         Args:
@@ -795,12 +805,13 @@ def plot_metric(metric, plot_title="", figsize=(8,8)):
     """
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
-    stats = metric.get_all_statistics()
+    stats_to_use = DEFAULT_STAT_TYPES if stat_types is None else stat_types
+    stats = {s.value: metric.get_statistic(s) for s in stats_to_use}
 
     plot.error_array(ax, metric.error, statistics=stats,
-                        title=plot_title,
-                        xlabel="Keyframe index [-]",
-                        ylabel=plot_title + " " + metric.unit.value)
+                     title=plot_title,
+                     xlabel="Keyframe index [-]",
+                     ylabel=plot_title + " " + metric.unit.value)
 
     return fig
 

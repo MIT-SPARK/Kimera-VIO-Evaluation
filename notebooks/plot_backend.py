@@ -568,7 +568,7 @@ if np.any(output_sf_df.numOutliers > 0):
         output_sf_df.timestamp_kf / 1e9, output_sf_df.numOutliers, label="numOutliers"
     )
 
-plt.ylabel("Number of Smart Factors")
+plt.ylabel("Valid Smart Factors")
 plt.xlabel("Timestamps")
 plt.legend(ncol=6)
 plt.gcf().set_size_inches([9, 6])
