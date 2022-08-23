@@ -16,7 +16,8 @@
 # %% [markdown]
 # # Plot Loop-Closure-Detection
 #
-# Plots statistics on loop closure detection as well as optimized trajectory RPE, APE and trajectory against ground truth.
+# Plots statistics on loop closure detection as well as optimized trajectory RPE, APE
+# and trajectory against ground truth.
 
 # %%
 import yaml
@@ -28,25 +29,14 @@ from scipy.spatial.transform import Rotation as R
 
 import logging
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
-
-from evo.tools import file_interface
 from evo.tools import plot
-from evo.tools import pandas_bridge
 from evo.tools.settings import SETTINGS
 
 from evo.core import sync
-from evo.core import trajectory
-from evo.core import metrics
 from evo.core import transformations
 from evo.core import lie_algebra as lie
 
+import evaluation.tools as evt
 from evaluation.evaluation_lib import (
     get_ape_trans,
     get_ape_rot,
@@ -62,20 +52,31 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+if not log.handlers:
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    log.addHandler(ch)
+
+
 # %% [markdown]
 # ## Data Locations
 #
 # Make sure to set the following paths.
 #
-# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained from logging a run of SparkVio.
+# `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained
+# from logging a run of SparkVio.
 #
-# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for the absolute pose at each timestamp of the dataset.
+# `gt_data_file` is the absolute path to the `csv` file containing ground truth data for
+# the absolute pose at each timestamp of the dataset.
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = ""
+vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/uh2_rgbd/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = ""
+left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/config/uh2_rgbd_vio/LeftCameraParams.yaml"
 
 # %%
 # Load calibration data
@@ -106,7 +107,7 @@ def downsize_lc_df(df):
 
 
 def downsize_lc_result_df(df):
-    """Same as downsize_lc_df but checks the `isloop` field of the DataFrame for the LCD result 
+    """Same as downsize_lc_df but checks the `isloop` field of the DataFrame for the LCD result
     DataFrame, instead of the timestamp.
     """
     df = df[~df.index.duplicated()]
@@ -124,7 +125,7 @@ def closest_num(ls, query):
 
 def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
     """Returns the relative pose from match to query for given timestamps.
-    
+
     Args:
         gt_df: A pandas.DataFrame object with timestamps as indices containing, at a minimum,
             columns representing the xyz position and wxyz quaternion-rotation at each
@@ -138,11 +139,11 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
     """
     w_T_bmatch = None
     w_T_bquery = None
-    
+
     try:
         closest_ts = closest_num(gt_df.index, match_ts)
         if closest_ts != match_ts:
-#             print("using closest match for timestamps")
+            # print("using closest match for timestamps")
             pass
 
         w_t_bmatch = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
@@ -158,11 +159,11 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
             " is not available in ground truth df.",
         )
         return None
-        
+
     try:
         closest_ts = closest_num(gt_df.index, query_ts)
         if closest_ts != query_ts:
-#             print("using closest match for timestamps")
+            # print("using closest match for timestamps")
             pass
 
         w_t_bquery = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
@@ -178,7 +179,7 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
             " is not available in ground truth df.",
         )
         return None
-        
+
     bmatch_T_bquery = lie.relative_se3(w_T_bmatch, w_T_bquery)
     bmatch_t_bquery = bmatch_T_bquery[:3, 3]
 
@@ -186,9 +187,9 @@ def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
         norm = np.linalg.norm(bmatch_t_bquery)
         if norm > 1e-6:
             bmatch_t_bquery = bmatch_t_bquery / np.linalg.norm(bmatch_t_bquery)
-            
+
     bmatch_T_bquery[:3, 3] = bmatch_t_bquery
-    
+
     return bmatch_T_bquery
 
 
@@ -224,12 +225,12 @@ def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
     for i in range(len(lcd_df.index)):
         match_ts = lcd_df.timestamp_match[lcd_df.index[i]]
         query_ts = lcd_df.timestamp_query[lcd_df.index[i]]
-        
+
         if match_ts == 0 and query_ts == 0:
             continue
 
         bi_T_bidelta = get_gt_rel_pose(df, match_ts, query_ts, to_scale)
-        
+
         if bi_T_bidelta is not None:
             bi_R_bidelta = copy.deepcopy(bi_T_bidelta)
             bi_R_bidelta[:, 3] = np.array([0, 0, 0, 1])
@@ -308,12 +309,17 @@ def rename_lcd_result_df(df):
 # %% [markdown]
 # ## LoopClosureDetector Statistics Plotting
 #
-# Gather and plot various statistics on LCD module performance, including RANSAC information, keyframe status (w.r.t. loop closure detection), and loop closure events and the quality of their relative poses.
+# Gather and plot various statistics on LCD module performance, including RANSAC
+# information, keyframe status (w.r.t. loop closure detection), and loop closure events
+# and the quality of their relative poses.
 
 # %% [markdown]
 # ### LCD Status Frequency Chart
 #
-# Each keyframe is processed for potential loop closures. During this process, the loop-closure detector can either identify a loop closure or not. There are several reasons why a loop closure would not be detected. This plot helps to identify why loop closures are not detected between keyframes.
+# Each keyframe is processed for potential loop closures. During this process,
+# the loop-closure detector can either identify a loop closure or not.
+# There are several reasons why a loop closure would not be detected.
+# This plot helps to identify why loop closures are not detected between keyframes.
 
 # %%
 output_lcd_status_filename = os.path.join(
@@ -362,12 +368,14 @@ plt.show()
 # %% [markdown]
 # ### LCD RANSAC Performance Charts
 #
-# Plot the performance of the geometric-verification and pose-recovery steps. These are handled by Nister (5pt) RANSAC and Arun (3pt) RANSAC respectively.
+# Plot the performance of the geometric-verification and pose-recovery steps.
+# These are handled by Nister (5pt) RANSAC and Arun (3pt) RANSAC respectively.
 #
 # inlier percentages and iterations are plotted for both methods.
 
 # %%
 lcd_debuginfo_small_df = downsize_lc_df(lcd_debuginfo_df)
+
 
 # Helper functions for processing data summary.
 def get_mean(attrib):
@@ -420,11 +428,15 @@ plt.show()
 # %% [markdown]
 # ### Geometric Verification (2d2d RANSAC) Error Plotting
 #
-# Calculate error statistics for the 2d2d RANSAC pose estimate for all loop closure candidates that make it to the geometric verification check step.
+# Calculate error statistics for the 2d2d RANSAC pose estimate for all loop closure
+# candidates that make it to the geometric verification check step.
 #
-# The first plot is the relative angles for the 2d2d ransac and the ground truth. You want the two plots to be very similar; any disparity is error.
+# The first plot is the relative angles for the 2d2d ransac and the ground truth.
+# You want the two plots to be very similar; any disparity is error.
 #
-# The second plot only has one line and is the norm of the error in position from the 2d2d ransac result to the ground truth. You want this as close to zero as possible all the way through.
+# The second plot only has one line and is the norm of the error in position from the
+# 2d2d ransac result to the ground truth. You want this as close to zero as possible all
+# the way through.
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)  # Absolute gt in body frame
@@ -436,9 +448,9 @@ lcd_2d2d_df = pd.read_csv(output_loop_closures_filename, sep=",")
 rename_lcd_result_df(lcd_2d2d_df)
 
 # Build trajectory objects
-traj_est_rel = pandas_bridge.df_to_trajectory(lcd_2d2d_df)
+traj_est_rel = evt.df_to_trajectory(lcd_2d2d_df)
 ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_2d2d_df, True)  # keep scale and normalize later
-traj_ref_rel = pandas_bridge.df_to_trajectory(ref_rel_df)
+traj_ref_rel = evt.df_to_trajectory(ref_rel_df)
 traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
 
 print("traj_ref_rel: ", str(traj_ref_rel))
@@ -456,11 +468,11 @@ assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
 for i in range(len(traj_est_rel.poses_se3)):
     est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
     gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
-    
+
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
     gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
-    
+
     error = gt_rot.inv() * est_rot
     error_angle = np.linalg.norm(error.as_rotvec())
     rot_errors.append(error_angle)
@@ -508,7 +520,10 @@ plt.show()
 # %% [markdown]
 # ### Pose Recovery (3d3d or 2d3d RANSAC) Error Plotting
 #
-# Same as the previous section, but for final pose recovery. These are the loop closure relative poses that are passed to the PGO, if they pass the check. They're obtained via 3d3d ransac or PnP (2d3d) depending on user selection.
+# Same as the previous section, but for final pose recovery.
+# These are the loop closure relative poses that are passed to the PGO,
+# if they pass the check.
+# They're obtained via 3d3d ransac or PnP (2d3d) depending on user selection.
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
@@ -520,9 +535,9 @@ lcd_3d3d_df = pd.read_csv(output_loop_closures_filename, sep=",")
 rename_lcd_result_df(lcd_3d3d_df)
 
 # Build trajectory objects
-traj_est_rel = pandas_bridge.df_to_trajectory(lcd_3d3d_df)
+traj_est_rel = evt.df_to_trajectory(lcd_3d3d_df)
 ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_3d3d_df, True)
-traj_ref_rel = pandas_bridge.df_to_trajectory(ref_rel_df)
+traj_ref_rel = evt.df_to_trajectory(ref_rel_df)
 traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
 
 print("traj_ref_rel: ", str(traj_ref_rel))
@@ -540,11 +555,11 @@ assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
 for i in range(len(traj_est_rel.poses_se3)):
     est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
     gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
-    
+
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
     gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
-    
+
     error = gt_rot.inv() * est_rot
     error_angle = np.linalg.norm(error.as_rotvec())
     rot_errors.append(error_angle)
@@ -569,9 +584,9 @@ ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
 # calculate the translation errors
 trans_errors = []
 for i in range(len(traj_ref_cam_rel.timestamps)):
-    t_ref = traj_ref_cam_rel.poses_se3[i][:3,3]
-    t_est = traj_est_rel.poses_se3[i][:3,3]
-    
+    t_ref = traj_ref_cam_rel.poses_se3[i][:3, 3]
+    t_est = traj_est_rel.poses_se3[i][:3, 3]
+
     trans_errors.append(np.linalg.norm(t_ref - t_est))
 
 plt.figure(figsize=(18, 10))
@@ -587,9 +602,13 @@ plt.show()
 # %% [markdown]
 # ## Loop Closure Error Plotting on Trajectory
 #
-# Visualize the loop closures directly on the GT and VIO trajectories, and color-code by error.
+# Visualize the loop closures directly on the GT and VIO trajectories, and color-code by
+# error.
 #
-# We use the pose-recovery data because pose-recovery is the final step in the LCD process, before RPGO uses PCM and/or GNC to perform outlier-rejection. The poses obtained at this step are the final between-poses passed to the RPGO backend. We re-use the errors calculated in the last section for color-coding.
+# We use the pose-recovery data because pose-recovery is the final step in the LCD
+# process, before RPGO uses PCM and/or GNC to perform outlier-rejection.
+# The poses obtained at this step are the final between-poses passed to the RPGO
+# backend. We re-use the errors calculated in the last section for color-coding.
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
@@ -600,7 +619,7 @@ rename_euroc_gt_df(gt_df)
 # Load VIO trajectory
 output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
-traj_ref = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref = evt.df_to_trajectory(gt_df)
 
 # %%
 # Get coordinates for all LC lines to plot
@@ -609,13 +628,13 @@ ys = []
 for i in range(len(lcd_3d3d_df)):
     match_ts = lcd_3d3d_df.timestamp_match[i]
     query_ts = lcd_3d3d_df.timestamp_query[i]
-    
+
     closest_ts = closest_num(gt_df.index, match_ts)
     w_t_bmatch_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-    
+
     closest_ts = closest_num(gt_df.index, query_ts)
     w_t_bquery_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-    
+
     xs.append([w_t_bquery_gt[0], w_t_bmatch_gt[0]])
     ys.append([w_t_bquery_gt[1], w_t_bmatch_gt[1]])
 
@@ -657,9 +676,11 @@ plt.show()
 # %% [markdown]
 # ## LoopClosureDetector PGO-Optimized Trajectory Plotting
 #
-# Plot the APE, RPE, and trajectory of the Pose-graph-optimized trajectory, including loop closures on top of regular odometry updates.
+# Plot the APE, RPE, and trajectory of the Pose-graph-optimized trajectory,
+# including loop closures on top of regular odometry updates.
 #
-# The results are visualized against both ground truth and the odometry-estimate alone to show the performance gain from loop closure detection.
+# The results are visualized against both ground truth and the odometry-estimate alone
+# to show the performance gain from loop closure detection.
 
 # %%
 # Load ground truth and estimated data as csv DataFrames.
@@ -680,13 +701,13 @@ discard_n_start_poses = 10
 discard_n_end_poses = 10
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref = pandas_bridge.df_to_trajectory(gt_df)
+traj_ref = evt.df_to_trajectory(gt_df)
 
 # Compare against the VIO without PGO.
 traj_ref_cp = copy.deepcopy(traj_ref)
-traj_vio = pandas_bridge.df_to_trajectory(output_poses_df)
+traj_vio = evt.df_to_trajectory(output_poses_df)
 traj_ref_cp, traj_vio = sync.associate_trajectories(traj_ref_cp, traj_vio)
-traj_vio = trajectory.align_trajectory(
+traj_vio = evt.align_trajectory(
     traj_vio,
     traj_ref_cp,
     correct_scale=False,
@@ -695,11 +716,11 @@ traj_vio = trajectory.align_trajectory(
 )
 
 # Use the PGO output as estimated trajectory.
-traj_est = pandas_bridge.df_to_trajectory(output_pgo_poses_df)
+traj_est = evt.df_to_trajectory(output_pgo_poses_df)
 
 # Associate the data.
 traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
-traj_est = trajectory.align_trajectory(
+traj_est = evt.align_trajectory(
     traj_est,
     traj_ref,
     correct_scale=False,
@@ -714,7 +735,8 @@ print("traj_est: ", str(traj_est))
 # %% [markdown]
 # ## Absolute-Pose-Error Plotting
 #
-# Plot absolute-pose-error along the entire trajectory. APE gives a good sense of overall VIO performance across the entire trajectory.
+# Plot absolute-pose-error along the entire trajectory.
+# APE gives a good sense of overall VIO performance across the entire trajectory.
 
 # %%
 # Plot APE of trajectory rotation and translation parts.
@@ -769,7 +791,8 @@ plt.show()
 # %% [markdown]
 # ## Relative-Pose-Error Plotting
 #
-# Plot relative-pose-error along the entire trajectory. RPE gives a good sense of overall VIO performance from one frame to the next.
+# Plot relative-pose-error along the entire trajectory.
+# RPE gives a good sense of overall VIO performance from one frame to the next.
 
 # %%
 # Get RPE for entire relative trajectory.
@@ -817,9 +840,9 @@ ax.legend()
 plt.show()
 
 # %%
-traj_vio = pandas_bridge.df_to_trajectory(output_poses_df)
+traj_vio = evt.df_to_trajectory(output_poses_df)
 traj_ref, traj_vio = sync.associate_trajectories(traj_ref, traj_est)
-traj_vio = trajectory.align_trajectory(traj_vio, traj_ref, correct_scale=False)
+traj_vio = evt.align_trajectory(traj_vio, traj_ref, correct_scale=False)
 
 # Plot the trajectories for quick error visualization.
 

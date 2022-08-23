@@ -65,9 +65,9 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/d455/"
-gt_data_file = vio_output_dir + "traj_vio.csv"
-left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/config/d455_vio/LeftCameraParams.yaml"
+vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/uh2_rgbd/"
+gt_data_file = vio_output_dir + "traj_gt.csv"
+left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/config/uh2_rgbd_vio/LeftCameraParams.yaml"
 
 # %% [markdown]
 # ## Frontend Statistics
