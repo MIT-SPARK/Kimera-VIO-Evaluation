@@ -12,7 +12,6 @@ from collections import defaultdict
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from evaluation.tools import draw_ape_boxplots_plotly, draw_feature_tracking_stats, draw_mono_stereo_inliers_outliers
-import website
 
 def get_fig_as_html(fig):
     """ Gets a plotly figure and returns html string to embed in a website
