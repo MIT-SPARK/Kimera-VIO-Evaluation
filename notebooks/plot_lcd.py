@@ -6,11 +6,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.8.1
+#       jupytext_version: 1.13.8
 #   kernelspec:
-#     display_name: Python 2
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: python2
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -353,7 +353,7 @@ print(
 fig = plt.figure(figsize=(18, 10))
 plt.bar(status_freq_map.keys(), status_freq_map.values(), width=1.0)
 
-plt.xticks(status_freq_map.keys(), list(status_freq_map.keys()))
+# plt.xticks(status_freq_map.keys(), list(status_freq_map.keys()))
 plt.ylabel("Status Frequency")
 plt.title("LoopClosureDetector Status Histogram")
 
@@ -454,8 +454,8 @@ rot_errors = []
 
 assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
 for i in range(len(traj_est_rel.poses_se3)):
-    est_rot = R.from_dcm(traj_est_rel.poses_se3[i][:3,:3])
-    gt_rot = R.from_dcm(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
+    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
     
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
@@ -538,8 +538,8 @@ rot_errors = []
 
 assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
 for i in range(len(traj_est_rel.poses_se3)):
-    est_rot = R.from_dcm(traj_est_rel.poses_se3[i][:3,:3])
-    gt_rot = R.from_dcm(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
+    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
     
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
@@ -736,21 +736,21 @@ traj_est.reduce_to_ids(
 # %%
 ape_rot_vio = get_ape_rot((traj_ref_cp, traj_vio))
 ape_tran_vio = get_ape_trans((traj_ref_cp, traj_vio))
-plot_metric(ape_rot_vio, "VIO ARE in Degrees", figsize=(18, 10))
-plot_metric(ape_tran_vio, "VIO ATE in Meters", figsize=(18, 10))
+plot_metric(ape_rot_vio, "VIO ARE in Degrees")
+plot_metric(ape_tran_vio, "VIO ATE in Meters")
 plt.show()
 
 # %%
 ape_rot_pgo = get_ape_rot((traj_ref, traj_est))
 ape_tran_pgo = get_ape_trans((traj_ref, traj_est))
-plot_metric(ape_rot_pgo, "VIO+PGO ARE in Degrees", figsize=(18, 10))
-plot_metric(ape_tran_pgo, "VIO+PGO ATE in Meters", figsize=(18, 10))
+plot_metric(ape_rot_pgo, "VIO+PGO ARE in Degrees")
+plot_metric(ape_tran_pgo, "VIO+PGO ATE in Meters")
 plt.show()
 
 # %%
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
 plot_mode = plot.PlotMode.xy
-fig = plt.figure(figsize=(18, 10))
+fig = plt.figure(figsize=(10, 10))
 ax = plot.prepare_axis(fig, plot_mode)
 plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
 # plot.traj(ax, plot_mode, traj_vio, ".", "gray", "vio without pgo")

@@ -6,11 +6,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.8.1
+#       jupytext_version: 1.13.8
 #   kernelspec:
-#     display_name: Python 2
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: python2
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -245,9 +245,9 @@ traj_est_rel = trajectory.PoseTrajectory3D(
     traj_est_rel.timestamps[1:],
 )
 
-print("traj_ref_rel: ", traj_ref_rel)
-print("traj_ref_cam_rel: ", traj_ref_cam_rel)
-print("traj_est_rel: ", traj_est_rel)
+print("traj_ref_rel: ", str(traj_ref_rel))
+print("traj_ref_cam_rel: ", str(traj_ref_cam_rel))
+print("traj_est_rel: ", str(traj_est_rel))
 
 # Frames of trajectories:
 # traj_rel_rel: body frame relative poses
@@ -282,7 +282,7 @@ for i in range(len(traj_ref_cam_rel._poses_se3)):
     gt_angles_timestamps.append(traj_ref_cam_rel.timestamps[i])
     # rotation matrix to axisangle
     rotm = traj_ref_cam_rel._poses_se3[i][0:3, 0:3]
-    r = R.from_dcm(rotm)
+    r = R.from_matrix(rotm)
 
     rot_vec = r.as_rotvec()
     gt_angles.append(np.linalg.norm(rot_vec))
