@@ -68,7 +68,7 @@ datasets_to_run:
    pipelines: ['Euroc']
    discard_n_start_poses: 10
    discard_n_end_poses: 10
-   initial_frame: 10
+   initial_frame: 5
    final_frame: 10000
  - name: MH_03_medium
    use_lcd: true
