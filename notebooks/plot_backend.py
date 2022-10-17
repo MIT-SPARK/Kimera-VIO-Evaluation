@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -73,7 +73,7 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/uh2_rgbd/"
+vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 # vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
 

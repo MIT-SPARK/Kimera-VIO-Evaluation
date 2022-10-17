@@ -74,9 +74,9 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/output/uh2_rgbd/"
+vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/hydra/hydra_utils/config/uh2_rgbd_vio/LeftCameraParams.yaml"
+left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
 
 # %%
 # Load calibration data
@@ -466,8 +466,8 @@ rot_errors = []
 
 assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
 for i in range(len(traj_est_rel.poses_se3)):
-    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
-    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3, :3])
+    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3, :3])
 
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
@@ -852,3 +852,5 @@ plot.trajectories(
     fig, traj_by_label, plot.PlotMode.xyz, title="PIM Trajectory Tracking in 3D"
 )
 plt.show()
+
+# %%
