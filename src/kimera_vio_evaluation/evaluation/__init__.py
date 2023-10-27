@@ -1,1 +1,1 @@
-from .metric_semantic_evaluation import *
+"""Main commands for evaluating Kimera."""
