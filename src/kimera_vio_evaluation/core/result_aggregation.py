@@ -2,8 +2,9 @@
 import os
 import yaml
 import glog as log
-
-import kimera_vio_evaluation.tools as evt
+from kimera_vio_evaluation.tools.utils import check_stats
+from kimera_vio_evaluation.tools.latex_utils import write_latex_table
+from kimera_vio_evaluation.tools.plotly_plotter import draw_ape_boxplots
 
 
 def aggregate_all_results(results_dir, use_pgo=False):
@@ -62,7 +63,7 @@ def aggregate_all_results(results_dir, use_pgo=False):
 
             log.debug("Check stats from: " + results_filepath)
             try:
-                evt.check_stats(stats[dataset_name][pipeline_name])
+                check_stats(stats[dataset_name][pipeline_name])
             except Exception as e:
                 log.warning(e)
 
@@ -97,8 +98,8 @@ def aggregate_ape_results(results_dir):
     # Draw APE boxplot
     if len(list(stats.values())) > 0:
         log.info("Drawing APE boxplots.")
-        evt.draw_ape_boxplots(stats, results_dir)
+        draw_ape_boxplots(stats, results_dir)
         # Write APE table
         log.info("Writing APE latex table.")
-        evt.write_latex_table(stats, results_dir)
+        write_latex_table(stats, results_dir)
     return stats
