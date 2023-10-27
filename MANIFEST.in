@@ -1,5 +1,0 @@
-# fastentrypoints for fast CLI
-include fastentrypoints.py
-
-# License notice
-include LICENSE

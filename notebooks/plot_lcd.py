@@ -76,7 +76,9 @@ if not log.handlers:
 # Define directory to VIO output csv files as well as ground truth absolute poses.
 vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+left_cam_calibration_file = (
+    "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+)
 
 # %%
 # Load calibration data
@@ -120,7 +122,7 @@ def downsize_lc_result_df(df):
 
 def closest_num(ls, query):
     ls_len = len(ls)
-    return ls[min(range(ls_len), key = lambda i: abs(ls[i]-query))]
+    return ls[min(range(ls_len), key=lambda i: abs(ls[i] - query))]
 
 
 def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
@@ -298,12 +300,15 @@ def rename_lcd_result_df(df):
         df: A pandas.DataFrame object.
     """
     df.index.names = ["timestamp"]
-    df.rename(columns={
-        "#timestamp_match": "timestamp_match",
-        "px": "x",
-        "py": "y",
-        "pz": "z",
-    }, inplace=True)
+    df.rename(
+        columns={
+            "#timestamp_match": "timestamp_match",
+            "px": "x",
+            "py": "y",
+            "pz": "z",
+        },
+        inplace=True,
+    )
 
 
 # %% [markdown]
@@ -440,16 +445,22 @@ plt.show()
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)  # Absolute gt in body frame
-rename_euroc_gt_df(gt_df)  # some pre-processing for euroc only (doesn't affect non-euroc)
+rename_euroc_gt_df(
+    gt_df
+)  # some pre-processing for euroc only (doesn't affect non-euroc)
 
 # Get 2d2d ransac results (camera frame, relative, only for LC candidates) as dataframe
-output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_geom_verif.csv")
+output_loop_closures_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_lcd_geom_verif.csv"
+)
 lcd_2d2d_df = pd.read_csv(output_loop_closures_filename, sep=",")
 rename_lcd_result_df(lcd_2d2d_df)
 
 # Build trajectory objects
 traj_est_rel = evt.df_to_trajectory(lcd_2d2d_df)
-ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_2d2d_df, True)  # keep scale and normalize later
+ref_rel_df = convert_abs_traj_to_rel_traj_lcd(
+    gt_df, lcd_2d2d_df, True
+)  # keep scale and normalize later
 traj_ref_rel = evt.df_to_trajectory(ref_rel_df)
 traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
 
@@ -464,7 +475,7 @@ gt_angles = []
 gt_angles_timestamps = []
 rot_errors = []
 
-assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
+assert len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3)
 for i in range(len(traj_est_rel.poses_se3)):
     est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3, :3])
     gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3, :3])
@@ -493,7 +504,6 @@ plt.show()
 # calculate the translation errors up-to-scale
 trans_errors = []
 for i in range(len(traj_ref_cam_rel.timestamps)):
-
     # normalized translation vector from gt
     t_ref = traj_ref_cam_rel.poses_se3[i][0:3, 3]
     if np.linalg.norm(t_ref) > 1e-6:
@@ -530,7 +540,9 @@ gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 rename_euroc_gt_df(gt_df)
 
 # Get 3d3d or 2d3d ransac results (camera frame, relative, only for LC candidates) as dataframe
-output_loop_closures_filename = os.path.join(os.path.expandvars(vio_output_dir), "output_lcd_pose_recovery.csv")
+output_loop_closures_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "output_lcd_pose_recovery.csv"
+)
 lcd_3d3d_df = pd.read_csv(output_loop_closures_filename, sep=",")
 rename_lcd_result_df(lcd_3d3d_df)
 
@@ -551,10 +563,10 @@ gt_angles = []
 gt_angles_timestamps = []
 rot_errors = []
 
-assert(len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3))
+assert len(traj_est_rel.poses_se3) == len(traj_ref_cam_rel.poses_se3)
 for i in range(len(traj_est_rel.poses_se3)):
-    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3,:3])
-    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3,:3])
+    est_rot = R.from_matrix(traj_est_rel.poses_se3[i][:3, :3])
+    gt_rot = R.from_matrix(traj_ref_cam_rel.poses_se3[i][:3, :3])
 
     est_angles.append(np.linalg.norm(est_rot.as_rotvec()))
     gt_angles.append(np.linalg.norm(gt_rot.as_rotvec()))
@@ -646,24 +658,29 @@ ax = plot.prepare_axis(fig, plot_mode)
 err = np.rad2deg(rot_errors)
 norm = mpl.colors.Normalize(vmin=min(err), vmax=max(err), clip=True)
 mapper = cm.ScalarMappable(
-    norm=norm,
-    cmap=SETTINGS.plot_trajectory_cmap)  # cm.*_r is reversed cmap
+    norm=norm, cmap=SETTINGS.plot_trajectory_cmap
+)  # cm.*_r is reversed cmap
 mapper.set_array(err)
 colors = [mapper.to_rgba(a) for a in err]
 cbar = fig.colorbar(
-    mapper, ticks=[min(err), (max(err) - (max(err) - min(err)) / 2), max(err)])
-cbar.ax.set_yticklabels([
-    "{0:0.3f}".format(min(err)),
-    "{0:0.3f}".format(max(err) - (max(err) - min(err)) / 2),
-    "{0:0.3f}".format(max(err))
-])
+    mapper, ticks=[min(err), (max(err) - (max(err) - min(err)) / 2), max(err)]
+)
+cbar.ax.set_yticklabels(
+    [
+        "{0:0.3f}".format(min(err)),
+        "{0:0.3f}".format(max(err) - (max(err) - min(err)) / 2),
+        "{0:0.3f}".format(max(err)),
+    ]
+)
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-ax.set_title("Ground-Truth Trajectory with Loop Closures (Colored-Coded by Rotation Error in Deg)")
+ax.set_title(
+    "Ground-Truth Trajectory with Loop Closures (Colored-Coded by Rotation Error in Deg)"
+)
 plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
 
 # Plot accepted loop closures
-assert(len(xs) == len(ys))
+assert len(xs) == len(ys)
 for i in range(len(xs)):
     x = xs[i]
     y = ys[i]
@@ -689,7 +706,9 @@ gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
 
-output_pgo_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_pgo.csv")
+output_pgo_poses_filename = os.path.join(
+    os.path.expandvars(vio_output_dir), "traj_pgo.csv"
+)
 output_pgo_poses_df = pd.read_csv(output_pgo_poses_filename, sep=",", index_col=0)
 
 # %%

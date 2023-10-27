@@ -67,7 +67,9 @@ if not log.handlers:
 # Define directory to VIO output csv files as well as ground truth absolute poses.
 vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
 gt_data_file = vio_output_dir + "traj_gt.csv"
-left_cam_calibration_file = "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+left_cam_calibration_file = (
+    "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+)
 
 # %% [markdown]
 # ## Frontend Statistics
@@ -322,7 +324,6 @@ ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
 # calculate the translation errors up-to-scale
 trans_errors = []
 for i in range(len(traj_ref_cam_rel.timestamps)):
-
     # normalized translation vector from gt
     t_ref = traj_ref_cam_rel.poses_se3[i][0:3, 3]
     if np.linalg.norm(t_ref) > 1e-6:
@@ -350,7 +351,9 @@ plt.show()
 # %%
 # Plot RPE of trajectory rotation and translation parts.
 fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part", figsize=(18, 10))
-fig2 = plot_metric(ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18, 10))
+fig2 = plot_metric(
+    ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18, 10)
+)
 plt.show()
 
 # %% [markdown]

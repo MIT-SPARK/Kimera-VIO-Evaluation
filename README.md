@@ -1,40 +1,22 @@
 # Kimera VIO Evaluation
 
-![](https://travis-ci.org/ToniRV/Kimera-VIO-Evaluation.svg?branch=master)
-
 Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
-This repository contains two main scripts:
-- `main_evaluation.py`: given an experiment yaml file with specifications (see `experiments` folder), it runs Kimera-VIO pipeline to generate an estimated trajectory.
-Then, it aligns ground-truth trajectory with estimated trajectory, and computes error metrics (Absolute Translation Error (ATE), Relative Pose Error (RPE)).
-It also displays or saves plots about its performance. All functionality is optional (check parameters below).
+# Installation
 
-**[OUTDATED]**
-- `regression_tests.py`: runs Kimera-VIO with different parameters as specified in an experiment yaml file. It displays Absolute Translation Error (ATE) boxplots for each parameter setting to allow visual inspection of what set of parameters is performing well. Check parameters below for functionality.
-
-# Prerequisites
-
-- numpy
-- pyyaml
-- evo-1 // Fork from [evo](https://github.com/MichaelGrupp/evo)
-- open3d-python
-- plotly
-
-> We strongly recommend setting a new virtual environment to avoid conflicts with system-wide installations:
+> We strongly recommend creating a new virtual environment to avoid conflicts with system-wide installations:
 > ```bash
-> sudo apt-get install virtualenv
-> virtualenv -p python2.7 ./venv
+> sudo apt-get install python3-virtualenv
+> python3 -m virtualenv -p $(which python3) --download ./venv
 > source ./venv/bin/activate
 > ```
 
-# Installation
 ```bash
-git clone https://github.com/ToniRV/Kimera-VIO-Evaluation
+git clone https://github.com/MIT-SPARK/Kimera-VIO-Evaluation
 cd Kimera-VIO-Evaluation
 # you may want to do this instead for jupyter notebooks:
 # pip install .[notebook]
 pip install .
-python setup.py develop
 ```
 
 # Example Usage
@@ -84,48 +66,6 @@ The experiment yaml file specifies the following:
 `./evaluation/main_evaluation.py -r -a --save_plots --save_results --save_boxplots experiments/example_euroc.yaml`
 
 where, as explained below, the `-r` and `-a` flags run the VIO pipeline given in the `executable_path` and analyze its output.
-
-### Makefile
-
-An example of command that is useful and commonly used for local evaluation is:
-
-```
-make euroc_evaluation
-```
-
-Which will call the `Makefile` with the command:
-```make
-	@evaluation/main_evaluation.py -r -a -v --save_plots --save_boxplots --save_results --write_website experiments/full_euroc.yaml
-```
-
-
-**[OUTDATED]**
-## Regression Tests
-
-The `regression_tests.py` script is in essence very similar to the `main_evaluation.py` script: it runs the VIO pipeline, computes error metrics, and displays results.
-The only difference is that its **experiment** yaml file expects two extra fields:
-- `regression_tests_dir`: the path where to store the tests results. This repo already provides a `regression_tests` folder for convenience.
-- `regression_parameters`: which specifies the VIO parameters to modify on each run.
-
-For example, below we expect the VIO pipeline to run by modifying each time the `smartNoiseSigma` parameter, while reporting results in
-
-```yaml
-# Here goes the same as in a main_evaluation experiment file [...]
-# This is the path where to store the regression tests.
-regression_tests_dir: '$HOME/Code/spark_vio_evaluation/regression_tests'
-# Here goes the datasets_to_run
-# This is the list of parameters to regress, and the values to test.
-regression_parameters:
-  - name: 'smartNoiseSigma'
-    values: [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4]
-```
-
-Check the `experiments` folder for an example of a complete `regression_test.yaml` experiment file.
-
-Once the regression tests have finished running, you can visualize the results using the `plot_regression_tests.ipynb` jupyter notebook.
-The notebook will mainly pull the results from the root of the regression test results, save all statistics in a file `all_stats.yaml` and plot results.
-> Note that the notebook will reload the `all_stats.yaml` if it finds one instead of repulling all statistics from the results directory.
-> If you want the regression tests to query again the results dir, then remove the `all_stats.yaml` file at the root of results dir.
 
 # Usage
 

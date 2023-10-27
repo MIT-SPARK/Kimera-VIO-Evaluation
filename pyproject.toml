@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kimera_vio_evaluation"
+version = "0.2.0"
+authors = [
+  { name = "Antoni Rosinol", email="arosinol@mit.edu" },
+  { name = "Marcus Abate", email="mabate@mit.edu" },
+  { name = "Nathan Hughes", email="na26933@mit.edu" },
+]
+description = "Code for evaluating the performance of the Kimera VIO pipeline"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "chart_studio",
+    "evo",
+    "glog",
+    "jinja2",
+    "numpy",
+    "pandas",
+    "plotly",
+    "pyyaml",
+    "tk",
+    "tqdm",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/MIT-SPARK/Kimera-VIO-Evaluation"
+
+[project.optional-dependencies]
+notebook = ["jupyter", "jupytext"]
+mesh = ["open3d"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false

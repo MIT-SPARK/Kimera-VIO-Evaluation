@@ -102,10 +102,11 @@ else:
 
 # Push to the cloud?!
 
+
 # %%
 # Store stats in a tidy Pandas DataFrame # TODO(Toni): this should be done in the evaluation_lib.py script...
 def listify_regression_stats(stats):
-    """ Makes a list of lists out of the stats (for easy conversion into pandas dataframe) """
+    """Makes a list of lists out of the stats (for easy conversion into pandas dataframe)"""
     stats_list = []
     for param_name in stats:
         for param_value in stats[param_name]:
