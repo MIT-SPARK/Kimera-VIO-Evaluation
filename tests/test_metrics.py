@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 from evo.core import trajectory, metrics
-from kimera_vio_evaluation.core.trajectory_metrics import (
+from kimera_eval.core.trajectory_metrics import (
     get_ape_rot,
     get_ape_trans,
     get_rpe_rot,

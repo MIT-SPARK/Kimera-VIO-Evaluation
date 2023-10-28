@@ -11,6 +11,17 @@ from evaluation.tools.utils import get_items
 from evaluation.evaluation_lib import run_dataset
 
 
+def ensure_dir(dir_path):
+    """
+    Check if the path directory exists: if it does, returns true.
+
+    If not creates the directory dir_path and returns if it was successful
+    """
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    return True
+
+
 def write_flags_params(param_filepath, param_name, param_value):
     """Write params to gflags file.
 

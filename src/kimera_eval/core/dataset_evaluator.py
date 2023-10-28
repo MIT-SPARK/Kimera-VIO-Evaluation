@@ -4,11 +4,10 @@ import yaml
 from tqdm import tqdm
 import glog as log
 import pandas as pd
+import pathlib
 
 from evo.core import trajectory, sync, metrics
 from evo.tools import plot, pandas_bridge
-
-import kimera_vio_evaluation.tools as evt
 
 
 class DatasetEvaluator:
@@ -113,7 +112,7 @@ class DatasetEvaluator:
             "\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
             % (dataset_results_dir, pipeline_type)
         )
-        evt.print_green("Starting analysis of pipeline: %s" % pipeline_type)
+        print_green("Starting analysis of pipeline: %s" % pipeline_type)
 
         discard_n_start_poses = dataset["discard_n_start_poses"]
         discard_n_end_poses = dataset["discard_n_end_poses"]
@@ -140,7 +139,7 @@ class DatasetEvaluator:
                 )
 
         if self.display_plots and plot_collection is not None:
-            evt.print_green("Displaying plots.")
+            print_green("Displaying plots.")
             plot_collection.show()
 
         if self.save_plots and plot_collection is not None:
@@ -187,7 +186,7 @@ class DatasetEvaluator:
         traj_ref_vio = copy.deepcopy(traj_ref)
 
         # Register and align trajectories:
-        evt.print_purple("Registering and aligning trajectories")
+        print_purple("Registering and aligning trajectories")
         traj_ref_vio, traj_est_vio = sync.associate_trajectories(
             traj_ref_vio, traj_est_vio
         )
@@ -270,7 +269,7 @@ class DatasetEvaluator:
         # Generate plots for return:
         plot_collection = None
         if self.display_plots or self.save_plots:
-            evt.print_green("Plotting:")
+            print_green("Plotting:")
             log.info(dataset_name)
             plot_collection = plot.PlotCollection("Example")
 
@@ -384,15 +383,15 @@ class DatasetEvaluator:
         suffix = "VIO" if is_vio_traj else "PGO"
         data = (traj_ref, traj_est)
 
-        evt.print_purple("Calculating APE translation part for " + suffix)
+        print_purple("Calculating APE translation part for " + suffix)
         ape_metric = get_ape_trans(data)
         ape_result = ape_metric.get_result()
-        evt.print_green("APE translation: %f" % ape_result.stats["mean"])
+        print_green("APE translation: %f" % ape_result.stats["mean"])
 
-        evt.print_purple("Calculating RPE translation part for " + suffix)
+        print_purple("Calculating RPE translation part for " + suffix)
         rpe_metric_trans = get_rpe_trans(data)
 
-        evt.print_purple("Calculating RPE rotation angle for " + suffix)
+        print_purple("Calculating RPE rotation angle for " + suffix)
         rpe_metric_rot = get_rpe_rot(data)
 
         # Collect results:
@@ -470,8 +469,8 @@ class DatasetEvaluator:
         rpe_results = dict()
         for segment in segments:
             rpe_results[segment] = dict()
-            evt.print_purple("RPE analysis of segment: %d" % segment)
-            evt.print_lightpurple("Calculating RPE segment translation part")
+            print_purple("RPE analysis of segment: %d" % segment)
+            print_lightpurple("Calculating RPE segment translation part")
             rpe_segment_metric_trans = metrics.RPE(
                 metrics.PoseRelation.translation_part,
                 float(segment),
@@ -485,7 +484,7 @@ class DatasetEvaluator:
             rpe_segment_stats_trans = rpe_segment_metric_trans.get_all_statistics()
             rpe_results[segment]["rpe_trans"] = rpe_segment_stats_trans
 
-            evt.print_lightpurple("Calculating RPE segment rotation angle")
+            print_lightpurple("Calculating RPE segment rotation angle")
             rpe_segment_metric_rot = metrics.RPE(
                 metrics.PoseRelation.rotation_angle_deg,
                 float(segment),
@@ -500,20 +499,21 @@ class DatasetEvaluator:
         return rpe_results
 
     def save_results_to_file(self, results, title, dataset_pipeline_result_dir):
-        """Writes a result dictionary to file as a yaml file.
+        """
+        Write a result dictionary to file as a yaml file.
 
         Args:
-            results: a dictionary containing ape, rpe rotation and rpe translation results and
-                statistics.
-            title: a string representing the filename without the '.yaml' extension.
-            dataset_pipeline_result_dir: a string representing the filepath for the location to
-                save the results file.
+            results: a dictionary trajectory statistics
+            title: filename without extension
+            dataset_pipeline_result_dir: directory to save file to
         """
-        results_file = os.path.join(dataset_pipeline_result_dir, title + ".yaml")
-        evt.print_green("Saving analysis results to: %s" % results_file)
-        evt.create_full_path_if_not_exists(results_file)
-        with open(results_file, "w") as outfile:
-            outfile.write(yaml.dump(results, default_flow_style=False))
+        dataset_path = pathlib.Path(dataset_pipeline_result_dir)
+        dataset_path.mkdir(parents=True, exist_ok=True)
+        results_path = dataset_path / f"{title}.yaml"
+        print(f"Saving analysis results to: {results_path}")
+
+        with results_path.open("w") as fout:
+            fout.write(yaml.dump(results, default_flow_style=False))
 
     def save_plots_to_file(
         self, plot_collection, dataset_pipeline_result_dir, save_pdf=True
