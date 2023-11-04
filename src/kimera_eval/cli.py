@@ -1,4 +1,5 @@
 """Main entry point for running evaluations."""
+from kimera_eval.core.dataset_runner import DatasetRunner
 import click
 import os
 import pathlib
@@ -11,23 +12,43 @@ def _get_experiment_directory():
     return pathlib.Path(__file__).absolute().parent / "experiments"
 
 
+def _normalize_path(input_path):
+    return pathlib.Path(input_path).expanduser().absolute()
+
+
 @click.command(name="run")
+@click.argument("dataset_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path())
 @click.option(
-    "-e", "--experiment", default="experiments.yaml", help="experiment to run"
+    "-e", "--experiment", default="example_euroc.yaml", help="experiment to run"
 )
 @click.option(
     "-d",
-    "--experiment-directory",
+    "--experiments-dir",
     default=None,
     type=click.Path(exists=True),
     help="directory containing experiment files",
 )
-@click.option("--minloglevel", is_flag=True, help="set VIO minloglevel")
-def run(experiment, experiment_directory, minloglevel):
+@click.option("--minloglevel", default=2, help="set VIO minloglevel")
+def run(dataset_path, output_path, experiment, experiments_dir, minloglevel):
     """Run evaluation on datasets."""
-    logging.debug(f"experiment: {experiment}")
-    logging.debug(f"experiment_directory: {experiment_directory}")
-    logging.debug(f"minloglevel: {minloglevel}")
+    dataset_path = _normalize_path(dataset_path)
+    if experiments_dir:
+        experiments_dir = _normalize_path(experiments_dir)
+    else:
+        experiments_dir = _get_experiment_directory()
+
+    experiment_path = experiments_dir / experiment
+    if not experiment_path.exists():
+        click.secho(f"Could not find experiment '{experiment_path}'", fg="red")
+        sys.exit(1)
+
+    with experiment_path.open("r") as fin:
+        params = yaml.safe_load(fin.read())
+
+    output_path = _normalize_path(output_path)
+    runner = DatasetRunner(dataset_path, output_path, params)
+    runner.run_all(minloglevel=minloglevel)
 
 
 @click.command()
@@ -38,7 +59,7 @@ def run(experiment, experiment_directory, minloglevel):
 @click.option("--save_boxplots", is_flag=True, help="Save boxplots?")
 @click.option("--save_results", is_flag=True, help="Save results?")
 @click.option("-v", "--verbose", is_flag=True, help="log kimera-vio output to console")
-def main(experiment, experiment_directory, log_level):
+def main():
     """
     Perform full evaluation of SPARK VIO pipeline.
 
@@ -47,18 +68,6 @@ def main(experiment, experiment_directory, log_level):
       - RPE translation
       - RPE rotation
     """
-    if experiment_directory:
-        experiment_directory = (
-            pathlib.Path(experiment_directory).expanduser().absolute()
-        )
-    else:
-        experiment_directory = _get_experiment_directory()
-
-    experiment_path = experiment_directory / experiment
-    if not experiment_path.exists():
-        click.secho(f"Could not find experiment '{experiment_path}'", fg="red")
-        sys.exit(1)
-
     with experiment_path.open("r") as fin:
         experiment_params = yaml.safe_load(fin.read())
 
