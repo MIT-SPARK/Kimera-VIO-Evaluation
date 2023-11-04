@@ -1,9 +1,8 @@
 """Plot information via plotly."""
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import chart_studio.plotly as py
 
-import glog as log
+import logging
 import pandas as pd
 from datetime import datetime as date
 
@@ -159,7 +158,7 @@ def draw_boxplot_plotly(df):
     return fig
 
 
-def draw_ape_boxplots_plotly(stats, upload_plots_online=False, show_figure=False):
+def draw_ape_boxplots_plotly(stats, show_figure=False):
     """
     Draw boxplots.
 
@@ -168,7 +167,6 @@ def draw_ape_boxplots_plotly(stats, upload_plots_online=False, show_figure=False
 
     Args:
         - stats: vio statistics (see 'draw_ape_boxplots' function)
-        - upload_plots_online: if set to True it will publish plots online to plotly.
         (to publish online, you need to follow the instructions here: )
         If False, it will just show the boxplot figure.
         - show_figure: whether to display the figure or not
@@ -188,19 +186,12 @@ def draw_ape_boxplots_plotly(stats, upload_plots_online=False, show_figure=False
         return stats_list
 
     df = pd.DataFrame()
-    log.info("Creating dataframe stats.")
+    logging.info("Creating dataframe stats.")
     df = pd.DataFrame.from_records(listify_stats(stats))
     df.columns = ["Dataset Name", "Pipe Type", "ATE errors"]
 
     figure = draw_boxplot_plotly(df)
 
-    if upload_plots_online:
-        py.iplot(
-            figure,
-            filename=figure.layout.title.text + ".html",
-            world_readable=True,
-            auto_open=False,
-        )
     if show_figure:
         figure.show()
     return figure

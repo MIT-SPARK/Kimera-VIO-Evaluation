@@ -1,7 +1,7 @@
 """Utils for making latex tables."""
+import logging
 import os
 from evo.core import result
-import glog as log
 
 
 def locate_min(a):
@@ -137,7 +137,7 @@ def write_latex_table(stats, results_dir):
             # THIS IS NOT ACTUALLY DRIFT: bcs the trajectory_length_m is the length of
             # the estimated traj, not the ground-truth one...
             drift.append(rmse / pipeline_stats["trajectory_length_m"])
-            log.error("DRIFT IS: %f" % (rmse / pipeline_stats["trajectory_length_m"]))
+            logging.error("DRIFT IS: %f" % (rmse / pipeline_stats["trajectory_length_m"]))
 
         # Find winning pipeline
         _, median_idx_min = locate_min(median_error_pos)
@@ -159,7 +159,7 @@ def write_latex_table(stats, results_dir):
         pipeline_idx = 0
         for pipeline_type, pipeline_stats in sorted(pipeline_types.items()):
             assert isinstance(pipeline_stats["absolute_errors"], result.Result)
-            log.info("Pipeline type: %s" % pipeline_type)
+            logging.info("Pipeline type: %s" % pipeline_type)
             # if pipeline_type is not "S": # Ignore S pipeline
             median_error_pos = (
                 pipeline_stats["absolute_errors"].stats["median"] * 100

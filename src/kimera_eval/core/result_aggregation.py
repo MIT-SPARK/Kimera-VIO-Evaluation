@@ -1,7 +1,7 @@
 """Result aggregation functions."""
 import os
 import yaml
-import glog as log
+import logging
 from kimera_vio_evaluation.tools.utils import check_stats
 from kimera_vio_evaluation.tools.latex_utils import write_latex_table
 from kimera_vio_evaluation.tools.plotly_plotter import draw_ape_boxplots
@@ -35,7 +35,7 @@ def aggregate_all_results(results_dir, use_pgo=False):
     import fnmatch
 
     # Load results.
-    log.info("Aggregate dataset results.")
+    logging.info("Aggregate dataset results.")
     # Aggregate all stats for each pipeline and dataset
     yaml_filename = "results_vio.yaml"
     if use_pgo:
@@ -59,13 +59,13 @@ def aggregate_all_results(results_dir, use_pgo=False):
             except yaml.YAMLError as e:
                 raise Exception("Error in results file: ", e)
             except Exception:
-                log.fatal("\033[1mFailed opening file: \033[0m\n %s" % results_filepath)
+                logging.fatal("Failed opening file: %s" % results_filepath)
 
-            log.debug("Check stats from: " + results_filepath)
+            logging.debug("Check stats from: " + results_filepath)
             try:
                 check_stats(stats[dataset_name][pipeline_name])
             except Exception as e:
-                log.warning(e)
+                logging.warning(e)
 
     return stats
 
@@ -97,9 +97,9 @@ def aggregate_ape_results(results_dir):
     stats = aggregate_all_results(results_dir)
     # Draw APE boxplot
     if len(list(stats.values())) > 0:
-        log.info("Drawing APE boxplots.")
+        logging.info("Drawing APE boxplots.")
         draw_ape_boxplots(stats, results_dir)
         # Write APE table
-        log.info("Writing APE latex table.")
+        logging.info("Writing APE latex table.")
         write_latex_table(stats, results_dir)
     return stats

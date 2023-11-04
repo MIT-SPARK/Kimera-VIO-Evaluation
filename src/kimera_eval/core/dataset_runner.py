@@ -1,204 +1,188 @@
 """Main library for evaluation."""
-import os
-import subprocess
-import glog as log
-import shutil
-import tqdm
+from dataclasses import dataclass, field
+from typing import Optional, List
+
+import itertools
+import logging
 import pathlib
+import subprocess
+import shutil
+import sys
+import time
+import yaml
 
 
-def print_green(skk):
-    """Print green string."""
-    print("\033[92m {}\033[00m".format(skk))
+DEFAULT_FLAG_NAMES = [
+    "stereoVIOEuroc",
+    "Mesher",
+    "VioBackend",
+    "RegularVioBackend",
+    "Visualizer3D",
+]
+
+VISUALIZER_FLAGS = [
+    "--visualize=false",
+    "--visualize_lmk_type=false",
+    "--visualize_mesh=false",
+    "--visualize_mesh_with_colored_polygon_clusters=false",
+    "--visualize_point_cloud=false",
+    "--visualize_convex_hull=false",
+    "--visualize_plane_constraints=false",
+    "--visualize_planes=false",
+    "--visualize_plane_label=false",
+    "--visualize_semantic_mesh=false",
+    "--visualize_mesh_in_frustum=false",
+    "--viz_type=2",
+]
+
+
+def _normalize_path(path):
+    return path.expanduser().absolute()
+
+
+@dataclass
+class PipelineConfig:
+    """Configuration for pipeline."""
+
+    executable_path: pathlib.Path
+    vocabulary_path: pathlib.Path
+    params_path: pathlib.Path
+    verbose: bool = False
+    extra_flags_path: Optional[pathlib.Path] = None
+
+    def __post_init__(self):
+        """Normalize paths."""
+        self.executable_path = _normalize_path(self.executable_path)
+        self.vocabulary_path = _normalize_path(self.vocabulary_path)
+        self.params_path = _normalize_path(self.params_path)
+        self.extra_flags_path = _normalize_path(self.extra_flags_path)
+
+    @classmethod
+    def from_yaml(cls, config_str):
+        """Create a configuration from a yaml string."""
+        return cls(**yaml.safe_load(config_str))
+
+    @property
+    def flag_files(self):
+        """Get list of full paths to flag files."""
+        flag_path = self.params_path / "flags"
+        full_paths = [flag_path / f"{name}.flags" for name in DEFAULT_FLAG_NAMES]
+        if self.extra_flags_path:
+            full_paths.append(self.extra_flags_path)
+
+        return full_paths
+
+    @property
+    def base_args(self):
+        """Get base args for config."""
+        return [
+            str(self.executable_path),
+            f"--params_folder_path={self.params_path}",
+            f"--vocabulary_path={self.vocabulary_path}",
+        ] + [f"--flagfile={flag_path}" for flag_path in self.flag_files]
+
+
+# TODO(nathan): ["--log_euroc_gt_data=true"]
+@dataclass
+class DatasetConfig:
+    """Configuration for dataset."""
+
+    dataset_root: pathlib.Path
+    dataset_name: str
+    initial_frame: int = 0
+    final_frame: Optional[int] = None
+    use_lcd: bool = False
+    extra_args: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_yaml(cls, dataset_root, config_str):
+        """Create a configuration from a yaml string."""
+        return cls(**yaml.safe_load(config_str))
+
+    @property
+    def args(self):
+        """Get dataset arguments."""
+        return [
+            f"--dataset_path={self.dataset_root / self.dataset_name}"
+            f"--initial_k={self.initial_frame}",
+            f"--final_k={self.final_frame}",
+            f"--use_lcd={self.use_lcd}",
+        ]
+
+
+def _run_vio(
+    config, dataset, output_path, minloglevel=0, spinner_width=10, spin_time=0.1
+):
+    spinner = itertools.cycle(["-", "/", "|", "\\"])
+    args = config.base_args + dataset.args + [f"--output_path={output_path}"]
+
+    args += [
+        "--logtostderr=1",
+        "--colorlogtostderr=1",
+        "--log_prefix=1",
+        "--log_output=true",
+        f"--minloglevel={minloglevel}",
+    ]
+
+    pipe = subprocess.Popen(args)
+    while pipe.poll() is None:
+        if minloglevel > 0:
+            # display spinner to show progress
+            sys.stdout.write(next(spinner) * spinner_width)
+            sys.stdout.flush()
+            sys.stdout.write("\b" * spinner_width)
+
+        time.sleep(spin_time)
+
+    return pipe.wait() == 0
 
 
 class DatasetRunner:
     """DatasetRunner is used to run the pipeline on datasets."""
 
-    def __init__(self, params, extra_flags_path="", verbose=False):
+    def __init__(self, result_path: pathlib.Path, params):
         """Create a dataset runner."""
-        self.datasets_to_run = params["datasets_to_run"]
-        self.extra_flagfile_path = extra_flags_path
-        self.verbose_vio = verbose
+        self.results_path = pathlib.Path(params["results_dir"]).absolute()
 
-        self.results_dir = pathlib.Path(params["results_dir"]).absolute()
-        self.vocabulary_path = os.path.expandvars(params["vocabulary_path"])
-        self.params_dir = os.path.expandvars(params["params_dir"])
-        self.dataset_dir = os.path.expandvars(params["dataset_dir"])
-        self.executable_path = os.path.expandvars(params["executable_path"])
-
-        self.pipeline_output_dir = self.results_dir / "tmp_output" / "output"
-        self.pipeline_output_dir.mkdir(parents=True, exists=True)
-
-    def run_all(self):
-        """Run all datasets in experiments file."""
-        # Run experiments.
-        log.info("Run experiments")
-        successful_run = True
-        for dataset in tqdm.tqdm(self.datasets_to_run):
-            log.info("Run dataset: %s" % dataset["name"])
-            if not self.run_dataset(dataset):
-                log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset["name"])
-                successful_run = False
-
-        return successful_run
-
-    def run_dataset(self, dataset):
+    def run_all(
+        self,
+        datasets: List[DatasetConfig],
+        pipelines: List[PipelineConfig],
+        allow_removal=False,
+        minloglevel=2,
+        **kwargs,
+    ):
         """
-        Run a single dataset from an experiments file and save all output.
-
-        This is done for every pipeline requested for the dataset.
+        Run all datasets and pipelines.
 
         Args:
-            dataset: a dataset to run as defined in the experiments yaml file.
+            datasets: datasets to run
+            pipelines: pipelines to run
 
-        Returns: True if all pipelines for the dataset succeed, False otherwise.
+        Returns:
+            Dict[str, Dict[str, bool]]: Pipeline results
         """
-        dataset_name = dataset["name"]
+        status = {}
+        logging.info("Runing experiments...")
+        for dataset in datasets:
+            logging.info(f"Runing dataset '{dataset.name}'...")
+            dataset_status = {}
+            for pipeline in pipelines:
+                output_path = self.result_path / dataset.name / pipeline.name
+                if output_path.exists():
+                    if allow_removal:
+                        shutil.rmtree(output_path)
+                    else:
+                        status[dataset.name] = False
+                        continue
 
-        has_a_pipeline_failed = False
-        pipelines_to_run_list = dataset["pipelines"]
-        if len(pipelines_to_run_list) == 0:
-            log.warning("Not running pipeline...")
-        for pipeline_type in pipelines_to_run_list:
-            # TODO shouldn't this break when a pipeline has failed? Not necessarily
-            # if we want to plot all pipelines except the failing ones.
-            print_green("Run pipeline: %s" % pipeline_type)
-            pipeline_success = self._run_vio(dataset, pipeline_type)
-            if pipeline_success:
-                print_green("Successful pipeline run.")
-            else:
-                log.error("Failed pipeline run!")
-                has_a_pipeline_failed = True
+                output_path.mkdir(parents=True, exist_ok=False)
 
-        if not has_a_pipeline_failed:
-            print_green("All pipeline runs were successful.")
+                logging.info(f"Running pipeline '{pipeline}'...")
+                dataset_status[pipeline.name] = _run_vio(
+                    dataset, pipeline, output_path, minloglevel=minloglevel
+                )
 
-        print_green("Finished evaluation for dataset: " + dataset_name)
-        return not has_a_pipeline_failed
+            status[dataset.name] = dataset_status
 
-    def _run_vio(self, dataset, pipeline_type):
-        def _kimera_vio_thread(thread_return, minloglevel=0):
-            # Subprocess returns 0 if Ok, any number bigger than 1 if not ok.
-            command = "{} \
-                    --logtostderr=1 --colorlogtostderr=1 --log_prefix=1 \
-                    --minloglevel={} \
-                    --dataset_path={}/{} --output_path={} \
-                    --params_folder_path={}/{} \
-                    --vocabulary_path={} \
-                    --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                    --flagfile={}/{}/{} --flagfile={}/{}/{} \
-                    --flagfile={}/{}/{} --flagfile={}/{} \
-                    --visualize=false \
-                    --visualize_lmk_type=false \
-                    --visualize_mesh=false \
-                    --visualize_mesh_with_colored_polygon_clusters=false \
-                    --visualize_point_cloud=false \
-                    --visualize_convex_hull=false \
-                    --visualize_plane_constraints=false \
-                    --visualize_planes=false \
-                    --visualize_plane_label=false \
-                    --visualize_semantic_mesh=false \
-                    --visualize_mesh_in_frustum=false \
-                    --viz_type=2 \
-                    --initial_k={} --final_k={} --use_lcd={} \
-                    --log_euroc_gt_data=true --log_output=true".format(
-                self.executable_path,
-                minloglevel,
-                self.dataset_dir,
-                dataset["name"],
-                self.pipeline_output_dir,
-                self.params_dir,
-                pipeline_type,
-                self.vocabulary_path,
-                self.params_dir,
-                pipeline_type,
-                "flags/stereoVIOEuroc.flags",
-                self.params_dir,
-                pipeline_type,
-                "flags/Mesher.flags",
-                self.params_dir,
-                pipeline_type,
-                "flags/VioBackend.flags",
-                self.params_dir,
-                pipeline_type,
-                "flags/RegularVioBackend.flags",
-                self.params_dir,
-                pipeline_type,
-                "flags/Visualizer3D.flags",
-                self.params_dir,
-                self.extra_flagfile_path,
-                dataset["initial_frame"],
-                dataset["final_frame"],
-                dataset["use_lcd"],
-            )
-            # print("Starting Kimera-VIO with command:\n")
-            # print(command)
-            return_code = subprocess.call(command, shell=True)
-            if return_code == 0:
-                thread_return["success"] = True
-            else:
-                thread_return["success"] = False
-
-        import threading
-        import time
-        import itertools
-        import sys
-
-        spinner = itertools.cycle(["-", "/", "|", "\\"])
-        thread_return = {"success": False}
-        minloglevel = 2  # Set Kimera-VIO verbosity level to ERROR
-        if self.verbose_vio:
-            minloglevel = 0  # Set Kimera-VIO verbosity level to INFO
-        thread = threading.Thread(
-            target=_kimera_vio_thread,
-            args=(
-                thread_return,
-                minloglevel,
-            ),
-        )
-        thread.start()
-        while thread.is_alive():
-            if not self.verbose_vio:
-                # If Kimera-VIO is not in verbose mode, the user might think the python
-                # script is hanging.
-                # So, instead, display a spinner of 80 characters.
-                sys.stdout.write(next(spinner) * 10)  # write the next character
-                sys.stdout.flush()  # flush stdout buffer (actual character display)
-                sys.stdout.write("\b" * 10)  # erase the last written char
-            time.sleep(0.100)  # Sleep 100ms while Kimera-VIO is running
-        thread.join()
-
-        # Move output files for future evaluation:
-        self.move_output_files(pipeline_type, dataset)
-
-        return thread_return["success"]
-
-    def move_output_files(self, pipeline_type, dataset):
-        """
-        Move output files to proper location.
-
-        Moves output files for a particular pipeline and dataset
-        from their temporary logging location during runtime to the evaluation location.
-
-        Args:
-            pipeline_type: a pipeline representing a set of parameters to use, as
-                defined in the experiments yaml file for the dataset in question.
-            dataset: a dataset to run as defined in the experiments yaml file.
-        """
-        dataset_name = dataset["name"]
-        dataset_results_dir = os.path.join(self.results_dir, dataset_name)
-        dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
-        log.debug(f"Moving {self.pipeline_output_dir} to {dataset_pipeline_result_dir}")
-
-        if os.path.exists(dataset_pipeline_result_dir):
-            shutil.rmtree(dataset_pipeline_result_dir)
-
-        if not os.path.isdir(self.pipeline_output_dir):
-            log.info("There is no output directory...")
-
-        shutil.move(self.pipeline_output_dir, dataset_pipeline_result_dir)
-        try:
-            os.makedirs(self.pipeline_output_dir)
-        except Exception:
-            log.fatal("Could not mkdir: " + dataset_pipeline_result_dir)
+        return status

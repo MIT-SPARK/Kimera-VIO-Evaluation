@@ -1,18 +1,17 @@
 """Main entry point for running evaluations."""
 import click
-import glog
 import os
 import pathlib
 import sys
 import yaml
-from evaluation.evaluation_lib import DatasetEvaluator, aggregate_ape_results
+import logging
 
 
 def _get_experiment_directory():
     return pathlib.Path(__file__).absolute().parent / "experiments"
 
 
-@click.command()
+@click.command(name="run")
 @click.option(
     "-e", "--experiment", default="experiments.yaml", help="experiment to run"
 )
@@ -23,14 +22,21 @@ def _get_experiment_directory():
     type=click.Path(exists=True),
     help="directory containing experiment files",
 )
-@click.option("-l", "--log-level", default="INFO", help="log level")
-@click.option("-r", "--run-pipeline", is_flag=True, help="Run vio?")
+@click.option("--minloglevel", is_flag=True, help="set VIO minloglevel")
+def run(experiment, experiment_directory, minloglevel):
+    """Run evaluation on datasets."""
+    logging.debug(f"experiment: {experiment}")
+    logging.debug(f"experiment_directory: {experiment_directory}")
+    logging.debug(f"minloglevel: {minloglevel}")
+
+
+@click.command()
 @click.option("-a", "--analyze", is_flag=True, help="Analyze vio, compute APE and RPE")
 @click.option("-p", "--plot", is_flag=True, help="show plot window")
 @click.option("--save_plots", is_flag=True, help="Save plots?")
 @click.option("--write_website", is_flag=True, help="Write website with results?")
-@click.option("--save_boxplots", action="store_true", help="Save boxplots?")
-@click.option("--save_results", action="store_true", help="Save results?")
+@click.option("--save_boxplots", is_flag=True, help="Save boxplots?")
+@click.option("--save_results", is_flag=True, help="Save results?")
 @click.option("-v", "--verbose", is_flag=True, help="log kimera-vio output to console")
 def main(experiment, experiment_directory, log_level):
     """
@@ -41,7 +47,6 @@ def main(experiment, experiment_directory, log_level):
       - RPE translation
       - RPE rotation
     """
-    glog.setLevel(log_level)
     if experiment_directory:
         experiment_directory = (
             pathlib.Path(experiment_directory).expanduser().absolute()

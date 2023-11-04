@@ -18,23 +18,24 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "chart_studio",
     "evo",
-    "glog",
+    "click",
     "jinja2",
     "numpy",
     "pandas",
     "plotly",
     "pyyaml",
-    "tk",
     "tqdm",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/MIT-SPARK/Kimera-VIO-Evaluation"
 
+[project.scripts]
+kimera-eval = "kimera_eval:main"
+
 [project.optional-dependencies]
-notebook = ["jupyter", "jupytext"]
+notebook = ["jupyter", "jupytext", "matplotlib"]
 mesh = ["open3d"]
 
 [tool.setuptools.packages.find]
