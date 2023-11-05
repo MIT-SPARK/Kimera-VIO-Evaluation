@@ -1,5 +1,5 @@
 """Main entry point for running evaluations."""
-from kimera_eval.core.dataset_runner import DatasetRunner
+from kimera_eval.core.dataset_runner import DatasetRunner, ExperimentConfig
 import click
 import os
 import pathlib
@@ -17,6 +17,8 @@ def _normalize_path(input_path):
 
 
 @click.command(name="run")
+@click.argument("executable_path", type=click.Path(exists=True))
+@click.argument("param_path", type=click.Path(exists=True))
 @click.argument("dataset_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
 @click.option(
@@ -30,7 +32,15 @@ def _normalize_path(input_path):
     help="directory containing experiment files",
 )
 @click.option("--minloglevel", default=2, help="set VIO minloglevel")
-def run(dataset_path, output_path, experiment, experiments_dir, minloglevel):
+def run(
+    executable_path,
+    param_path,
+    dataset_path,
+    output_path,
+    experiment,
+    experiments_dir,
+    minloglevel,
+):
     """Run evaluation on datasets."""
     dataset_path = _normalize_path(dataset_path)
     if experiments_dir:
@@ -43,11 +53,11 @@ def run(dataset_path, output_path, experiment, experiments_dir, minloglevel):
         click.secho(f"Could not find experiment '{experiment_path}'", fg="red")
         sys.exit(1)
 
-    with experiment_path.open("r") as fin:
-        params = yaml.safe_load(fin.read())
-
+    config = ExperimentConfig(
+        experiment_path, dataset_path, param_path, executable_path
+    )
     output_path = _normalize_path(output_path)
-    runner = DatasetRunner(dataset_path, output_path, params)
+    runner = DatasetRunner(config, output_path)
     runner.run_all(minloglevel=minloglevel)
 
 

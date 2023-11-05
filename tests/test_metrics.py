@@ -4,13 +4,7 @@ import random
 import numpy as np
 
 from evo.core import trajectory, metrics
-from kimera_eval.core.trajectory_metrics import (
-    get_ape_rot,
-    get_ape_trans,
-    get_rpe_rot,
-    get_rpe_trans,
-    convert_abs_traj_to_rel_traj,
-)
+import kimera_eval
 
 
 def test_get_ape_rot_0():
@@ -22,7 +16,7 @@ def test_get_ape_rot_0():
     traj_1 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    ape_metric_rot = get_ape_rot((traj_1, traj_2))
+    ape_metric_rot = kimera_eval.get_ape_rot((traj_1, traj_2))
 
     assert ape_metric_rot.pose_relation == metrics.PoseRelation.rotation_angle_deg
     assert ape_metric_rot.unit == metrics.Unit.degrees
@@ -50,7 +44,7 @@ def test_get_ape_rot_1():
     ]
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    ape_metric_rot = get_ape_rot((traj_1, traj_2))
+    ape_metric_rot = kimera_eval.get_ape_rot((traj_1, traj_2))
 
     assert ape_metric_rot.error[0] == pytest.approx(90.0)
     assert np.allclose(
@@ -69,7 +63,7 @@ def test_get_ape_trans_0():
     traj_1 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    ape_metric_trans = get_ape_trans((traj_1, traj_2))
+    ape_metric_trans = kimera_eval.get_ape_trans((traj_1, traj_2))
 
     assert ape_metric_trans.pose_relation == metrics.PoseRelation.translation_part
     assert ape_metric_trans.unit == metrics.Unit.meters
@@ -96,7 +90,7 @@ def test_get_ape_trans_1():
     ]
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    ape_metric_trans = get_ape_trans((traj_1, traj_2))
+    ape_metric_trans = kimera_eval.get_ape_trans((traj_1, traj_2))
 
     assert ape_metric_trans.error[0] == pytest.approx(1.0)
     assert np.allclose(
@@ -115,7 +109,7 @@ def test_get_rpe_rot_0():
     traj_1 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    rpe_metric_rot = get_rpe_rot((traj_1, traj_2))
+    rpe_metric_rot = kimera_eval.get_rpe_rot((traj_1, traj_2))
 
     assert rpe_metric_rot.pose_relation == metrics.PoseRelation.rotation_angle_deg
     assert rpe_metric_rot.unit == metrics.Unit.degrees
@@ -143,7 +137,7 @@ def test_get_rpe_rot_1():
     ]
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    rpe_metric_rot = get_rpe_rot((traj_1, traj_2))
+    rpe_metric_rot = kimera_eval.get_rpe_rot((traj_1, traj_2))
 
     assert rpe_metric_rot.error[0] == pytest.approx(90.0)
     assert np.allclose(
@@ -162,7 +156,7 @@ def test_get_rpe_trans_0():
     traj_1 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    rpe_metric_trans = get_rpe_trans((traj_1, traj_2))
+    rpe_metric_trans = kimera_eval.get_rpe_trans((traj_1, traj_2))
 
     assert rpe_metric_trans.pose_relation == metrics.PoseRelation.translation_part
     assert rpe_metric_trans.unit == metrics.Unit.meters
@@ -189,7 +183,7 @@ def test_get_rpe_trans_1():
     ]
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    rpe_metric_trans = get_rpe_trans((traj_1, traj_2))
+    rpe_metric_trans = kimera_eval.get_rpe_trans((traj_1, traj_2))
 
     assert rpe_metric_trans.error[0] == pytest.approx(1.0)
     assert np.allclose(
@@ -219,7 +213,7 @@ def test_convert_abs_traj_to_rel_traj_0():
     timestamps = [0, 1]
 
     traj_abs = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
-    traj_rel = convert_abs_traj_to_rel_traj(traj_abs, False)
+    traj_rel = kimera_eval.convert_abs_traj_to_rel_traj(traj_abs, False)
 
     assert len(traj_rel.positions_xyz) == 1
     assert len(traj_rel.orientations_quat_wxyz) == 1
@@ -240,9 +234,9 @@ def test_convert_abs_traj_to_rel_traj_1():
     pos_xyz = [pos * 2 for pos in pos_xyz]
     traj_2 = trajectory.PoseTrajectory3D(pos_xyz, quat_wxyz, timestamps)
 
-    traj_1 = convert_abs_traj_to_rel_traj(traj_1, True)
-    traj_2 = convert_abs_traj_to_rel_traj(traj_2, True)
-    ape_metric_trans = get_ape_trans((traj_1, traj_2))
+    traj_1 = kimera_eval.convert_abs_traj_to_rel_traj(traj_1, True)
+    traj_2 = kimera_eval.convert_abs_traj_to_rel_traj(traj_2, True)
+    ape_metric_trans = kimera_eval.get_ape_trans((traj_1, traj_2))
 
     assert np.allclose(
         ape_metric_trans.error,
