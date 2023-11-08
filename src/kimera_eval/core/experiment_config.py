@@ -20,13 +20,14 @@ def _normalize_path(path):
     return pathlib.Path(path).expanduser().absolute()
 
 
-def _read_named_config(cls, *args, **kwargs):
-    if not kwargs["name"]:
+def read_named_config(cls, *args, **kwargs):
+    """Read a dataclass where name is the first argument."""
+    if "name" not in kwargs:
         raise ValueError("name required for dataset")
 
-    valid_args = [x.name for x in dataclasses.fields(cls)]
+    valid_args = [x.name for x in dataclasses.fields(cls) if x.name != "name"]
     return cls(
-        kwargs["name"], *args, {k: v for k, v in kwargs.items() if k in valid_args}
+        kwargs["name"], *args, **{k: v for k, v in kwargs.items() if k in valid_args}
     )
 
 
@@ -80,8 +81,8 @@ class ExperimentConfig:
     executable_path: pathlib.Path
     param_path: pathlib.Path
     dataset_path: pathlib.Path
-    pipelines: List[PipelineConfig]
     sequences: List[SequenceConfig]
+    pipelines: List[PipelineConfig]
     vocabulary_path: Optional[pathlib.Path] = None
     extra_args: List[str] = field(default_factory=list)
 
@@ -109,11 +110,9 @@ class ExperimentConfig:
         with config_path.open("r") as fin:
             params = yaml.safe_load(fin.read())
 
-        sequences = [
-            _read_named_config(SequenceConfig, **x) for x in params["datasets"]
-        ]
+        sequences = [read_named_config(SequenceConfig, **x) for x in params["datasets"]]
         pipelines = [
-            _read_named_config(PipelineConfig, **x) for x in params["pipelines"]
+            read_named_config(PipelineConfig, **x) for x in params["pipelines"]
         ]
 
         extra_args = params.get("extra_args", [])
