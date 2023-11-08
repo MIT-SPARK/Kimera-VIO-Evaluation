@@ -1,26 +1,16 @@
 """Main library for evaluation."""
-import os
 import yaml
-from tqdm import tqdm
-import glog as log
 import pandas as pd
+import logging
 import pathlib
-
-from evo.core import trajectory, sync, metrics
-from evo.tools import plot, pandas_bridge
 
 
 class DatasetEvaluator:
     """DatasetEvaluator is used to evaluate performance of the pipeline on datasets."""
 
-    def __init__(
-        self,
-        experiment_params,
-        args,
-        extra_flagfile_path,
-        traj_vio_csv_name="traj_vio.csv",
-    ):
-        self.results_dir = os.path.expandvars(experiment_params["results_dir"])
+    def __init__(self, config, result_path, csv_name="traj_vio.csv"):
+        """Make an evaluation class to handle evaluting kimera results."""
+        self.result_path = result_path
         self.datasets_to_eval = experiment_params["datasets_to_run"]
 
         self.display_plots = args.plot
@@ -28,12 +18,9 @@ class DatasetEvaluator:
         self.save_plots = args.save_plots
         self.write_website = args.write_website
         self.save_boxplots = args.save_boxplots
-        self.run_vio = args.run_pipeline
         self.analyze_vio = args.analyze_vio
 
-        self.runner = DatasetRunner(experiment_params, args, extra_flagfile_path)
-
-        self.traj_vio_csv_name = traj_vio_csv_name
+        self.traj_vio_csv_name = csv_name
         self.traj_gt_csv_name = "traj_gt.csv"
         self.traj_pgo_csv_name = "traj_pgo.csv"
 
@@ -44,75 +31,58 @@ class DatasetEvaluator:
 
     def evaluate(self):
         """Run datasets if necessary, evaluate all."""
-        for dataset in tqdm(self.datasets_to_eval):
-            # Run the dataset if needed:
-            if self.run_vio:
-                log.info("Run dataset: %s" % dataset["name"])
-                if not self.runner.run_dataset(dataset):
-                    log.info("\033[91m Dataset: %s failed!! \033[00m" % dataset["name"])
-                    raise Exception("Failed to run dataset %s." % dataset["name"])
-
+        for dataset in self.datasets_to_eval:
             # Evaluate each dataset if needed:
             if self.analyze_vio:
                 self.evaluate_dataset(dataset)
 
         if self.write_website:
-            log.info("Writing full website.")
+            logging.info("Writing full website...")
             stats = aggregate_ape_results(self.results_dir)
-            if len(list(stats.values())) > 0:
-                self.website_builder.write_boxplot_website(stats)
+
+            if len(stats) > 0:
+                logging.info("Drawing APE boxplots.")
+                draw_ape_boxplots(stats, self.results_dir)
+
+            self.website_builder.write_boxplot_website(stats)
             self.website_builder.write_datasets_website()
-            log.info("Done writing full website.")
+            logging.info("Finished writing website.")
 
         return True
 
     def evaluate_dataset(self, dataset):
-        """Evaluates VIO performance on given dataset"""
-        evt.print_red("Evaluate dataset: %s" % dataset["name"])
-        pipelines_to_evaluate_list = dataset["pipelines"]
-        for pipeline_type in pipelines_to_evaluate_list:
-            if not self.__evaluate_run(pipeline_type, dataset):
-                log.error(
-                    "Failed to evaluate dataset %s for pipeline %s."
-                    % dataset["name"]
-                    % pipeline_type
+        """Evaluate VIO performance on given dataset."""
+        logging.info("Evaluating dataset {dataset['name']}")
+        for pipeline in dataset["pipelines"]:
+            if not self._evaluate_run(pipeline, dataset):
+                logging.error(
+                    f"Failed to evaluate `{dataset['name']}` for pipeline `{pipeline}`"
                 )
                 raise Exception("Failed evaluation.")
 
         if self.save_boxplots:
-            self.save_boxplots_to_file(pipelines_to_evaluate_list, dataset)
+            self.save_boxplots_to_file(dataset["pipelines"], dataset)
 
-    def __evaluate_run(self, pipeline_type, dataset):
-        """Evaluate performance of one pipeline of one dataset, as defined in the experiments
-        yaml file.
+    def _evaluate_run(self, pipeline_type, dataset):
+        """Evaluate performance of one set of Kimera-VIO results.
 
         Assumes that the files traj_gt.csv traj_vio.csv and traj_pgo.csv are present.
 
         Args:
-            dataset: a dataset to evaluate as defined in the experiments yaml file.
-            pipeline_type: a pipeline representing a set of parameters to use, as
-                defined in the experiments yaml file for the dataset in question.
+            dataset: Dataset to evaluate on
+            pipeline_type: Pipeline that was evaluated
 
         Returns: True if there are no exceptions during evaluation, False otherwise.
         """
         dataset_name = dataset["name"]
-        dataset_results_dir = os.path.join(self.results_dir, dataset_name)
-        dataset_pipeline_result_dir = os.path.join(dataset_results_dir, pipeline_type)
+        curr_results_path = self.results_path / dataset_name / pipeline_type
 
-        traj_gt_path = os.path.join(dataset_pipeline_result_dir, self.traj_gt_csv_name)
-        traj_vio_path = os.path.join(
-            dataset_pipeline_result_dir, self.traj_vio_csv_name
-        )
-        traj_pgo_path = os.path.join(
-            dataset_pipeline_result_dir, self.traj_pgo_csv_name
-        )
+        traj_gt_path = curr_results_path / self.traj_gt_csv_name
+        traj_vio_path = curr_results_path / self.traj_vio_csv_name
+        traj_pgo_path = curr_results_path / self.traj_pgo_csv_name
 
-        # Analyze dataset:
-        log.debug(
-            "\033[1mAnalysing dataset:\033[0m \n %s \n \033[1m for pipeline \033[0m %s."
-            % (dataset_results_dir, pipeline_type)
-        )
-        print_green("Starting analysis of pipeline: %s" % pipeline_type)
+        logging.debug(f"Analysing results @ `{curr_results_path}`")
+        logging.info(f"Starting analysis of pipeline: {pipeline_type}")
 
         discard_n_start_poses = dataset["discard_n_start_poses"]
         discard_n_end_poses = dataset["discard_n_end_poses"]
@@ -130,25 +100,21 @@ class DatasetEvaluator:
 
         if self.save_results:
             if results_vio is not None:
-                self.save_results_to_file(
-                    results_vio, "results_vio", dataset_pipeline_result_dir
-                )
+                self.save_results_to_file(results_vio, "results_vio", curr_results_path)
             if results_pgo is not None:
-                self.save_results_to_file(
-                    results_pgo, "results_pgo", dataset_pipeline_result_dir
-                )
+                self.save_results_to_file(results_pgo, "results_pgo", curr_results_path)
 
         if self.display_plots and plot_collection is not None:
-            print_green("Displaying plots.")
+            logging.debug("Displaying plots.")
             plot_collection.show()
 
         if self.save_plots and plot_collection is not None:
-            self.save_plots_to_file(plot_collection, dataset_pipeline_result_dir)
+            self.save_plots_to_file(plot_collection, curr_results_path)
 
         if self.write_website:
-            log.info("Writing performance website for dataset: %s" % dataset_name)
+            logging.info(f"Writing performance website for dataset: {dataset_name}")
             self.website_builder.add_dataset_to_website(
-                dataset_name, pipeline_type, dataset_pipeline_result_dir
+                dataset_name, pipeline_type, curr_results_path
             )
             self.website_builder.write_datasets_website()
 
@@ -186,7 +152,7 @@ class DatasetEvaluator:
         traj_ref_vio = copy.deepcopy(traj_ref)
 
         # Register and align trajectories:
-        print_purple("Registering and aligning trajectories")
+        logging.info("Registering and aligning trajectories")
         traj_ref_vio, traj_est_vio = sync.associate_trajectories(
             traj_ref_vio, traj_est_vio
         )
@@ -269,8 +235,7 @@ class DatasetEvaluator:
         # Generate plots for return:
         plot_collection = None
         if self.display_plots or self.save_plots:
-            print_green("Plotting:")
-            log.info(dataset_name)
+            logging.debug(f"Plotting: {dataset_name}")
             plot_collection = plot.PlotCollection("Example")
 
             if traj_est_pgo is not None:
@@ -379,19 +344,19 @@ class DatasetEvaluator:
         return [plot_collection, results_vio, results_pgo]
 
     def process_trajectory_data(self, traj_ref, traj_est, segments, is_vio_traj=True):
-        """ """
+        """Process trajectory data."""
         suffix = "VIO" if is_vio_traj else "PGO"
         data = (traj_ref, traj_est)
 
-        print_purple("Calculating APE translation part for " + suffix)
+        logging.info(f"Calculating APE translation part for {suffix}")
         ape_metric = get_ape_trans(data)
         ape_result = ape_metric.get_result()
-        print_green("APE translation: %f" % ape_result.stats["mean"])
+        logging.debug(f"APE translation: {ape_result.stats['mean']}")
 
-        print_purple("Calculating RPE translation part for " + suffix)
+        logging.info(f"Calculating RPE translation part for {suffix}")
         rpe_metric_trans = get_rpe_trans(data)
 
-        print_purple("Calculating RPE rotation angle for " + suffix)
+        logging.info(f"Calculating RPE rotation angle for {suffix}")
         rpe_metric_rot = get_rpe_rot(data)
 
         # Collect results:

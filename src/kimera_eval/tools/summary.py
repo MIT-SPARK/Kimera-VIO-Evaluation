@@ -1,16 +1,14 @@
 """Write a performance summary to file."""
-import os
-import sys
 import click
 import csv
 import yaml
 import pathlib
 
 
-@click.command()
+@click.command(name="summary")
 @click.argument("result_path", type=click.Path(exists=True))
 @click.option("-o", "--output", type=click.Path(), default=None)
-def main(result_path, output):
+def run(result_path, output):
     """Plot summary of performance results for VIO pipeline."""
     result_path = pathlib.Path(result_path).expanduser().absolute()
     click.secho(f"Reading VIO results from: '{result_path}'")
@@ -32,5 +30,3 @@ def main(result_path, output):
         writer = csv.DictWriter(fout, fieldnames=["ATE_mean", "ATE_rmse"])
         writer.writeheader()
         writer.writerow({"ATE_mean": ATE_mean, "ATE_rmse": ATE_rmse})
-
-    sys.exit(os.EX_OK)

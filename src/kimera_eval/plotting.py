@@ -2,6 +2,9 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+import matplotlib.pyplot as plt
+import pathlib
+
 import logging
 import pandas as pd
 from datetime import datetime as date
@@ -195,3 +198,64 @@ def draw_ape_boxplots_plotly(stats, show_figure=False):
     if show_figure:
         figure.show()
     return figure
+
+
+def draw_timing_plot(
+    filename,
+    keyframe_ids,
+    pipelines_times,
+    ylabel="Optimization time [s]",
+    display_plot=False,
+    display_x_label=True,
+    fig_width=6,
+    fig_height=3,
+):
+    """
+    Draw timing.
+
+    Plots timing information for each pipeline contained in the list of dicts
+    pipelines_times:
+    - filename: where to save the figure.
+    - pipelines_times: list of dicts of the form:
+    [{
+        'pipeline_name': pipeline_name,
+        'line_color': np.random.rand(3),
+        'line_style': '-',
+        'times': update_times
+    }, ... ]
+    - keyframe_ids: corresponds to the x ticks, so update_times and keyframe_ids must
+    be the same length.
+    - ylabel: Y label used for the plot.
+    - display_plot: whether to display the plot or not.
+    - display_x_label: whether to display the x label of the plot or not.
+    - latexify: whether to use latex for the generation of the plot.
+    """
+    plt.figure(figsize=[fig_width, fig_height], dpi=1000)
+    i = 0
+    for pipeline_time in pipelines_times:
+        assert len(keyframe_ids) == len(pipeline_time["times"])
+        plt.plot(
+            keyframe_ids,
+            pipeline_time["times"],
+            linestyle=pipeline_time["line_style"],
+            color=pipeline_time["line_color"],
+            linewidth=0.5,
+            label="$t_{" + pipeline_time["pipeline_name"] + "}^{opt}$",
+        )
+        i = i + 1
+    plt.ylabel(ylabel)
+    if display_x_label:
+        plt.xlabel("Keyframe Index [-]")
+    plt.xlim(min(keyframe_ids), max(keyframe_ids))
+    plt.ylim(bottom=0)
+    plt.grid(axis="both", linestyle="--")
+    plt.legend()
+
+    # Create path to filename if it does not exist.
+    filepath = pathlib.Path(filename)
+    if not filepath.parent.exists():
+        filepath.parent.mkdir(parents=True)
+
+    plt.savefig(filename, bbox_inches="tight", transparent=True, dpi=1000)
+    if display_plot:
+        plt.show()
