@@ -8,7 +8,6 @@ import subprocess
 import shutil
 import sys
 import time
-import yaml
 
 
 def _run_vio(
@@ -21,8 +20,7 @@ def _run_vio(
     spin_time=0.1,
 ):
     spinner = itertools.cycle(["-", "/", "|", "\\"])
-    args = experiment.get_args(pipeline)
-    args += sequence.args
+    args = experiment.args + pipeline.args + sequence.args
     args += [
         f"--output_path={output_path}",
         f"--dataset_path={experiment.dataset_path / sequence.name}",
@@ -77,28 +75,37 @@ class DatasetRunner:
         """
         status = {}
         logging.info("Runing experiments...")
-        for sequence in self.sequences:
+        for sequence in self.config.sequences:
             logging.info(f"Runing dataset '{sequence.name}'...")
             dataset_status = {}
-            for pipeline in self.pipelines:
+            for pipeline in self.config.pipelines:
                 output_path = self.result_path / sequence.name / pipeline.name
                 if output_path.exists():
                     if allow_removal:
                         shutil.rmtree(output_path)
                     else:
-                        status[sequence.name] = False
+                        dataset_status[pipeline.name] = (False, "Results exist")
                         continue
 
                 output_path.mkdir(parents=True, exist_ok=False)
 
                 logging.info(f"Running pipeline '{pipeline}'...")
-                dataset_status[pipeline.name] = _run_vio(
-                    self.config,
-                    pipeline,
-                    sequence,
-                    output_path,
-                    minloglevel=minloglevel,
-                )
+                try:
+                    start = time.perf_counter()
+                    valid = _run_vio(
+                        self.config,
+                        pipeline,
+                        sequence,
+                        output_path,
+                        minloglevel=minloglevel,
+                    )
+                    stop = time.perf_counter()
+                    dataset_status[pipeline.name] = (
+                        valid,
+                        f"elapsed: {stop - start} [s]",
+                    )
+                except Exception as e:
+                    dataset_status[pipeline.name] = (False, f"{e}")
 
             status[sequence.name] = dataset_status
 

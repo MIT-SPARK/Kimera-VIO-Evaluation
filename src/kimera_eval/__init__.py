@@ -4,6 +4,7 @@ import kimera_eval.cli
 
 from kimera_eval.core.trajectory_metrics import *
 from kimera_eval.core.experiment_config import *
+from kimera_eval.core.dataset_runner import *
 
 import click
 

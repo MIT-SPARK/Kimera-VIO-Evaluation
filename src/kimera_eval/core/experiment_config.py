@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 
 import dataclasses
+import logging
 import pathlib
 import yaml
 
@@ -36,23 +37,37 @@ class PipelineConfig:
     """Configuration for pipeline."""
 
     name: str
+    param_path: pathlib.Path
     param_name: Optional[str]
     extra_flags_path: Optional[pathlib.Path] = None
+    use_visualizer: bool = False
 
     def __post_init__(self):
         """Normalize paths."""
+        self.param_path = _normalize_path(self.param_path)
         if self.extra_flags_path:
             self.extra_flags_path = _normalize_path(self.extra_flags_path)
 
     @property
     def flag_files(self):
         """Get list of full paths to flag files."""
-        flag_path = self.params_path / "flags"
+        flag_path = self.param_path / "flags"
         full_paths = [flag_path / f"{name}.flags" for name in DEFAULT_FLAG_NAMES]
         if self.extra_flags_path:
             full_paths.append(self.extra_flags_path)
 
+        if not self.use_visualizer:
+            config_path = pathlib.Path(__file__).absolute().parent.parent / "config"
+            full_paths.append(config_path / "NoVisualizer.flag")
+
         return full_paths
+
+    @property
+    def args(self):
+        """Get pipeline arguments."""
+        return [f"--flagfile={flag_path}" for flag_path in self.flag_files] + [
+            f"--params_folder_path={self.param_path / self.param_name}"
+        ]
 
 
 @dataclass
@@ -67,11 +82,15 @@ class SequenceConfig:
     @property
     def args(self):
         """Get dataset arguments."""
-        return [
-            f"--initial_k={self.initial_frame}",
-            f"--final_k={self.final_frame}",
-            f"--use_lcd={self.use_lcd}",
-        ]
+        args = []
+        if self.initial_frame is not None:
+            args.append(f"--initial_k={self.initial_frame}")
+
+        if self.final_frame is not None:
+            args.append(f"--final_k={self.final_frame}")
+
+        args.append(f"--use_lcd={str(self.use_lcd).lower()}")
+        return args
 
 
 @dataclass
@@ -96,13 +115,10 @@ class ExperimentConfig:
         else:
             self.vocabulary_path = self.param_path / "vocabulary" / "ORBvoc.yml"
 
-    def get_args(self, config: PipelineConfig):
+    @property
+    def args(self):
         """Get base args for config."""
-        args = [str(self.executable_path)]
-        args += [f"--flagfile={flag_path}" for flag_path in config.flag_files]
-        args.append(f"--vocabulary_path={self.vocabulary_path}")
-        args.append(f"--params_folder_path={self.params_path / config.param_name}")
-        return args
+        return [str(self.executable_path), f"--vocabulary_path={self.vocabulary_path}"]
 
     @classmethod
     def load(cls, config_path, **kwargs):
@@ -110,24 +126,44 @@ class ExperimentConfig:
         with config_path.open("r") as fin:
             params = yaml.safe_load(fin.read())
 
+        def _error_str(name):
+            return f"missing '{name}' when parsing config from '{config_path}'"
+
+        exec_path = _read_path_param(params, kwargs, "executable_path")
+        if not exec_path:
+            logging.error(_error_str("executable_path"))
+            return None
+
+        param_path = _read_path_param(params, kwargs, "param_path")
+        if not param_path:
+            logging.error(_error_str("param_path"))
+            return None
+
+        data_path = _read_path_param(params, kwargs, "dataset_path")
+        if not data_path:
+            logging.error(_error_str("dataset_path"))
+            return None
+
         sequences = [read_named_config(SequenceConfig, **x) for x in params["datasets"]]
         pipelines = [
-            read_named_config(PipelineConfig, **x) for x in params["pipelines"]
+            read_named_config(PipelineConfig, param_path, **x)
+            for x in params["pipelines"]
         ]
 
+        vocab_path = _read_path_param(params, kwargs, "vocabulary_path")
         extra_args = params.get("extra_args", [])
         return cls(
-            _read_path_param(params, kwargs, "executable_path"),
-            _read_path_param(params, kwargs, "param_path"),
-            _read_path_param(params, kwargs, "dataset_path"),
+            exec_path,
+            param_path,
+            data_path,
             sequences,
             pipelines,
-            extra_args,
-            _read_path_param(params, kwargs, "vocabulary_path", required=False),
+            vocabulary_path=vocab_path,
+            extra_args=extra_args,
         )
 
 
-def _read_path_param(yaml_config, overrides, name, required=True):
+def _read_path_param(yaml_config, overrides, name):
     import os
 
     if name in overrides:
@@ -137,7 +173,4 @@ def _read_path_param(yaml_config, overrides, name, required=True):
         expanded_path = os.path.expandvars(yaml_config[name])
         return _normalize_path(expanded_path)
 
-    if not required:
-        return None
-
-    raise ValueError(f"missing required parameter '{name}'")
+    return None
