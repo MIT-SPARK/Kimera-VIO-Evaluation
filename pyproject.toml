@@ -36,7 +36,6 @@ kimera-eval = "kimera_eval:main"
 
 [project.optional-dependencies]
 notebook = ["jupyter", "jupytext", "matplotlib"]
-mesh = ["open3d"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

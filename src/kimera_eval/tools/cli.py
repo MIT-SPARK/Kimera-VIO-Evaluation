@@ -1,5 +1,5 @@
 """Main entry point for running evaluations."""
-from kimera_eval.core.dataset_runner import DatasetRunner, ExperimentConfig
+from kimera_eval.dataset_runner import DatasetRunner, ExperimentConfig
 import click
 import os
 import pathlib

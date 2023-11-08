@@ -57,7 +57,7 @@ class PipelineConfig:
             full_paths.append(self.extra_flags_path)
 
         if not self.use_visualizer:
-            config_path = pathlib.Path(__file__).absolute().parent.parent / "config"
+            config_path = pathlib.Path(__file__).absolute().parent / "config"
             full_paths.append(config_path / "NoVisualizer.flag")
 
         return full_paths

@@ -1,5 +1,5 @@
 """Main library for evaluation."""
-from kimera_eval.core.experiment_config import ExperimentConfig
+from kimera_eval.experiment_config import ExperimentConfig
 
 import itertools
 import logging
