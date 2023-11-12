@@ -3,6 +3,7 @@ import yaml
 import pandas as pd
 import logging
 import pathlib
+import copy
 
 
 class DatasetEvaluator:
@@ -11,69 +12,22 @@ class DatasetEvaluator:
     def __init__(self, config, result_path, csv_name="traj_vio.csv"):
         """Make an evaluation class to handle evaluting kimera results."""
         self.result_path = result_path
-        self.datasets_to_eval = experiment_params["datasets_to_run"]
-
-        self.display_plots = args.plot
-        self.save_results = args.save_results
-        self.save_plots = args.save_plots
-        self.write_website = args.write_website
-        self.save_boxplots = args.save_boxplots
-        self.analyze_vio = args.analyze_vio
-
         self.traj_vio_csv_name = csv_name
         self.traj_gt_csv_name = "traj_gt.csv"
         self.traj_pgo_csv_name = "traj_pgo.csv"
 
-        # Class to write the results to the Jenkins website
-        self.website_builder = evt.WebsiteBuilder(
-            self.results_dir, self.traj_vio_csv_name
-        )
-
     def evaluate(self):
         """Run datasets if necessary, evaluate all."""
         for dataset in self.datasets_to_eval:
-            # Evaluate each dataset if needed:
-            if self.analyze_vio:
-                self.evaluate_dataset(dataset)
+            logging.info("Evaluating dataset {dataset['name']}")
+            for pipeline in dataset["pipelines"]:
+                if not self._evaluate_run(pipeline, dataset):
+                    continue
 
-        if self.write_website:
-            logging.info("Writing full website...")
-            stats = aggregate_ape_results(self.results_dir)
-
-            if len(stats) > 0:
-                logging.info("Drawing APE boxplots.")
-                draw_ape_boxplots(stats, self.results_dir)
-
-            self.website_builder.write_boxplot_website(stats)
-            self.website_builder.write_datasets_website()
-            logging.info("Finished writing website.")
-
-        return True
-
-    def evaluate_dataset(self, dataset):
-        """Evaluate VIO performance on given dataset."""
-        logging.info("Evaluating dataset {dataset['name']}")
-        for pipeline in dataset["pipelines"]:
-            if not self._evaluate_run(pipeline, dataset):
-                logging.error(
-                    f"Failed to evaluate `{dataset['name']}` for pipeline `{pipeline}`"
-                )
-                raise Exception("Failed evaluation.")
-
-        if self.save_boxplots:
-            self.save_boxplots_to_file(dataset["pipelines"], dataset)
+                if self.save_boxplots:
+                    self.save_boxplots_to_file(dataset["pipelines"], dataset)
 
     def _evaluate_run(self, pipeline_type, dataset):
-        """Evaluate performance of one set of Kimera-VIO results.
-
-        Assumes that the files traj_gt.csv traj_vio.csv and traj_pgo.csv are present.
-
-        Args:
-            dataset: Dataset to evaluate on
-            pipeline_type: Pipeline that was evaluated
-
-        Returns: True if there are no exceptions during evaluation, False otherwise.
-        """
         dataset_name = dataset["name"]
         curr_results_path = self.results_path / dataset_name / pipeline_type
 
@@ -98,11 +52,11 @@ class DatasetEvaluator:
             discard_n_end_poses,
         )
 
-        if self.save_results:
-            if results_vio is not None:
-                self.save_results_to_file(results_vio, "results_vio", curr_results_path)
-            if results_pgo is not None:
-                self.save_results_to_file(results_pgo, "results_pgo", curr_results_path)
+        if results_vio is not None:
+            self.save_results_to_file(results_vio, "results_vio", curr_results_path)
+
+        if results_pgo is not None:
+            self.save_results_to_file(results_pgo, "results_pgo", curr_results_path)
 
         if self.display_plots and plot_collection is not None:
             logging.debug("Displaying plots.")
@@ -110,13 +64,6 @@ class DatasetEvaluator:
 
         if self.save_plots and plot_collection is not None:
             self.save_plots_to_file(plot_collection, curr_results_path)
-
-        if self.write_website:
-            logging.info(f"Writing performance website for dataset: {dataset_name}")
-            self.website_builder.add_dataset_to_website(
-                dataset_name, pipeline_type, curr_results_path
-            )
-            self.website_builder.write_datasets_website()
 
         return True
 
@@ -141,7 +88,6 @@ class DatasetEvaluator:
             discard_n_start_poses: int representing number of poses to discard from start of analysis.
             discard_n_end_poses: int representing the number of poses to discard from end of analysis.
         """
-        import copy
 
         # Mind that traj_est_pgo might be None
         traj_ref, traj_est_vio, traj_est_pgo = self.read_traj_files(
@@ -552,3 +498,25 @@ class DatasetEvaluator:
             evt.draw_rpe_boxplots(results_dataset_dir, stats, len(dataset_segments))
         else:
             log.info("Missing RPE results, not drawing RPE boxplots.")
+
+    def write_website(self):
+        """Output website based on saved analysis."""
+        logging.info("Writing full website...")
+        stats = aggregate_ape_results(self.results_dir)
+
+        if len(stats) > 0:
+            logging.info("Drawing APE boxplots.")
+            draw_ape_boxplots(stats, self.results_dir)
+
+        for dataset, pipelines in stats.items():
+            for pipeline in pipelines:
+                logging.info(
+                    f"Writing performance website for dataset: {dataset}:{pipeline}"
+                )
+                self.website_builder.add_dataset_to_website(
+                    dataset_name, pipeline_type, curr_results_path
+                )
+
+        self.website_builder.write_boxplot_website(stats)
+        self.website_builder.write_datasets_website()
+        logging.info("Finished writing website.")
