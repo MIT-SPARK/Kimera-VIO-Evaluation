@@ -1,13 +1,18 @@
 """Main library for evaluation."""
+from dataclasses import dataclass
+from typing import Optional, List
+
 import copy
-import math
+import logging
+import pathlib
+
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 
 import evo.core.trajectory
 import evo.core.lie_algebra as lie
 import evo.core.metrics
-import evo.tools.plot
+from evo.core.metrics import PoseRelation, Unit
 
 
 DEFAULT_STAT_TYPES = [
@@ -20,208 +25,40 @@ DEFAULT_STAT_TYPES = [
 ]
 
 
+def _get_default_rpe_args(
+    delta=1.0, delta_unit=Unit.frames, rel_delta_tol=1.0, all_pairs=False
+):
+    return copy.deepcopy(locals())
+
+
 def get_ape_rot(data):
-    """Return APE rotation metric for input data.
-
-    Args:
-        data: A 2-tuple containing the reference trajectory and the
-            estimated trajectory as PoseTrajectory3D objects.
-
-    Returns:
-        A metrics object containing the desired results.
-    """
-    ape_rot = evo.core.metrics.APE(evo.core.metrics.PoseRelation.rotation_angle_deg)
+    """Return APE rotation metric for input trajectories."""
+    ape_rot = evo.core.metrics.APE(PoseRelation.rotation_angle_deg)
     ape_rot.process_data(data)
-
     return ape_rot
 
 
 def get_ape_trans(data):
-    """Return APE translation metric for input data.
-
-    Args:
-        data: A 2-tuple containing the reference trajectory and the
-            estimated trajectory as PoseTrajectory3D objects.
-
-    Returns:
-        A metrics object containing the desired results.
-    """
-    ape_trans = evo.core.metrics.APE(evo.core.metrics.PoseRelation.translation_part)
+    """Return APE translation metric for input trajectories."""
+    ape_trans = evo.core.metrics.APE(PoseRelation.translation_part)
     ape_trans.process_data(data)
-
     return ape_trans
 
 
 def get_rpe_rot(data):
-    """Return RPE rotation metric for input data.
-
-    Args:
-        data: A 2-tuple containing the reference trajectory and the
-            estimated trajectory as PoseTrajectory3D objects.
-
-    Returns:
-        A metrics object containing the desired results.
-    """
-    rpe_rot = evo.core.metrics.RPE(
-        evo.core.metrics.PoseRelation.rotation_angle_deg,
-        1.0,
-        evo.core.metrics.Unit.frames,
-        1.0,
-        False,
-    )
-    rpe_rot.process_data(data)
-
-    return rpe_rot
+    """Return RPE rotation metric for input trajectories."""
+    rpe_args = _get_default_rpe_args(rel_delta_tol=1.0)
+    metric = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
+    metric.process_data(data)
+    return metric
 
 
 def get_rpe_trans(data):
-    """Return RPE translation metric for input data.
-
-    Args:
-        data: A 2-tuple containing the reference trajectory and the
-            estimated trajectory as PoseTrajectory3D objects.
-
-    Returns:
-        A metrics object containing the desired results.
-    """
-    rpe_trans = evo.core.metrics.RPE(
-        evo.core.metrics.PoseRelation.translation_part,
-        1.0,
-        evo.core.metrics.Unit.frames,
-        0.0,
-        False,
-    )
-    rpe_trans.process_data(data)
-
-    return rpe_trans
-
-
-def plot_metric(metric, plot_title="", figsize=(8, 8), stat_types=None):
-    """
-    Add a metric plot to a plot collection.
-
-    Args:
-        plot_collection: a PlotCollection containing plots.
-        metric: an evo.core.metric object with statistics and information.
-        plot_title: a string representing the title of the plot.
-        figsize: a 2-tuple representing the figure size.
-
-    Returns:
-        A plt figure.
-    """
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot()
-    stats_to_use = DEFAULT_STAT_TYPES if stat_types is None else stat_types
-    stats = {s.value: metric.get_statistic(s) for s in stats_to_use}
-
-    evo.tools.plot.error_array(
-        ax,
-        metric.error,
-        statistics=stats,
-        title=plot_title,
-        xlabel="Keyframe index [-]",
-        ylabel=plot_title + " " + metric.unit.value,
-    )
-
-    return fig
-
-
-def plot_traj_colormap_ape(
-    ape_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
-):
-    """
-    Add a trajectory colormap of ATE metrics to a plot collection.
-
-    Args:
-        ape_metric: an evo.core.metric object with statistics and information for APE.
-        traj_ref: a PoseTrajectory3D object representing the reference trajectory.
-        traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
-        traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory.
-        plot_title: a string representing the title of the plot.
-        figsize: a 2-tuple representing the figure size.
-
-    Returns:
-        A plt figure.
-    """
-    fig = plt.figure(figsize=figsize)
-    plot_mode = evo.tools.plot.PlotMode.xy
-    ax = evo.tools.plot.prepare_axis(fig, plot_mode)
-
-    ape_stats = ape_metric.get_all_statistics()
-
-    evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
-
-    colormap_traj = traj_est1
-    if traj_est2 is not None:
-        evo.tools.plot.traj(
-            ax, plot_mode, traj_est1, ".", "gray", "reference without pgo"
-        )
-        colormap_traj = traj_est2
-
-    evo.tools.plot.traj_colormap(
-        ax,
-        colormap_traj,
-        ape_metric.error,
-        plot_mode,
-        min_map=0.0,
-        max_map=math.ceil(ape_stats["max"] * 10) / 10,
-        title=plot_title,
-    )
-
-    return fig
-
-
-def plot_traj_colormap_rpe(
-    rpe_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
-):
-    """
-    Add a trajectory colormap of RPE metrics to a plot collection.
-
-    Args:
-        ape_metric: an evo.core.metric object with statistics and information for RPE.
-        traj_ref: a PoseTrajectory3D object representing the reference trajectory.
-        traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
-        traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory.
-        plot_title: a string representing the title of the plot.
-        figsize: a 2-tuple representing the figure size.
-
-    Returns:
-        A plt figure.
-    """
-    fig = plt.figure(figsize=figsize)
-    plot_mode = evo.tools.plot.PlotMode.xy
-    ax = evo.tools.plot.prepare_axis(fig, plot_mode)
-
-    # We have to make deep copies to avoid altering the original data:
-    traj_ref = copy.deepcopy(traj_ref)
-    traj_est1 = copy.deepcopy(traj_est1)
-    traj_est2 = copy.deepcopy(traj_est2)
-
-    rpe_stats = rpe_metric.get_all_statistics()
-    traj_ref.reduce_to_ids(rpe_metric.delta_ids)
-    traj_est1.reduce_to_ids(rpe_metric.delta_ids)
-
-    evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
-
-    colormap_traj = traj_est1
-    if traj_est2 is not None:
-        traj_est2.reduce_to_ids(rpe_metric.delta_ids)
-        evo.tools.plot.traj(
-            ax, plot_mode, traj_est1, ".", "gray", "reference without pgo"
-        )
-        colormap_traj = traj_est2
-
-    evo.tools.plot.traj_colormap(
-        ax,
-        colormap_traj,
-        rpe_metric.error,
-        plot_mode,
-        min_map=0.0,
-        max_map=math.ceil(rpe_stats["max"] * 10) / 10,
-        title=plot_title,
-    )
-
-    return fig
+    """Return RPE translation metric for input trajectories."""
+    rpe_args = _get_default_rpe_args(rel_delta_tol=0.0)
+    metric = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
+    metric.process_data(data)
+    return metric
 
 
 def df_to_trajectory(
@@ -253,6 +90,7 @@ def df_to_trajectory(
         timestamps = df[time_column].to_numpy()
     else:
         timestamps = df.index.to_numpy()
+
     return evo.core.trajectory.PoseTrajectory3D(
         positions_xyz=pos_xyz,
         orientations_quat_wxyz=quaternion_wxyz,
@@ -413,3 +251,164 @@ def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
     return evo.core.trajectory.PoseTrajectory3D(
         timestamps=rel_traj.timestamps, poses_se3=new_poses
     )
+
+
+@dataclass
+class TrajectoryPair:
+    """Rereference and estimated trajectory."""
+
+    est: evo.core.trajectory.PoseTrajectory3D
+    ref: evo.core.trajectory.PoseTrajectory3D
+
+    @classmethod
+    def load(cls, est_path: pathlib.Path, ref_path: pathlib.Path, sync=True):
+        """Load trajectories."""
+        if not est_path.exists():
+            raise ValueError(f"estimated path '{est_path}' does not exist")
+
+        if not ref_path.exists():
+            raise ValueError(f"ground-truth path '{ref_path}' does not exist")
+
+        est = df_to_trajectory(pd.read_csv(est_path, sep=",", index_col=0))
+        ref = df_to_trajectory(pd.read_csv(ref_path, sep=",", index_col=0))
+        if sync:
+            ref, est = evo.core.sync.associate_trajectories(ref, est)
+
+        return cls(ref, est)
+
+    def aligned(self, discard_n_end_poses=0, discard_n_start_poses=0):
+        """Get an aligned version of the original trajectory group."""
+        args = {
+            "correct_scale": False,
+            "discard_n_start_poses": discard_n_start_poses,
+            "discard_n_end_poses": discard_n_end_poses,
+        }
+        est = evo.core.trajectory.align_trajectory(self.est, self.ref, **args)
+        return TrajectoryPair(est, copy.deepcopy(self.ref))
+
+    def clone(self):
+        """Create a trajectory copy."""
+        return TrajectoryPair(copy.deepcopy(self.est), copy.deepcopy(self.ref))
+
+    def reduce(self, start, end):
+        """Get a clipped trajectory."""
+        new_pair = self.clone()
+        new_pair.est.reduce_to_ids(range(start, end))
+        new_pair.ref.reduce_to_ids(range(start, end))
+        return new_pair
+
+    @property
+    def num_poses(self):
+        """Get number of trajectory poses."""
+        return self.est.num_poses
+
+    @property
+    def data(self):
+        """Get tuple (ref, est) of trajectories."""
+        return (self.ref, self.est)
+
+    def compute_rpe(self, segments: List[float]):
+        """Compute RPE and RTE for pair."""
+        rpe_results = {}
+        for segment in segments:
+            logging.debug(f"RPE analysis of segment {segment}")
+            rpe_args = {
+                "delta": segment,
+                "delta_unit": evo.core.metrics.Unit.meters,
+                "rel_delta_tol": 0.01,
+                "all_pairs": True,
+            }
+
+            logging.debug("Calculating segment RPE translation...")
+            rpe_trans = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
+            rpe_trans.process_data(self.data)
+            rpe_segment_stats_trans = rpe_trans.get_all_statistics()
+
+            logging.debug("Calculating segment RPE rotation...")
+            rpe_rot = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
+            rpe_rot.process_data(self.data)
+            rpe_segment_stats_rot = rpe_rot.get_all_statistics()
+
+            rpe_results[str(segment)] = {
+                "rpe_trans": rpe_segment_stats_trans,
+                "rpe_rot": rpe_segment_stats_rot,
+            }
+
+        return rpe_results
+
+    def analyze(self, segments):
+        """Process trajectory data."""
+        logging.info("Calculating APE translation...")
+        ape_metric = get_ape_trans(self.data)
+        ape_result = ape_metric.get_result()
+        logging.debug(f"APE translation: {ape_result.stats['mean']}")
+
+        logging.info("Calculating RPE translation...")
+        rpe_metric_trans = get_rpe_trans(self.data)
+
+        logging.info("Calculating RPE rotation...")
+        rpe_metric_rot = get_rpe_rot(self.data)
+
+        return {
+            "ape_translation": ape_metric,
+            "absolute_errors": ape_result,
+            "rpe_translation": rpe_metric_trans,
+            "rpe_rotation": rpe_metric_rot,
+            "relative_errors": self.compute_rpe(segments),
+            "trajectory_length_m": self.est.path_length(),
+        }
+
+
+@dataclass
+class TrajectoryGroup:
+    """Group of trajectories."""
+
+    vio: TrajectoryPair
+    pgo: Optional[TrajectoryPair] = None
+
+    @classmethod
+    def load(
+        cls,
+        result_path: pathlib.Path,
+        ref_name="traj_gt.csv",
+        vio_name="traj_vio.csv",
+        pgo_name="traj_pgo.csv",
+        gt_path: Optional[pathlib.Path] = None,
+    ):
+        """Load trajectories."""
+        traj_gt_path = (result_path if gt_path is None else gt_path) / ref_name
+        traj_vio_path = result_path / vio_name
+        traj_pgo_path = result_path / pgo_name
+
+        if not traj_gt_path.exists():
+            raise ValueError(f"GT path '{traj_gt_path}' does not exist")
+
+        if not traj_vio_path.exists():
+            raise ValueError(f"VIO result path '{traj_vio_path}' does not exist")
+
+        vio_pair = TrajectoryPair.load(traj_vio_path, traj_gt_path)
+
+        if not traj_pgo_path.exists():
+            logging.debug(f"No PGO results found at '{traj_pgo_path}'")
+            pgo_pair = None
+        else:
+            pgo_pair = TrajectoryPair.load(traj_pgo_path, traj_gt_path)
+
+        return cls(vio_pair, pgo_pair)
+
+    def aligned(self, **kwargs):
+        """Get an aligned version of the original trajectory group."""
+        vio_aligned = self.vio.aligned(**kwargs)
+        pgo_aligned = None if self.pgo is None else self.pgo.aligned(**kwargs)
+        return TrajectoryGroup(vio_aligned, pgo_aligned)
+
+    def reduce(self, discard_n_start_poses=0, discard_n_end_poses=0):
+        """Reduce trajectories to input window."""
+        num_poses = self.vio.num_poses
+        if self.pgo is not None:
+            num_poses = min(num_poses, self.pgo.num_poses)
+
+        start = discard_n_start_poses
+        end = num_poses - discard_n_end_poses
+        pgo_reduced = (None if self.pgo is None else self.pgo.reduce(start, end),)
+        return TrajectoryGroup(self.vio.reduce(start, end), pgo_reduced)

@@ -5,6 +5,11 @@ from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
 import pathlib
 
+import evo.tools.plot
+import copy
+
+import math
+
 import logging
 import pandas as pd
 from datetime import datetime as date
@@ -259,3 +264,236 @@ def draw_timing_plot(
     plt.savefig(filename, bbox_inches="tight", transparent=True, dpi=1000)
     if display_plot:
         plt.show()
+
+
+def plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
+    """Plot DF rows in a line plot."""
+    mode = "lines+markers"
+
+    if fig is None:
+        fig = go.Figure()
+
+    # TODO(nathan) no asserts
+    assert x_id in df
+    for y_id in y_ids:
+        assert y_id in df
+        fig.add_trace(
+            go.Scatter(x=df[x_id], y=df[y_id], mode=mode, name=y_id), row=row, col=col
+        )
+
+    return fig
+
+
+def plot_3d_trajectory(df, fig=None, row=None, col=None):
+    """Show a 3D trajectory."""
+    args = {
+        "size": 5,
+        "color": df["#timestamp"],
+        "colorscale": "Viridis",
+        "opacity": 0.8,
+    }
+
+    trace = go.Scatter3d(
+        x=df["x"], y=df["y"], z=df["z"], mode="lines+markers", marker=args
+    )
+    fig.add_trace(trace, row=row, col=col)
+    # TODO(nathan) this is ugly
+    fig.update_layout(
+        scene=dict(
+            annotations=[
+                dict(
+                    showarrow=False,
+                    x=df["x"][0],
+                    y=df["y"][0],
+                    z=df["z"][0],
+                    text="Start",
+                    xanchor="left",
+                    xshift=10,
+                    opacity=0.9,
+                ),
+                dict(
+                    showarrow=False,
+                    x=df["x"].iloc[-1],
+                    y=df["y"].iloc[-1],
+                    z=df["z"].iloc[-1],
+                    text="End",
+                    xanchor="left",
+                    xshift=10,
+                    opacity=0.9,
+                ),
+            ],
+            xaxis_showspikes=False,
+            yaxis_showspikes=False,
+            aspectmode="manual",
+            aspectratio=dict(x=1, y=1, z=1),
+        )
+    )
+
+
+def plot_metric(metric, plot_title="", figsize=(8, 8), stat_types=None):
+    """
+    Add a metric plot to a plot collection.
+
+    Args:
+        plot_collection: a PlotCollection containing plots.
+        metric: an evo.core.metric object with statistics and information.
+        plot_title: a string representing the title of the plot.
+        figsize: a 2-tuple representing the figure size.
+
+    Returns:
+        A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot()
+    stats_to_use = DEFAULT_STAT_TYPES if stat_types is None else stat_types
+    stats = {s.value: metric.get_statistic(s) for s in stats_to_use}
+
+    evo.tools.plot.error_array(
+        ax,
+        metric.error,
+        statistics=stats,
+        title=plot_title,
+        xlabel="Keyframe index [-]",
+        ylabel=plot_title + " " + metric.unit.value,
+    )
+
+    return fig
+
+
+def plot_traj_colormap_ape(
+    ape_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
+):
+    """
+    Add a trajectory colormap of ATE metrics to a plot collection.
+
+    Args:
+        ape_metric: an evo.core.metric object with statistics and information for APE.
+        traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+        traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+        traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory.
+        plot_title: a string representing the title of the plot.
+        figsize: a 2-tuple representing the figure size.
+
+    Returns:
+        A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    plot_mode = evo.tools.plot.PlotMode.xy
+    ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+
+    ape_stats = ape_metric.get_all_statistics()
+
+    evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+
+    colormap_traj = traj_est1
+    if traj_est2 is not None:
+        evo.tools.plot.traj(
+            ax, plot_mode, traj_est1, ".", "gray", "reference without pgo"
+        )
+        colormap_traj = traj_est2
+
+    evo.tools.plot.traj_colormap(
+        ax,
+        colormap_traj,
+        ape_metric.error,
+        plot_mode,
+        min_map=0.0,
+        max_map=math.ceil(ape_stats["max"] * 10) / 10,
+        title=plot_title,
+    )
+
+    return fig
+
+
+def plot_traj_colormap_rpe(
+    rpe_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
+):
+    """
+    Add a trajectory colormap of RPE metrics to a plot collection.
+
+    Args:
+        ape_metric: an evo.core.metric object with statistics and information for RPE.
+        traj_ref: a PoseTrajectory3D object representing the reference trajectory.
+        traj_est1: a PoseTrajectory3D object representing the vio-estimated trajectory.
+        traj_est2: a PoseTrajectory3D object representing the pgo-estimated trajectory.
+        plot_title: a string representing the title of the plot.
+        figsize: a 2-tuple representing the figure size.
+
+    Returns:
+        A plt figure.
+    """
+    fig = plt.figure(figsize=figsize)
+    plot_mode = evo.tools.plot.PlotMode.xy
+    ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+
+    # We have to make deep copies to avoid altering the original data:
+    traj_ref = copy.deepcopy(traj_ref)
+    traj_est1 = copy.deepcopy(traj_est1)
+    traj_est2 = copy.deepcopy(traj_est2)
+
+    rpe_stats = rpe_metric.get_all_statistics()
+    traj_ref.reduce_to_ids(rpe_metric.delta_ids)
+    traj_est1.reduce_to_ids(rpe_metric.delta_ids)
+
+    evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+
+    colormap_traj = traj_est1
+    if traj_est2 is not None:
+        traj_est2.reduce_to_ids(rpe_metric.delta_ids)
+        evo.tools.plot.traj(
+            ax, plot_mode, traj_est1, ".", "gray", "reference without pgo"
+        )
+        colormap_traj = traj_est2
+
+    evo.tools.plot.traj_colormap(
+        ax,
+        colormap_traj,
+        rpe_metric.error,
+        plot_mode,
+        min_map=0.0,
+        max_map=math.ceil(rpe_stats["max"] * 10) / 10,
+        title=plot_title,
+    )
+
+    return fig
+
+
+def add_results_to_collection(data, results, name, plots=None, extra_trajectory=None):
+    """Add metrics to plot collection."""
+    if plots is None:
+        plots = evo.tools.plot.PlotCollection("Example")
+
+    ape = results["ape_translation"]
+    ape_name = f"{name} APE Translation"
+    ape_traj_name = f"{name} ATE Mapped Onto Trajectory"
+    plots.add_figure(ape_name, plot_metric(ape, ape_name))
+    plots.add_figure(
+        ape_traj_name,
+        plot_traj_colormap_ape(
+            ape, data.ref, data.est, extra_trajectory, ape_traj_name
+        ),
+    )
+
+    rpe_t = results["rpe_translation"]
+    rpe_tname = f"{name} RPE Translation"
+    rpe_traj_tname = f"{name} RPE Translation Error Mapped Onto Trajectory"
+    plots.add_figure(rpe_tname, plot_metric(rpe_t, rpe_tname))
+    plots.add_figure(
+        rpe_traj_tname,
+        plot_traj_colormap_rpe(
+            rpe_t, data.ref, data.est, extra_trajectory, rpe_traj_tname
+        ),
+    )
+
+    rpe_r = results["rpe_rotation"]
+    rpe_rname = f"{name} RPE Rotation"
+    rpe_traj_rname = f"{name} RPE Rotation Error Mapped Onto Trajectory"
+    plots.add_figure(rpe_rname, plot_metric(rpe_r, rpe_rname))
+    plots.add_figure(
+        rpe_traj_rname,
+        plot_traj_colormap_rpe(
+            rpe_r, data.ref, data.est, extra_trajectory, rpe_traj_rname
+        ),
+    )
+
+    return plots
