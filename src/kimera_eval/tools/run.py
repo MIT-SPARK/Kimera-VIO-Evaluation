@@ -20,7 +20,6 @@ def _normalize_path(input_path):
 @click.option("-e", "--executable-path", type=click.Path(exists=True), default=None)
 @click.option("-p", "--param-path", type=click.Path(exists=True), default=None)
 @click.option("-d", "--dataset-path", type=click.Path(exists=True), default=None)
-@click.option("-d", "--dataset-path", type=click.Path(exists=True), default=None)
 @click.option("-n", "--name", default="example_euroc", help="experiment to run")
 @click.option("-v", "--vocab-path", type=click.Path(exists=True), default=None)
 @click.option("--minloglevel", default=2, help="set VIO minloglevel")

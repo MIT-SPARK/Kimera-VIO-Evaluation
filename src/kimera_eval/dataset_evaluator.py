@@ -5,7 +5,6 @@ import kimera_eval.trajectory_metrics
 import itertools
 import logging
 import pathlib
-import yaml
 
 
 class DatasetEvaluator:
@@ -48,17 +47,16 @@ class DatasetEvaluator:
         )
         traj = traj.align(sequence.analysis).reduce(sequence.analysis)
 
-        vio_results = traj.vio.analyze(sequence.analysis)
+        vio_results = kimera_eval.trajectory_metrics.TrajectoryResults.analyze(
+            sequence.analysis, traj.vio
+        )
+        vio_results.save(result_path / "results_vio.pickle")
         pgo_results = None
         if traj.pgo is not None:
-            pgo_results = traj.pgo.analyze(sequence.analysis)
-
-        with (result_path / "results_vio.yaml").open("w") as fout:
-            fout.write(yaml.dump(vio_results, default_flow_style=False))
-
-        if pgo_results is not None:
-            with (result_path / "results_pgo.yaml").open("w") as fout:
-                fout.write(yaml.dump(pgo_results, default_flow_style=False))
+            pgo_results = kimera_eval.trajectory_metrics.TrajectoryResults.analyze(
+                sequence.analysis, traj.pgo
+            )
+            pgo_results.save(result_path / "results_pgo.pickle")
 
         plots = kimera_eval.plotting.add_results_to_collection(
             traj.vio, vio_results, "VIO"

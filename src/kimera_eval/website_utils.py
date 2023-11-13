@@ -1,4 +1,5 @@
 """Helpers for creating jenkins website."""
+from kimera_eval.trajectory_metrics import TrajectoryResults
 import kimera_eval.plotting
 
 from dataclasses import dataclass
@@ -8,7 +9,6 @@ import pandas as pd
 import plotly
 import plotly.subplots
 import logging
-import yaml
 
 
 def _fig_to_html(fig, include_plotlyjs=False, output_type="div"):
@@ -17,7 +17,7 @@ def _fig_to_html(fig, include_plotlyjs=False, output_type="div"):
     )
 
 
-def _get_frontend_results_as_html(results_path):
+def _make_frontend_fig(results_path):
     df_stats = pd.read_csv(results_path, sep=",", index_col=False)
     html = _fig_to_html(kimera_eval.plotting.draw_feature_tracking_stats(df_stats))
     html += _fig_to_html(
@@ -26,7 +26,7 @@ def _get_frontend_results_as_html(results_path):
     return html
 
 
-def _get_dataset_results_as_html(dataset, csv_results_path, x_id="#timestamp"):
+def _make_trajectory_fig(dataset, csv_results_path, x_id="#timestamp"):
     df = pd.read_csv(csv_results_path)
     fig = plotly.subplots.make_subplots(
         rows=3,
@@ -127,101 +127,51 @@ class WebsiteBuilder:
         self._dataset_render = self._env.get_template("datasets_template.html")
         self._boxplot_render = self._env.get_template("vio_performance_template.html")
 
-    def write(self, results, stats, output_path):
-        """Write website using the collected data."""
+    def write(
+        self, results_path: pathlib.Path, output_path: pathlib.Path, use_pgo=False
+    ):
+        """Collect results and write corresponding website."""
+        results_path = pathlib.Path(results_path)
+        logging.debug(f"Aggregating dataset results @ '{results_path}'")
+        filename = "results_vio.pickle" if not use_pgo else "results_pgo.pickle"
+
+        stats = {}
+        results = {}
+
+        filepaths = sorted(list(results_path.glob(f"**/{filename}")))
+        for filepath in filepaths:
+            pipeline = filepath.parent.stem
+            dataset = filepath.parent.parent.stem
+
+            stats.get(dataset, {})[pipeline] = TrajectoryResults.load(filepath)
+            results.get(pipeline, {})[dataset] = ResultGroup(filepath.parent)
+
         output_path = pathlib.Path(output_path).expanduser().absolute()
         output_path.mkdir(parents=True, exit_ok=True)
 
+        logging.debug("writing website to {output_path}...")
         with (output_path / "vio_ape_euroc.html").open("w") as fout:
-            fig_html = _fig_to_html(
-                kimera_eval.plotting.draw_ape_boxplots_plotly(stats)
-            )
+            fig_html = _fig_to_html(kimera_eval.plotting.draw_ape_boxplots(stats))
             fout.write(self._boxplot_render.render(boxplot=fig_html))
 
-        with (output_path / "detailed_performance.html").open("w") as fout:
-            fout.write(
-                self._detail_render.render(
-                    datasets_pdf_path={x.dataset: x.plot_path for x in results}
-                )
-            )
+        for pipeline, pipeline_results in results.items():
+            pipeline_output = output_path / pipeline
+            pdfs = {}
+            frontend_figs = {}
+            trajectories = {}
 
-        with (output_path / "frontend.html").open("w") as fout:
-            frontend_html = {
-                x.dataset: _get_frontend_results_as_html(x.frontend_results_path)
-                for x in results
-            }
-            fout.write(self._dataset_render.render(datasets_html=frontend_html))
+            for dataset, info in pipeline_results.items():
+                pdfs[dataset] = info.plot_path
+                frontend_figs[dataset] = _make_frontend_fig(info.frontend_results_path)
+                trajectories[dataset] = _make_trajectory_fig(info.vio_trajectory_path)
 
-        with (output_path / "datasets.html").open("w") as fout:
-            traj_html = {
-                x.dataset: _get_dataset_results_as_html(x.vio_trajectory_path)
-                for x in results
-            }
-            fout.write(self._dataset_render.render(datasets_html=traj_html))
+            with (pipeline_output / "detailed_performance.html").open("w") as fout:
+                fout.write(self._detail_render.render(datasets_pdf_path=pdfs))
 
+            with (pipeline_output / "frontend.html").open("w") as fout:
+                fout.write(self._dataset_render.render(datasets_html=frontend_figs))
 
-def check_stats(stats):
-    """Check stat contents."""
-    if "relative_errors" not in stats:
-        logging.error(f"Stats are missing required metrics: {stats}")
+            with (pipeline_output / "datasets.html").open("w") as fout:
+                fout.write(self._dataset_render.render(datasets_html=trajectories))
 
-    if len(stats["relative_errors"]) == 0:
-        logging.error(f"Stats are missing required metrics: {stats}")
-
-    if "rpe_rot" not in list(stats["relative_errors"].values())[0]:
-        logging.error(f"Stats are missing required metrics: {stats}")
-
-    if "rpe_trans" not in list(stats["relative_errors"].values())[0]:
-        logging.error(f"Stats are missing required metrics: {stats}")
-
-    if "absolute_errors" not in stats:
-        logging.error(f"Stats are missing required metrics: {stats}")
-        return False
-
-    return True
-
-
-def aggregate_ape_results(results_dir, use_pgo=False):
-    """
-    Aggregate APE results and draw APE boxplot as well as write latex table.
-
-    Args:
-      - result_dir: path to directory containing yaml result files
-      - use_pgo: whether to aggregate all results for VIO or for PGO trajectory.
-
-    Returns:
-        Dict[str, Dict[str, Any]]: results keyed by dataset then pipeline
-    """
-    logging.debug(f"Aggregating dataset results @ '{results_dir}'")
-
-    yaml_filename = "results_vio.yaml"
-    if use_pgo:
-        yaml_filename = "results_pgo.yaml"
-
-    stats = {}
-    results_path = pathlib.Path(results_dir)
-    filepaths = sorted(list(results_path.glob(f"**/{yaml_filename}")))
-    for filepath in filepaths:
-        pipeline_name = filepath.parent.stem
-        dataset_name = filepath.parent.parent.stem
-        if dataset_name not in stats:
-            stats[dataset_name] = {}
-
-        with filepath.open("r") as fin:
-            stats[dataset_name][pipeline_name] = yaml.safe_load(fin.read())
-
-        logging.debug(f"Checking stats from `{filepath}`")
-        if not check_stats(stats[dataset_name][pipeline_name]):
-            logging.warning(f"invalid stats for {dataset_name}:{pipeline_name}")
-
-    return stats
-
-
-def write_website():
-    """Output website based on saved analysis."""
-    logging.info("Writing full website...")
-    stats = aggregate_ape_results(self.results_dir)
-
-    website_builder.write_boxplot_website(stats)
-    builder.write()
-    logging.info("Finished writing website.")
+            logging.debug("finished writing website")

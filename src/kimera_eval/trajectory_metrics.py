@@ -1,10 +1,11 @@
 """Main library for evaluation."""
 from kimera_eval.experiment_config import AnalysisConfig
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 import copy
 import logging
 import pathlib
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -245,7 +246,7 @@ def convert_rel_traj_from_body_to_cam(rel_traj, body_T_cam):
 
 @dataclass
 class TrajectoryPair:
-    """Rereference and estimated trajectory."""
+    """Reference and estimated trajectory."""
 
     est: evo.core.trajectory.PoseTrajectory3D
     ref: evo.core.trajectory.PoseTrajectory3D
@@ -297,56 +298,75 @@ class TrajectoryPair:
         """Get tuple (ref, est) of trajectories."""
         return (self.ref, self.est)
 
-    def compute_rpe(self, config: AnalysisConfig):
-        """Compute RPE and RTE for pair."""
-        rpe_results = {}
-        for segment in config.segments:
-            logging.debug(f"RPE analysis of segment {segment}")
-            rpe_args = {
-                "delta": segment,
-                "delta_unit": evo.core.metrics.Unit.meters,
-                "rel_delta_tol": 0.01,
-                "all_pairs": True,
-            }
+    @property
+    def length_m(self):
+        """Get trajectory length in meters."""
+        return self.est.path_length
 
-            logging.debug("Calculating segment RPE translation...")
-            rpe_trans = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
-            rpe_trans.process_data(self.data)
-            rpe_segment_stats_trans = rpe_trans.get_all_statistics()
 
-            logging.debug("Calculating segment RPE rotation...")
-            rpe_rot = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
-            rpe_rot.process_data(self.data)
-            rpe_segment_stats_rot = rpe_rot.get_all_statistics()
+@dataclass
+class RpeResult:
+    """Class holding a specific trajectory result."""
 
-            rpe_results[str(segment)] = {
-                "rpe_trans": rpe_segment_stats_trans,
-                "rpe_rot": rpe_segment_stats_rot,
-            }
+    delta: float
+    rotation: evo.core.metrics.RPE
+    translation: evo.core.metrics.RPE
 
-        return rpe_results
-
-    def analyze(self, config: AnalysisConfig):
-        """Process trajectory data."""
-        logging.info("Calculating APE translation...")
-        ape_metric = get_ape_trans(self.data)
-        ape_result = ape_metric.get_result()
-        logging.debug(f"APE translation: {ape_result.stats['mean']}")
-
-        logging.info("Calculating RPE translation...")
-        rpe_metric_trans = get_rpe_trans(self.data)
-
-        logging.info("Calculating RPE rotation...")
-        rpe_metric_rot = get_rpe_rot(self.data)
-
-        return {
-            "ape_translation": ape_metric,
-            "absolute_errors": ape_result,
-            "rpe_translation": rpe_metric_trans,
-            "rpe_rotation": rpe_metric_rot,
-            "relative_errors": self.compute_rpe(config),
-            "trajectory_length_m": self.est.path_length,
+    @classmethod
+    def from_trajectory(cls, delta, trajectory: TrajectoryPair):
+        """Compute RPE from a specific delta in meters."""
+        logging.debug(f"RPE analysis of segment length {delta} [m]")
+        rpe_args = {
+            "delta": delta,
+            "delta_unit": evo.core.metrics.Unit.meters,
+            "rel_delta_tol": 0.01,
+            "all_pairs": True,
         }
+        trans = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
+        trans.process_data(trajectory.data)
+        rot = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
+        rot.process_data(trajectory.data)
+        return cls(delta, rotation=rot, translation=trans)
+
+
+@dataclass
+class TrajectoryResults:
+    """Class holding trajectory results."""
+
+    ape_translation: evo.core.metrics.APE
+    rpe_translation: evo.core.metrics.RPE
+    rpe_rotation: evo.core.metrics.RPE
+    relative_errors: List[RpeResult]
+    trajectory_length_m: float
+
+    @classmethod
+    def analyze(cls, config: AnalysisConfig, trajectory: TrajectoryPair):
+        """Compute metrics for trajectory."""
+        rpe_results = [
+            RpeResult.from_trajectory(x, trajectory) for x in config.segments
+        ]
+        return cls(
+            ape_translation=get_ape_trans(trajectory.data),
+            rpe_translation=get_rpe_trans(trajectory.data),
+            rpe_rotation=get_rpe_rot(trajectory.data),
+            relative_errors=rpe_results,
+            trajectory_length_m=trajectory.length_m,
+        )
+
+    @staticmethod
+    def load(result_path: pathlib.Path):
+        """Load results from file."""
+        if not result_path.exists():
+            return None
+
+        with result_path.open("rb") as fin:
+            return pickle.load(fin)
+
+    def save(self, result_path: pathlib.Path):
+        """Save results to file."""
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+        with result_path.open("wb") as fout:
+            pickle.dump(self, fout)
 
 
 @dataclass

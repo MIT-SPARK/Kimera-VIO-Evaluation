@@ -1,4 +1,6 @@
 """Plot information via plotly."""
+from kimera_eval.trajectory_metrics import TrajectoryResults
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -147,7 +149,7 @@ def draw_frontend_timing(df, show_figure=False):
     return fig
 
 
-def draw_boxplot_plotly(df):
+def draw_boxplot(df):
     """Draw boxplot."""
     tidy = df.set_index(["Dataset Name"])
     tidy = (
@@ -177,7 +179,7 @@ def draw_boxplot_plotly(df):
     return fig
 
 
-def draw_ape_boxplots_plotly(stats, show_figure=False):
+def draw_ape_boxplots(stats, show_figure=False):
     """
     Draw boxplots.
 
@@ -209,7 +211,7 @@ def draw_ape_boxplots_plotly(stats, show_figure=False):
     df = pd.DataFrame.from_records(listify_stats(stats))
     df.columns = ["Dataset Name", "Pipe Type", "ATE errors"]
 
-    figure = draw_boxplot_plotly(df)
+    figure = draw_boxplot(df)
 
     if show_figure:
         figure.show()
@@ -469,41 +471,44 @@ def plot_traj_colormap_rpe(
     return fig
 
 
-def add_results_to_collection(data, results, name, plots=None, extra_trajectory=None):
+def add_results_to_collection(
+    data, results: TrajectoryResults, name, plots=None, extra_trajectory=None
+):
     """Add metrics to plot collection."""
     if plots is None:
         plots = evo.tools.plot.PlotCollection("Example")
 
-    ape = results["ape_translation"]
     ape_name = f"{name} APE Translation"
     ape_traj_name = f"{name} ATE Mapped Onto Trajectory"
-    plots.add_figure(ape_name, plot_metric(ape, ape_name))
+    plots.add_figure(ape_name, plot_metric(results.ape_translation, ape_name))
     plots.add_figure(
         ape_traj_name,
         plot_traj_colormap_ape(
-            ape, data.ref, data.est, extra_trajectory, ape_traj_name
+            results.ape_translation, data.ref, data.est, extra_trajectory, ape_traj_name
         ),
     )
 
-    rpe_t = results["rpe_translation"]
     rpe_tname = f"{name} RPE Translation"
     rpe_traj_tname = f"{name} RPE Translation Error Mapped Onto Trajectory"
-    plots.add_figure(rpe_tname, plot_metric(rpe_t, rpe_tname))
+    plots.add_figure(rpe_tname, plot_metric(results.rpe_translation, rpe_tname))
     plots.add_figure(
         rpe_traj_tname,
         plot_traj_colormap_rpe(
-            rpe_t, data.ref, data.est, extra_trajectory, rpe_traj_tname
+            results.rpe_translation,
+            data.ref,
+            data.est,
+            extra_trajectory,
+            rpe_traj_tname,
         ),
     )
 
-    rpe_r = results["rpe_rotation"]
     rpe_rname = f"{name} RPE Rotation"
     rpe_traj_rname = f"{name} RPE Rotation Error Mapped Onto Trajectory"
-    plots.add_figure(rpe_rname, plot_metric(rpe_r, rpe_rname))
+    plots.add_figure(rpe_rname, plot_metric(results.rpe_rotation, rpe_rname))
     plots.add_figure(
         rpe_traj_rname,
         plot_traj_colormap_rpe(
-            rpe_r, data.ref, data.est, extra_trajectory, rpe_traj_rname
+            results.rpe_rotation, data.ref, data.est, extra_trajectory, rpe_traj_rname
         ),
     )
 
