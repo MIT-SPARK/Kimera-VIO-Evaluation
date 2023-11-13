@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pathlib
 
 import evo.tools.plot
+import evo.core.metrics
 import copy
 
 import math
@@ -13,6 +14,16 @@ import math
 import logging
 import pandas as pd
 from datetime import datetime as date
+
+
+DEFAULT_STAT_TYPES = [
+    evo.core.metrics.StatisticsType.rmse,
+    evo.core.metrics.StatisticsType.mean,
+    evo.core.metrics.StatisticsType.median,
+    evo.core.metrics.StatisticsType.std,
+    evo.core.metrics.StatisticsType.min,
+    evo.core.metrics.StatisticsType.max,
+]
 
 
 def draw_feature_tracking_stats(df, show_figure=False):

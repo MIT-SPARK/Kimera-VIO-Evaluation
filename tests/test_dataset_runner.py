@@ -8,7 +8,7 @@ def _get_flags(status):
 
 def test_run_normal(tmp_path, resources):
     """Test that config loading works."""
-    config_path = resources / "test_experiments" / "test_euroc.yaml"
+    config_path = resources / "test_experiments" / "test_experiment.yaml"
     config = kimera_eval.ExperimentConfig.load(
         config_path,
         executable_path="/foo/foo",
@@ -31,7 +31,7 @@ def test_run_normal(tmp_path, resources):
 
 def test_run_mocked(tmp_path, resources):
     """Test that config loading works."""
-    config_path = resources / "test_experiments" / "test_euroc.yaml"
+    config_path = resources / "test_experiments" / "test_experiment.yaml"
     config = kimera_eval.ExperimentConfig.load(
         config_path,
         executable_path=resources / "fake_executable.py",

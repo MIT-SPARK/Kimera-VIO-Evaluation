@@ -12,7 +12,7 @@ def test_read_named_config():
 
 def test_load_config(resources, pkgpath):
     """Test that config loading works."""
-    config_path = resources / "test_experiments" / "test_euroc.yaml"
+    config_path = resources / "test_experiments" / "test_experiment.yaml"
     config = kimera_eval.ExperimentConfig.load(config_path)
 
     this_path = pathlib.Path().absolute()
@@ -55,6 +55,9 @@ def test_load_config(resources, pkgpath):
 
     assert config.sequences[1].name == "V1_02_medium"
     assert config.sequences[1].args == ["--initial_k=20", "--use_lcd=false"]
+    assert config.sequences[1].analysis == kimera_eval.AnalysisConfig(
+        discard_n_start_poses=42, discard_n_end_poses=13, segments=[1, 2, 3]
+    )
 
     assert config.sequences[2].name == "V1_03_hard"
     assert config.sequences[2].args == [
@@ -66,7 +69,7 @@ def test_load_config(resources, pkgpath):
 
 def test_load_config_overrides(resources, pkgpath):
     """Test that config loading works."""
-    config_path = resources / "test_experiments" / "test_euroc.yaml"
+    config_path = resources / "test_experiments" / "test_experiment.yaml"
     config = kimera_eval.ExperimentConfig.load(
         config_path,
         executable_path="/foo/foo",

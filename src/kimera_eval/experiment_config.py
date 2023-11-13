@@ -21,10 +21,16 @@ def _normalize_path(path):
     return pathlib.Path(path).expanduser().absolute()
 
 
+def read_config(cls, *args, **kwargs):
+    """Dataclass factory from yaml input."""
+    valid_args = [x.name for x in dataclasses.fields(cls)]
+    return cls(*args, **{k: v for k, v in kwargs.items() if k in valid_args})
+
+
 def read_named_config(cls, *args, **kwargs):
     """Read a dataclass where name is the first argument."""
     if "name" not in kwargs:
-        raise ValueError("name required for dataset")
+        raise ValueError(f"name required for loading {cls}")
 
     valid_args = [x.name for x in dataclasses.fields(cls) if x.name != "name"]
     return cls(
@@ -71,10 +77,20 @@ class PipelineConfig:
 
 
 @dataclass
+class AnalysisConfig:
+    """Configuration for analysis."""
+
+    discard_n_start_poses: int = 0
+    discard_n_end_poses: int = 0
+    segments: List[float] = field(default_factory=lambda: [1.0])
+
+
+@dataclass
 class SequenceConfig:
     """Configuration for dataset."""
 
     name: str
+    analysis: AnalysisConfig
     initial_frame: int = 0
     final_frame: Optional[int] = None
     use_lcd: bool = False
@@ -144,7 +160,14 @@ class ExperimentConfig:
             logging.error(_error_str("dataset_path"))
             return None
 
-        sequences = [read_named_config(SequenceConfig, **x) for x in params["datasets"]]
+        sequences = [
+            read_named_config(
+                SequenceConfig,
+                read_config(AnalysisConfig, **x.get("analysis", {})),
+                **{k: v for k, v in x.items() if k != "analysis"},
+            )
+            for x in params["datasets"]
+        ]
         pipelines = [
             read_named_config(PipelineConfig, param_path, **x)
             for x in params["pipelines"]

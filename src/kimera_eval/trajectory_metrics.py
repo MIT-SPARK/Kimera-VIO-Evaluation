@@ -1,28 +1,18 @@
 """Main library for evaluation."""
+from kimera_eval.experiment_config import AnalysisConfig
 from dataclasses import dataclass
-from typing import Optional, List
-
+from typing import Optional
 import copy
 import logging
 import pathlib
-
 import numpy as np
 import pandas as pd
 
 import evo.core.trajectory
 import evo.core.lie_algebra as lie
 import evo.core.metrics
+import evo.core.sync
 from evo.core.metrics import PoseRelation, Unit
-
-
-DEFAULT_STAT_TYPES = [
-    evo.core.metrics.StatisticsType.rmse,
-    evo.core.metrics.StatisticsType.mean,
-    evo.core.metrics.StatisticsType.median,
-    evo.core.metrics.StatisticsType.std,
-    evo.core.metrics.StatisticsType.min,
-    evo.core.metrics.StatisticsType.max,
-]
 
 
 def _get_default_rpe_args(
@@ -276,19 +266,19 @@ class TrajectoryPair:
 
         return cls(ref, est)
 
-    def aligned(self, discard_n_end_poses=0, discard_n_start_poses=0):
-        """Get an aligned version of the original trajectory group."""
-        args = {
-            "correct_scale": False,
-            "discard_n_start_poses": discard_n_start_poses,
-            "discard_n_end_poses": discard_n_end_poses,
-        }
-        est = evo.core.trajectory.align_trajectory(self.est, self.ref, **args)
-        return TrajectoryPair(est, copy.deepcopy(self.ref))
-
     def clone(self):
         """Create a trajectory copy."""
         return TrajectoryPair(copy.deepcopy(self.est), copy.deepcopy(self.ref))
+
+    def align(self, config: AnalysisConfig):
+        """Get an aligned version of the original trajectory group."""
+        args = {
+            "correct_scale": False,
+            "discard_n_start_poses": config.discard_n_start_poses,
+            "discard_n_end_poses": config.discard_n_end_poses,
+        }
+        est = align_trajectory(self.est, self.ref, **args)
+        return TrajectoryPair(est, copy.deepcopy(self.ref))
 
     def reduce(self, start, end):
         """Get a clipped trajectory."""
@@ -307,10 +297,10 @@ class TrajectoryPair:
         """Get tuple (ref, est) of trajectories."""
         return (self.ref, self.est)
 
-    def compute_rpe(self, segments: List[float]):
+    def compute_rpe(self, config: AnalysisConfig):
         """Compute RPE and RTE for pair."""
         rpe_results = {}
-        for segment in segments:
+        for segment in config.segments:
             logging.debug(f"RPE analysis of segment {segment}")
             rpe_args = {
                 "delta": segment,
@@ -336,7 +326,7 @@ class TrajectoryPair:
 
         return rpe_results
 
-    def analyze(self, segments):
+    def analyze(self, config: AnalysisConfig):
         """Process trajectory data."""
         logging.info("Calculating APE translation...")
         ape_metric = get_ape_trans(self.data)
@@ -354,8 +344,8 @@ class TrajectoryPair:
             "absolute_errors": ape_result,
             "rpe_translation": rpe_metric_trans,
             "rpe_rotation": rpe_metric_rot,
-            "relative_errors": self.compute_rpe(segments),
-            "trajectory_length_m": self.est.path_length(),
+            "relative_errors": self.compute_rpe(config),
+            "trajectory_length_m": self.est.path_length,
         }
 
 
@@ -396,19 +386,19 @@ class TrajectoryGroup:
 
         return cls(vio_pair, pgo_pair)
 
-    def aligned(self, **kwargs):
+    def align(self, config: AnalysisConfig):
         """Get an aligned version of the original trajectory group."""
-        vio_aligned = self.vio.aligned(**kwargs)
-        pgo_aligned = None if self.pgo is None else self.pgo.aligned(**kwargs)
+        vio_aligned = self.vio.align(config)
+        pgo_aligned = None if self.pgo is None else self.pgo.align(config)
         return TrajectoryGroup(vio_aligned, pgo_aligned)
 
-    def reduce(self, discard_n_start_poses=0, discard_n_end_poses=0):
+    def reduce(self, config: AnalysisConfig):
         """Reduce trajectories to input window."""
         num_poses = self.vio.num_poses
         if self.pgo is not None:
             num_poses = min(num_poses, self.pgo.num_poses)
 
-        start = discard_n_start_poses
-        end = num_poses - discard_n_end_poses
-        pgo_reduced = (None if self.pgo is None else self.pgo.reduce(start, end),)
+        start = config.discard_n_start_poses
+        end = num_poses - config.discard_n_end_poses
+        pgo_reduced = None if self.pgo is None else self.pgo.reduce(start, end)
         return TrajectoryGroup(self.vio.reduce(start, end), pgo_reduced)
