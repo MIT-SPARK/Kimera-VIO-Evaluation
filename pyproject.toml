@@ -21,6 +21,7 @@ dependencies = [
     "evo",
     "click",
     "jinja2",
+    "matplotlib",
     "numpy",
     "pandas",
     "plotly",

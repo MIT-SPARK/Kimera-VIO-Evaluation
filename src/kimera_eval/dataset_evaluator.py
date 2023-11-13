@@ -2,6 +2,7 @@
 import kimera_eval.plotting
 import kimera_eval.trajectory_metrics
 
+import matplotlib.pyplot as plt
 import itertools
 import logging
 import pathlib
@@ -73,3 +74,4 @@ class DatasetEvaluator:
         pdf_path = result_path / "plots.pdf"
         logging.debug(f"Saving plots to: {pdf_path}")
         plots.export(str(pdf_path))
+        plt.close("all")

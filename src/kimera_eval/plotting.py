@@ -194,27 +194,21 @@ def draw_ape_boxplots(stats, show_figure=False):
     Returns:
         - the handle to the plotly figure
     """
-
-    def listify_stats(stats):
-        """Make a list of lists out of the stats."""
-        stats_list = []
-        for dataset_name in stats:
-            for pipeline in stats[dataset_name]:
-                result = stats[dataset_name][pipeline]
-                if result is not False:
-                    result = result["absolute_errors"].np_arrays["error_array"]
-                    stats_list.append([dataset_name, pipeline, result])
-        return stats_list
+    stats_list = []
+    for dataset, pipeline_results in stats.items():
+        for pipeline, result in pipeline_results.items():
+            errors = result.ape_translation.get_result().np_arrays["error_array"]
+            stats_list.append([dataset, pipeline, errors])
 
     df = pd.DataFrame()
     logging.info("Creating dataframe stats.")
-    df = pd.DataFrame.from_records(listify_stats(stats))
+    df = pd.DataFrame.from_records(stats_list)
     df.columns = ["Dataset Name", "Pipe Type", "ATE errors"]
 
     figure = draw_boxplot(df)
-
     if show_figure:
         figure.show()
+
     return figure
 
 
@@ -279,7 +273,7 @@ def draw_timing_plot(
         plt.show()
 
 
-def plot_multi_line(self, df, x_id, y_ids, fig=None, row=None, col=None):
+def plot_multi_line(df, x_id, y_ids, fig=None, row=None, col=None):
     """Plot DF rows in a line plot."""
     mode = "lines+markers"
 

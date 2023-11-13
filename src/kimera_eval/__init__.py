@@ -3,6 +3,7 @@ import kimera_eval.tools.evaluate
 import kimera_eval.tools.run
 import kimera_eval.tools.summary
 import kimera_eval.tools.timing
+import kimera_eval.website
 
 from kimera_eval.logger import configure_logging
 from kimera_eval.dataset_runner import *

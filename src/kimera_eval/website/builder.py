@@ -18,6 +18,10 @@ def _fig_to_html(fig, include_plotlyjs=False, output_type="div"):
 
 
 def _make_frontend_fig(results_path):
+    if not results_path.exists():
+        logging.warning("missing frontend information at '{results_path}'")
+        return None
+
     df_stats = pd.read_csv(results_path, sep=",", index_col=False)
     html = _fig_to_html(kimera_eval.plotting.draw_feature_tracking_stats(df_stats))
     html += _fig_to_html(
@@ -61,7 +65,7 @@ def _make_trajectory_fig(dataset, csv_results_path, x_id="#timestamp"):
         df, x_id, ["vx", "vy", "vz"], fig, row=3, col=1
     )
 
-    kimera_eval.plotting.plot_3d_trajectory(df, x_id, fig, row=1, col=2)
+    kimera_eval.plotting.plot_3d_trajectory(df, fig, row=1, col=2)
     kimera_eval.plotting.plot_multi_line(
         df, x_id, ["bgx", "bgy", "bgz"], fig, row=2, col=2
     )
@@ -117,7 +121,7 @@ class WebsiteBuilder:
         Uses jinja to render tempaates stored in kimera_eval.website.templates
         """
         self._env = jinja2.Environment(
-            loader=jinja2.PackageLoader("website", "templates"),
+            loader=jinja2.PackageLoader("kimera_eval.website", "templates"),
             autoescape=jinja2.select_autoescape(["html", "xml"]),
         )
 
@@ -141,13 +145,18 @@ class WebsiteBuilder:
         filepaths = sorted(list(results_path.glob(f"**/{filename}")))
         for filepath in filepaths:
             pipeline = filepath.parent.stem
-            dataset = filepath.parent.parent.stem
+            if pipeline not in results:
+                results[pipeline] = {}
 
-            stats.get(dataset, {})[pipeline] = TrajectoryResults.load(filepath)
-            results.get(pipeline, {})[dataset] = ResultGroup(filepath.parent)
+            dataset = filepath.parent.parent.stem
+            if dataset not in stats:
+                stats[dataset] = {}
+
+            stats[dataset][pipeline] = TrajectoryResults.load(filepath)
+            results[pipeline][dataset] = ResultGroup(filepath.parent)
 
         output_path = pathlib.Path(output_path).expanduser().absolute()
-        output_path.mkdir(parents=True, exit_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
 
         logging.debug("writing website to {output_path}...")
         with (output_path / "vio_ape_euroc.html").open("w") as fout:
@@ -156,14 +165,17 @@ class WebsiteBuilder:
 
         for pipeline, pipeline_results in results.items():
             pipeline_output = output_path / pipeline
+            pipeline_output.mkdir(parents=True, exist_ok=True)
             pdfs = {}
             frontend_figs = {}
-            trajectories = {}
+            trajs = {}
 
             for dataset, info in pipeline_results.items():
                 pdfs[dataset] = info.plot_path
-                frontend_figs[dataset] = _make_frontend_fig(info.frontend_results_path)
-                trajectories[dataset] = _make_trajectory_fig(info.vio_trajectory_path)
+                trajs[dataset] = _make_trajectory_fig(dataset, info.vio_trajectory_path)
+                frontend_fig = _make_frontend_fig(info.frontend_results_path)
+                if frontend_fig is not None:
+                    frontend_figs[dataset] = frontend_fig
 
             with (pipeline_output / "detailed_performance.html").open("w") as fout:
                 fout.write(self._detail_render.render(datasets_pdf_path=pdfs))
@@ -172,6 +184,6 @@ class WebsiteBuilder:
                 fout.write(self._dataset_render.render(datasets_html=frontend_figs))
 
             with (pipeline_output / "datasets.html").open("w") as fout:
-                fout.write(self._dataset_render.render(datasets_html=trajectories))
+                fout.write(self._dataset_render.render(datasets_html=trajs))
 
             logging.debug("finished writing website")
