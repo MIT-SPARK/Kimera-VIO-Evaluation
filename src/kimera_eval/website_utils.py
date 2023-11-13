@@ -1,12 +1,14 @@
 """Helpers for creating jenkins website."""
 import kimera_eval.plotting
 
+from dataclasses import dataclass
 import pathlib
 import jinja2
 import pandas as pd
 import plotly
 import plotly.subplots
 import logging
+import yaml
 
 
 def _fig_to_html(fig, include_plotlyjs=False, output_type="div"):
@@ -70,16 +72,49 @@ def _get_dataset_results_as_html(dataset, csv_results_path, x_id="#timestamp"):
     return _fig_to_html(fig)
 
 
+@dataclass
+class ResultGroup:
+    """Group of result info."""
+
+    result_path: pathlib.Path
+    plot_name: str = "plots.pdf"
+    frontend_name: str = "output_frontend_stats.csv"
+    vio_name: str = "traj_vio.csv"
+    pgo_name: str = "traj_pgo.csv"
+
+    def __post_init__(self):
+        """Resolve result path."""
+        self.result_path = pathlib.Path(self.result_path).expanduser().absolute()
+
+    @property
+    def frontend_results_path(self):
+        """Path to frontend statistics for the results."""
+        return self.result_path / self.frontend_name
+
+    @property
+    def plot_path(self):
+        """Path to the plots for the results."""
+        return self.result_path / self.plot_name
+
+    @property
+    def vio_trajectory_path(self):
+        """Path to the unoptimized trajectory for the results."""
+        return self.result_path / self.vio_name
+
+    @property
+    def pgo_trajectory_path(self):
+        """Path to the optimized trajectory for the results."""
+        return self.result_path / self.pgo_name
+
+
 class WebsiteBuilder:
     """Website builder class."""
 
-    def __init__(self, traj_vio_csv_name):
+    def __init__(self):
         """
         Construct a builder from templates.
 
-        Reads a template html website inside the `templates` directory of
-        a `website` python package (that's why we call `import website`, which
-        is a package of this project), and writes down html code with plotly figures.
+        Uses jinja to render tempaates stored in kimera_eval.website.templates
         """
         self._env = jinja2.Environment(
             loader=jinja2.PackageLoader("website", "templates"),
@@ -92,71 +127,101 @@ class WebsiteBuilder:
         self._dataset_render = self._env.get_template("datasets_template.html")
         self._boxplot_render = self._env.get_template("vio_performance_template.html")
 
-        # We will store html snippets of each dataset indexed by dataset name in these
-        # dictionaries. Each dictionary indexes the data per pipeline_type in turn:
-        self.detailed_performance_html = {}
-        self.frontend_html = {}
-        self.datasets_html = {}
-
-        self.traj_vio_csv_name = traj_vio_csv_name
-
-    def write_boxplot_website(self, stats, output_path):
-        """Write boxplots to website file."""
+    def write(self, results, stats, output_path):
+        """Write website using the collected data."""
         output_path = pathlib.Path(output_path).expanduser().absolute()
         output_path.mkdir(parents=True, exit_ok=True)
+
         with (output_path / "vio_ape_euroc.html").open("w") as fout:
             fig_html = _fig_to_html(
                 kimera_eval.plotting.draw_ape_boxplots_plotly(stats)
             )
             fout.write(self._boxplot_render.render(boxplot=fig_html))
 
-    def add_dataset_to_website(self, dataset, pipeline, csv_results_path):
-        """Add dataset results specified in csv_results_path."""
-        pipeline_path = pathlib.Path(dataset) / pipeline
-        csv_results_path = pathlib.Path(csv_results_path)
-
-        self.detailed_performance_html[dataset] = pipeline_path / "plots.pdf"
-        self.frontend_html[dataset] = _get_frontend_results_as_html(
-            csv_results_path / "output_frontend_stats.csv"
-        )
-
-        self.datasets_html[dataset] = _get_dataset_results_as_html(
-            dataset, csv_results_path / self.traj_vio_csv_name
-        )
-
-    def write_datasets_website(self, output_path):
-        """Write website using the collected data."""
-        output_path = pathlib.Path(output_path).expanduser().absolute()
-        output_path.mkdir(parents=True, exit_ok=True)
-
         with (output_path / "detailed_performance.html").open("w") as fout:
             fout.write(
                 self._detail_render.render(
-                    datasets_pdf_path=self.detailed_performance_html
+                    datasets_pdf_path={x.dataset: x.plot_path for x in results}
                 )
             )
 
         with (output_path / "frontend.html").open("w") as fout:
-            fout.write(self._dataset_render.render(datasets_html=self.frontend_html))
+            frontend_html = {
+                x.dataset: _get_frontend_results_as_html(x.frontend_results_path)
+                for x in results
+            }
+            fout.write(self._dataset_render.render(datasets_html=frontend_html))
 
         with (output_path / "datasets.html").open("w") as fout:
-            fout.write(self._dataset_render.render(datasets_html=self.datasets_html))
+            traj_html = {
+                x.dataset: _get_dataset_results_as_html(x.vio_trajectory_path)
+                for x in results
+            }
+            fout.write(self._dataset_render.render(datasets_html=traj_html))
 
 
-def write_website(self):
+def check_stats(stats):
+    """Check stat contents."""
+    if "relative_errors" not in stats:
+        logging.error(f"Stats are missing required metrics: {stats}")
+
+    if len(stats["relative_errors"]) == 0:
+        logging.error(f"Stats are missing required metrics: {stats}")
+
+    if "rpe_rot" not in list(stats["relative_errors"].values())[0]:
+        logging.error(f"Stats are missing required metrics: {stats}")
+
+    if "rpe_trans" not in list(stats["relative_errors"].values())[0]:
+        logging.error(f"Stats are missing required metrics: {stats}")
+
+    if "absolute_errors" not in stats:
+        logging.error(f"Stats are missing required metrics: {stats}")
+        return False
+
+    return True
+
+
+def aggregate_ape_results(results_dir, use_pgo=False):
+    """
+    Aggregate APE results and draw APE boxplot as well as write latex table.
+
+    Args:
+      - result_dir: path to directory containing yaml result files
+      - use_pgo: whether to aggregate all results for VIO or for PGO trajectory.
+
+    Returns:
+        Dict[str, Dict[str, Any]]: results keyed by dataset then pipeline
+    """
+    logging.debug(f"Aggregating dataset results @ '{results_dir}'")
+
+    yaml_filename = "results_vio.yaml"
+    if use_pgo:
+        yaml_filename = "results_pgo.yaml"
+
+    stats = {}
+    results_path = pathlib.Path(results_dir)
+    filepaths = sorted(list(results_path.glob(f"**/{yaml_filename}")))
+    for filepath in filepaths:
+        pipeline_name = filepath.parent.stem
+        dataset_name = filepath.parent.parent.stem
+        if dataset_name not in stats:
+            stats[dataset_name] = {}
+
+        with filepath.open("r") as fin:
+            stats[dataset_name][pipeline_name] = yaml.safe_load(fin.read())
+
+        logging.debug(f"Checking stats from `{filepath}`")
+        if not check_stats(stats[dataset_name][pipeline_name]):
+            logging.warning(f"invalid stats for {dataset_name}:{pipeline_name}")
+
+    return stats
+
+
+def write_website():
     """Output website based on saved analysis."""
     logging.info("Writing full website...")
     stats = aggregate_ape_results(self.results_dir)
 
-    for dataset, pipelines in stats.items():
-        for pipeline in pipelines:
-            logging.info(
-                f"Writing performance website for dataset: {dataset}:{pipeline}"
-            )
-            self.website_builder.add_dataset_to_website(
-                dataset_name, pipeline_type, curr_results_path
-            )
-
-    self.website_builder.write_boxplot_website(stats)
-    self.website_builder.write_datasets_website()
+    website_builder.write_boxplot_website(stats)
+    builder.write()
     logging.info("Finished writing website.")
