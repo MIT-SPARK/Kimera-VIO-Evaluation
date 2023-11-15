@@ -322,11 +322,16 @@ class RpeResult:
             "rel_delta_tol": 0.01,
             "all_pairs": True,
         }
-        trans = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
-        trans.process_data(trajectory.data)
-        rot = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
-        rot.process_data(trajectory.data)
-        return cls(delta, rotation=rot, translation=trans)
+
+        try:
+            trans = evo.core.metrics.RPE(PoseRelation.translation_part, **rpe_args)
+            trans.process_data(trajectory.data)
+            rot = evo.core.metrics.RPE(PoseRelation.rotation_angle_deg, **rpe_args)
+            rot.process_data(trajectory.data)
+            return cls(delta, rotation=rot, translation=trans)
+        except Exception as e:
+            logging.warning(f"relative analysis failed: {e}")
+            return None
 
 
 @dataclass
@@ -345,6 +350,7 @@ class TrajectoryResults:
         rpe_results = [
             RpeResult.from_trajectory(x, trajectory) for x in config.segments
         ]
+        rpe_results = [x for x in rpe_results if x is not None]
         return cls(
             ape_translation=get_ape_trans(trajectory.data),
             rpe_translation=get_rpe_trans(trajectory.data),

@@ -8,7 +8,6 @@ pipelines:
     param_name: Euroc
 sequences:
   - name: V1_01_easy
-    use_lcd: true
     initial_frame: 50
     final_frame: 10000
     analysis:
@@ -16,7 +15,6 @@ sequences:
       discard_n_start_poses: 10
       discard_n_end_poses: 10
   - name: V1_02_medium
-    use_lcd: true
     initial_frame: 50
     final_frame: 10000
     analysis:
@@ -24,7 +22,6 @@ sequences:
       discard_n_start_poses: 10
       discard_n_end_poses: 10
   - name: V2_01_easy
-    use_lcd: true
     initial_frame: 30
     final_frame: 10000
     analysis:
@@ -32,7 +29,6 @@ sequences:
       discard_n_start_poses: 10
       discard_n_end_poses: 10
   - name: V2_02_medium
-    use_lcd: true
     initial_frame: 50
     final_frame: 10000
     analysis:
@@ -40,7 +36,6 @@ sequences:
       discard_n_start_poses: 10
       discard_n_end_poses: 10
   - name: V2_03_difficult
-    use_lcd: true
     initial_frame: 40
     final_frame: 1800
     analysis:
