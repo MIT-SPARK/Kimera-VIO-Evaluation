@@ -5,7 +5,7 @@ dataset_path: ''
 pipelines:
   - name: Euroc
     param_name: EurocParams
-datasets:
+sequences:
   - name: V1_01_easy
     initial_frame: 10
     final_frame: 3500

@@ -1,12 +1,8 @@
 """Command for constructing website."""
+import kimera_eval.paths
 from kimera_eval.website import WebsiteBuilder
 import logging
-import pathlib
 import click
-
-
-def _normalize_path(input_path):
-    return pathlib.Path(input_path).expanduser().absolute()
 
 
 @click.command(name="website")
@@ -19,8 +15,8 @@ def run(output_path, result_paths):
     Generates a collection of pages for every experiment result
     path added.
     """
-    output_path = _normalize_path(output_path)
-    result_paths = [_normalize_path(x) for x in result_paths]
+    output_path = kimera_eval.paths.normalize_path(output_path)
+    result_paths = [kimera_eval.paths.normalize_path(x) for x in result_paths]
 
     builder = WebsiteBuilder()
     for result_path in result_paths:

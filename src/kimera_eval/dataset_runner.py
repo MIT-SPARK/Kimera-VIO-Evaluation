@@ -74,9 +74,9 @@ class DatasetRunner:
             Dict[str, Dict[str, bool]]: Pipeline results
         """
         status = {}
-        logging.info("Runing experiments...")
+        logging.info("runing experiments...")
         for sequence in self.config.sequences:
-            logging.info(f"Runing dataset '{sequence.name}'...")
+            logging.info(f"running dataset '{sequence.name}' ...")
             dataset_status = {}
             for pipeline in self.config.pipelines:
                 output_path = self.result_path / sequence.name / pipeline.name
@@ -84,12 +84,13 @@ class DatasetRunner:
                     if allow_removal:
                         shutil.rmtree(output_path)
                     else:
+                        logging.warning(f"  - skipping pipeline '{pipeline.name}' ...")
                         dataset_status[pipeline.name] = (False, "Results exist")
                         continue
 
                 output_path.mkdir(parents=True, exist_ok=False)
 
-                logging.info(f"Running pipeline '{pipeline}'...")
+                logging.info(f"  - running pipeline '{pipeline.name}' ...")
                 try:
                     start = time.perf_counter()
                     valid = _run_vio(

@@ -2,6 +2,6 @@
 pipelines:
   - name: Euroc
     param_name: Euroc
-datasets:
+sequences:
   - name: V1_02_medium
     initial_frame: 20

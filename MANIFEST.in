@@ -1,1 +1,3 @@
 graft src/kimera_eval/website/templates
+graft src/kimera_eval/experiments
+graft src/kimera_eval/config

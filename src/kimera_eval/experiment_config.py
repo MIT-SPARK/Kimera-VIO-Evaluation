@@ -1,4 +1,5 @@
 """Main library for evaluation."""
+import kimera_eval.paths
 from dataclasses import dataclass, field
 from typing import Optional, List
 
@@ -17,8 +18,17 @@ DEFAULT_FLAG_NAMES = [
 ]
 
 
-def _normalize_path(path):
-    return pathlib.Path(path).expanduser().absolute()
+def _read_path_param(yaml_config, overrides, name):
+    import os
+
+    if name in overrides and overrides[name] is not None:
+        return kimera_eval.paths.normalize_path(overrides[name])
+
+    if name in yaml_config:
+        expanded_path = os.path.expandvars(yaml_config[name])
+        return kimera_eval.paths.normalize_path(expanded_path)
+
+    return None
 
 
 def read_config(cls, *args, **kwargs):
@@ -50,9 +60,11 @@ class PipelineConfig:
 
     def __post_init__(self):
         """Normalize paths."""
-        self.param_path = _normalize_path(self.param_path)
+        self.param_path = kimera_eval.paths.normalize_path(self.param_path)
         if self.extra_flags_path:
-            self.extra_flags_path = _normalize_path(self.extra_flags_path)
+            self.extra_flags_path = kimera_eval.paths.normalize_path(
+                self.extra_flags_path
+            )
 
     @property
     def flag_files(self):
@@ -123,11 +135,13 @@ class ExperimentConfig:
 
     def __post_init__(self):
         """Normalize paths."""
-        self.dataset_path = _normalize_path(self.dataset_path)
-        self.param_path = _normalize_path(self.param_path)
-        self.executable_path = _normalize_path(self.executable_path)
+        self.dataset_path = kimera_eval.paths.normalize_path(self.dataset_path)
+        self.param_path = kimera_eval.paths.normalize_path(self.param_path)
+        self.executable_path = kimera_eval.paths.normalize_path(self.executable_path)
         if self.vocabulary_path:
-            self.vocabulary_path = _normalize_path(self.vocabulary_path)
+            self.vocabulary_path = kimera_eval.paths.normalize_path(
+                self.vocabulary_path
+            )
         else:
             self.vocabulary_path = self.param_path / "vocabulary" / "ORBvoc.yml"
 
@@ -166,12 +180,18 @@ class ExperimentConfig:
                 read_config(AnalysisConfig, **x.get("analysis", {})),
                 **{k: v for k, v in x.items() if k != "analysis"},
             )
-            for x in params["datasets"]
+            for x in params.get("sequences", [])
         ]
         pipelines = [
             read_named_config(PipelineConfig, param_path, **x)
-            for x in params["pipelines"]
+            for x in params.get("pipelines", [])
         ]
+
+        if len(sequences) == 0:
+            logging.warning(f"No sequences loaded for '{config_path}'")
+
+        if len(pipelines) == 0:
+            logging.warning(f"No pipelines loaded for '{config_path}'")
 
         vocab_path = _read_path_param(params, kwargs, "vocabulary_path")
         extra_args = params.get("extra_args", [])
@@ -184,16 +204,3 @@ class ExperimentConfig:
             vocabulary_path=vocab_path,
             extra_args=extra_args,
         )
-
-
-def _read_path_param(yaml_config, overrides, name):
-    import os
-
-    if name in overrides:
-        return _normalize_path(overrides[name])
-
-    if name in yaml_config:
-        expanded_path = os.path.expandvars(yaml_config[name])
-        return _normalize_path(expanded_path)
-
-    return None

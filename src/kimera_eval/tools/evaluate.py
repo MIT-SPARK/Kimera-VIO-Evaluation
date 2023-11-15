@@ -1,18 +1,10 @@
 """Main entry point for running evaluations."""
+import kimera_eval.paths
 from kimera_eval.dataset_evaluator import DatasetEvaluator
 from kimera_eval.experiment_config import ExperimentConfig
 import logging
-import pathlib
 import click
 import sys
-
-
-def _get_experiment_directory():
-    return pathlib.Path(__file__).absolute().parent / "experiments"
-
-
-def _normalize_path(input_path):
-    return pathlib.Path(input_path).expanduser().absolute()
 
 
 @click.command(name="evaluate")
@@ -36,9 +28,9 @@ def run(results_path, write_website, name, experiments_dir):
       - RPE rotation
     """
     if experiments_dir:
-        experiments_dir = _normalize_path(experiments_dir)
+        experiments_dir = kimera_eval.paths.normalize_path(experiments_dir)
     else:
-        experiments_dir = _get_experiment_directory()
+        experiments_dir = kimera_eval.paths.experiment_directory()
 
     experiment_path = experiments_dir / f"{name}.yaml"
     if not experiment_path.exists():

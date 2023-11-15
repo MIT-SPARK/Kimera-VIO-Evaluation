@@ -1,18 +1,10 @@
 """Main entry point for running evaluations."""
+import kimera_eval.paths
 from kimera_eval.dataset_runner import DatasetRunner
 from kimera_eval.experiment_config import ExperimentConfig
 import click
-import pathlib
 import sys
 import logging
-
-
-def _get_experiment_directory():
-    return pathlib.Path(__file__).absolute().parent / "experiments"
-
-
-def _normalize_path(input_path):
-    return pathlib.Path(input_path).expanduser().absolute()
 
 
 @click.command(name="run")
@@ -23,6 +15,7 @@ def _normalize_path(input_path):
 @click.option("-n", "--name", default="example_euroc", help="experiment to run")
 @click.option("-v", "--vocab-path", type=click.Path(exists=True), default=None)
 @click.option("--minloglevel", default=2, help="set VIO minloglevel")
+@click.option("-f", "--force-removal", is_flag=True, help="remove prior results")
 @click.option(
     "--experiments-dir",
     type=click.Path(exists=True),
@@ -41,15 +34,14 @@ def run(
     experiments_dir,
 ):
     """Run evaluation on datasets."""
-    dataset_path = _normalize_path(dataset_path)
     if experiments_dir:
-        experiments_dir = _normalize_path(experiments_dir)
+        experiments_dir = kimera_eval.paths.normalize_path(experiments_dir)
     else:
-        experiments_dir = _get_experiment_directory()
+        experiments_dir = kimera_eval.paths.experiment_directory()
 
     experiment_path = experiments_dir / f"{name}.yaml"
     if not experiment_path.exists():
-        logging.fatal(f"Could not find experiment '{experiment_path}'", fg="red")
+        logging.fatal(f"Could not find experiment '{experiment_path}'")
         sys.exit(1)
 
     config = ExperimentConfig.load(
@@ -59,7 +51,10 @@ def run(
         executable_path=executable_path,
         vocabluary_path=vocab_path,
     )
+    if config is None:
+        logging.fatal(f"Failed to load experiment config from '{experiment_path}'")
+        sys.exit(1)
 
-    output_path = _normalize_path(output_path)
+    output_path = kimera_eval.paths.normalize_path(output_path)
     runner = DatasetRunner(config, output_path)
     runner.run_all(minloglevel=minloglevel, allow_removal=force_removal)
