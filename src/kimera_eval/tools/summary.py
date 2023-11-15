@@ -1,7 +1,7 @@
 """Write a performance summary to file."""
+from kimera_eval.trajectory_metrics import TrajectoryResults
 import click
 import csv
-import yaml
 import pathlib
 
 
@@ -13,11 +13,8 @@ def run(result_path, output):
     result_path = pathlib.Path(result_path).expanduser().absolute()
     click.secho(f"Reading VIO results from: '{result_path}'")
 
-    with result_path.open("r") as fin:
-        results = yaml.safe_load(fin)
-
-    ATE_mean = results["absolute_errors"].stats["mean"]
-    ATE_rmse = results["absolute_errors"].stats["rmse"]
+    results = TrajectoryResults.load(result_path)
+    stats = results.ape_translation.get_all_statistics()
 
     if output:
         output = pathlib.Path(output).expanduser().absolute()
@@ -29,4 +26,4 @@ def run(result_path, output):
     with output.open("w") as fout:
         writer = csv.DictWriter(fout, fieldnames=["ATE_mean", "ATE_rmse"])
         writer.writeheader()
-        writer.writerow({"ATE_mean": ATE_mean, "ATE_rmse": ATE_rmse})
+        writer.writerow({"ATE_mean": stats["mean"], "ATE_rmse": stats["rmse"]})

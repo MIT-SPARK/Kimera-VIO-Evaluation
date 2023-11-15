@@ -21,6 +21,6 @@ def run(output_path, result_paths):
     builder = WebsiteBuilder()
     for result_path in result_paths:
         curr_output = output_path / result_path.stem
-        curr_output.mkdir(parents=True, exists_ok=True)
+        curr_output.mkdir(parents=True, exist_ok=True)
         logging.info(f"Writing website for '{result_path}' to '{curr_output}'")
         builder.write(result_path, curr_output)

@@ -22,5 +22,6 @@ def pkgpath():
 @pytest.fixture
 def cli():
     """Get CLI test runner."""
+    kimera_eval.configure_logging(level="INFO")
     runner = click.testing.CliRunner()
     return functools.partial(runner.invoke, kimera_eval.__main__.main)
