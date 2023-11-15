@@ -34,7 +34,7 @@ class DatasetEvaluator:
                 failed.append(f"{sequence.name}:{pipeline.name}")
                 continue
 
-            logging.info(f"finished analysis of {pipeline} for {sequence.name}")
+            logging.info(f"finished analysis of {pipeline.name} for {sequence.name}")
 
         return failed
 
