@@ -33,7 +33,7 @@ dependencies = [
 "Homepage" = "https://github.com/MIT-SPARK/Kimera-VIO-Evaluation"
 
 [project.scripts]
-kimera-eval = "kimera_eval:main"
+kimera-eval = "kimera_eval:__main__.main"
 
 [project.optional-dependencies]
 notebook = ["jupyter", "jupytext", "matplotlib"]
