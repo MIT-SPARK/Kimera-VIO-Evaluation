@@ -34,7 +34,7 @@ def run(results_path, name, experiments_dir):
 
     experiment_path = experiments_dir / f"{name}.yaml"
     if not experiment_path.exists():
-        logging.fatal(f"Could not find experiment '{experiment_path}'", fg="red")
+        logging.fatal(f"Could not find experiment '{experiment_path}'")
         sys.exit(1)
 
     config = ExperimentConfig.load(experiment_path)
