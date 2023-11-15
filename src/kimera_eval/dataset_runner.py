@@ -34,6 +34,8 @@ def _run_vio(
         f"--minloglevel={minloglevel}",
     ]
 
+    args += experiment.extra_args
+
     logging.debug(f"  - starting experiment with args: {args}")
     pipe = subprocess.Popen(args)
     while pipe.poll() is None:
