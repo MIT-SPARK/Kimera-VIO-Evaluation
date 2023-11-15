@@ -67,9 +67,14 @@ class PipelineConfig:
             )
 
     @property
+    def pipeline_params(self):
+        """Get path to pipeline params."""
+        return self.param_path / self.param_name
+
+    @property
     def flag_files(self):
         """Get list of full paths to flag files."""
-        flag_path = self.param_path / "flags"
+        flag_path = self.pipeline_params / "flags"
         full_paths = [flag_path / f"{name}.flags" for name in DEFAULT_FLAG_NAMES]
         if self.extra_flags_path:
             full_paths.append(self.extra_flags_path)
@@ -84,7 +89,7 @@ class PipelineConfig:
     def args(self):
         """Get pipeline arguments."""
         return [f"--flagfile={flag_path}" for flag_path in self.flag_files] + [
-            f"--params_folder_path={self.param_path / self.param_name}"
+            f"--params_folder_path={self.pipeline_params}"
         ]
 
 
@@ -143,7 +148,7 @@ class ExperimentConfig:
                 self.vocabulary_path
             )
         else:
-            self.vocabulary_path = self.param_path / "vocabulary" / "ORBvoc.yml"
+            self.vocabulary_path = self.param_path.parent / "vocabulary" / "ORBvoc.yml"
 
     @property
     def args(self):

@@ -20,7 +20,7 @@ def test_load_config(resources, pkgpath):
     assert config.param_path == this_path
     expected_datapath = this_path / "evaluation" / "tests" / "test_results"
     assert config.dataset_path == expected_datapath
-    assert config.vocabulary_path == (this_path / "vocabulary" / "ORBvoc.yml")
+    assert config.vocabulary_path == (this_path.parent / "vocabulary" / "ORBvoc.yml")
 
     assert len(config.pipelines) == 2
     pipeline = config.pipelines[0]
@@ -29,7 +29,7 @@ def test_load_config(resources, pkgpath):
     assert pipeline.extra_flags_path == pathlib.Path("/some/flag/file/path.flag")
 
     flag_files = [x for x in pipeline.flag_files]
-    flag_path = this_path / "flags"
+    flag_path = this_path / "EurocParams" / "flags"
     expected_flag_files = [
         flag_path / "stereoVIOEuroc.flags",
         flag_path / "Mesher.flags",
@@ -88,7 +88,7 @@ def test_load_config_overrides(resources, pkgpath):
     pipeline = config.pipelines[0]
 
     flag_files = [x for x in pipeline.flag_files]
-    flag_path = pathlib.Path("/bar/foo") / "flags"
+    flag_path = pathlib.Path("/bar/foo/EurocParams") / "flags"
     expected_flag_files = [
         flag_path / "stereoVIOEuroc.flags",
         flag_path / "Mesher.flags",
@@ -129,5 +129,5 @@ def test_load_missing(resources):
     assert config is not None
     assert config.args == [
         "/foo/bar",
-        "--vocabulary_path=/bar/foo/vocabulary/ORBvoc.yml",
+        "--vocabulary_path=/bar/vocabulary/ORBvoc.yml",
     ]
