@@ -98,7 +98,9 @@ class ResultGroup:
     @property
     def plot_path(self):
         """Path to the plots for the results."""
-        return self.result_path / self.plot_name
+        # TODO(nathan) this is broken for different output directories
+        root_dir = self.result_path.parent.parent
+        return (self.result_path / self.plot_name).relative_to(root_dir)
 
     @property
     def vio_trajectory_path(self):
@@ -163,7 +165,7 @@ class WebsiteBuilder:
             fig_html = _fig_to_html(kimera_eval.plotting.draw_ape_boxplots(stats))
             fout.write(self._boxplot_render.render(boxplot=fig_html))
 
-        for pipeline, pipeline_results in results.items():
+        for _, pipeline_results in results.items():
             pdfs = {}
             frontend_figs = {}
             trajs = {}
