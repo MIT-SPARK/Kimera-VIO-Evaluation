@@ -1,6 +1,6 @@
 # Kimera VIO Evaluation
 
-Code to evaluate and tune [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) pipeline on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
+Code to evaluate [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 # Installation
 
@@ -19,128 +19,9 @@ cd Kimera-VIO-Evaluation
 pip install .
 ```
 
-# Example Usage
-
-## Main Evaluation
-
-The script `main_evaluation.py` runs and evaluates the VIO performance by aligning estimated and ground-truth trajectories and computing error metrics.
-It then saves plots showing its performance.
-
-The script expects an **experiment** yaml file with the following syntax:
-```yaml
-executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
-results_dir: '$HOME/Code/spark_vio_evaluation/results'
-params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
-dataset_dir: '$HOME/datasets/euroc'
-
-datasets_to_run:
- - name: V1_01_easy
-   segments: [1, 5]
-   pipelines: ['S']
-   discard_n_start_poses: 10
-   discard_n_end_poses: 10
-   initial_frame: 100
-   final_frame: 2100
- - name: MH_01_easy
-   segments: [5, 10]
-   pipelines: ['S', 'SP', 'SPR']
-   discard_n_start_poses: 0
-   discard_n_end_poses: 10
-   initial_frame: 100
-   final_frame: 2500
-
-```
-
-The experiment yaml file specifies the following:
-- `executable_path`: where to find the built binary executable to run Kimera-VIO.
-- `results_dir`: the directory where to store the results for each dataset. This directory is already inside this repository.
-- `params_dir`: the directory where to find the parameters to be used by Kimera-VIO.
-- `dataset_dir`: the path to the Euroc dataset.
-- `datasets_to_run`: specifies which Euroc datasets to run, with the following params:
-  - `name`: the name of the Euroc dataset to run. It must match exactly to the subfolders in your path to Euroc dataset.
-  - `segments`: these are the distances btw poses to use when computing the Relative Pose Error (RPE) metric. If multiple are given, then RPE will be calculated for each given distance. For example, if `segments: [1, 5]`, RPE will be calculated for all 1 meter apart poses and plotted in a boxplot, same for all 5m apart poses, etc.
-  - `pipelines`: this can only be `S`, `SP`, and/or `SPR`; the vanilla VIO corresponds to `S` (structureless factors only). If using the RegularVIO pipeline [1] then `SP` corresponds to using Structureless and Projection factors, while `SPR` makes use of Regularity factors as well.
-  - `discard_n_X_poses`: discards `n` poses when aligning ground-truth and estimated trajectories.
-  - `initial/final_frame`: runs the VIO starting on `initial_frame` and finishing on `final_frame`. This is useful for datasets which start/finish by bumping against the ground, which might negatively affect IMU readings.
-
-`./evaluation/main_evaluation.py -r -a --save_plots --save_results --save_boxplots experiments/example_euroc.yaml`
-
-where, as explained below, the `-r` and `-a` flags run the VIO pipeline given in the `executable_path` and analyze its output.
-
-# Usage
-
-Run `./evaluation/main_evaluation.py --help` to get usage information.
-
-```bash
-usage: main_evaluation.py [-h] [-r] [-a] [--plot]
-                          [--plot_colormap_max PLOT_COLORMAP_MAX]
-                          [--plot_colormap_min PLOT_COLORMAP_MIN]
-                          [--plot_colormap_max_percentile PLOT_COLORMAP_MAX_PERCENTILE]
-                          [--save_plots] [--save_boxplots] [--save_results]
-                          experiments_path
-
-Full evaluation of SPARK VIO pipeline (APE trans + RPE trans + RPE rot) metric
-app
-
-optional arguments:
-  -h, --help            show this help message and exit
-
-input options:
-  experiments_path      Path to the yaml file with experiments settings.
-
-algorithm options:
-  -r, --run_pipeline    Run vio?
-  -a, --analyse_vio     Analyse vio, compute APE and RPE
-
-output options:
-  --plot                show plot window
-  --plot_colormap_max PLOT_COLORMAP_MAX
-                        The upper bound used for the color map plot (default:
-                        maximum error value)
-  --plot_colormap_min PLOT_COLORMAP_MIN
-                        The lower bound used for the color map plot (default:
-                        minimum error value)
-  --plot_colormap_max_percentile PLOT_COLORMAP_MAX_PERCENTILE
-                        Percentile of the error distribution to be used as the
-                        upper bound of the color map plot (in %, overrides
-                        --plot_colormap_min)
-  --save_plots          Save plots?
-  --save_boxplots       Save boxplots?
-  --save_results        Save results?
-  -v, --verbose_sparkvio
-                        Make Kimera-VIO log all verbosity to console. Useful
-                        for debugging if a run failed.
-```
-
-
-Run `./evaluation/regression_tests.py --help` to get usage information.
-```bash
-usage: regression_tests.py [-h] [-r] [-a] [--plot] [--save_plots]
-                           [--save_boxplots] [--save_results]
-                           experiments_path
-
-Regression tests of SPARK VIO pipeline.
-
-optional arguments:
-  -h, --help          show this help message and exit
-
-input options:
-  experiments_path    Path to the yaml file with experiments settings.
-
-algorithm options:
-  -r, --run_pipeline  Run vio?
-  -a, --analyse_vio   Analyse vio, compute APE and RPE
-
-output options:
-  --plot              show plot window
-  --save_plots        Save plots?
-  --save_boxplots     Save boxplots?
-  --save_results      Save results?
-```
-
 # Jupyter Notebooks
 
-Provided are jupyter notebooks for extra plotting, especially of the debug output from Kimera-VIO. Follow the steps below to run them.
+We provide jupyter notebooks for examining the output of Kimera-VIO. Follow the steps below to run them.
 
 1. Set up Kimera Evaluation as stated above (using the `notebook` extra) or install the required dependencies if you didn't use the notebook extra:
 ```
@@ -154,17 +35,62 @@ jupyter notebook
 3. If the contents of the folder appear empty in your web-browser, you may have to manually add the jupytext content manager as described [here](https://github.com/mwouts/jupytext/blob/master/docs/install.md#jupytexts-contents-manager)
 4. Open the notebook corresponding to what you want to analyze first. `plot-frontend.py` is a good place to start.
 5. Provide the path to the folder with Kimera's debug information from your dataset (typically `Kimera-VIO-ROS/output_logs/<yourdatasetname>`)
-6. Run the notebooks! A useful beginner tutorial for using Jupyter notebooks can be found [here](https://www.dataquest.io/blog/jupyter-notebook-tutorial/). A guide for interpreting the output is coming soon.
+6. Run the notebooks! A useful beginner tutorial for using Jupyter notebooks can be found [here](https://www.dataquest.io/blog/jupyter-notebook-tutorial/).
 
-# Chart of implementation details:
+# Usage
 
-![Kimera-VIO evaluation diagram](docs/chart_sparkvio_evaluation.svg)
+Run `kimera-eval --help` to see usage information.
 
-# Notes
+You may find the following commands useful:
 
-The behaviour for the plots depends also on `evo_config`.
-For example, in Jenkins we use the default `evo_config` which does not split plots.
-Yet, locally, you can use `evo_config` to allow plotting plots separately for adding them in your paper.
+- `kimera-eval run`: Runs a single experiment with Kimera-VIO using the provided experiment file
+
+- `kimera-eval evaluate`: Evaluates the results of an experiment
+
+- `kimera-eval website`: Construct a website containing plots and results from experiments
+
+- `kimera-eval summary`: Write a summary of ATE errors for a single sequence to a CSV file
+
+# Experiment Configuration
+
+Several commands (i.e., `run` and `evaluate`) expect an experiment file with information about what to run.
+```yaml
+executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
+params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
+dataset_dir: '$HOME/datasets/euroc'
+pipelines:
+    name: Euroc
+    param_name: Euroc
+sequences:
+ - name: V1_01_easy
+   initial_frame: 100
+   final_frame: 2100
+   analysis:
+     segments: [1, 5]
+     discard_n_start_poses: 10
+     discard_n_end_poses: 10
+ - name: MH_01_easy
+   initial_frame: 100
+   final_frame: 2500
+   analysis:
+     segments: [5, 10]
+     discard_n_start_poses: 0
+     discard_n_end_poses: 10
+```
+
+The experiment yaml file specifies the following:
+- `executable_path`: where to find the built binary executable to run Kimera-VIO.
+- `params_dir`: the directory where to find the parameters to be used by Kimera-VIO.
+- `dataset_dir`: the path to the Euroc dataset.
+- `pipelines`: Pipelines to run
+    - `name`: descriptive name of the pipeline
+    - `param_name`: name of the parameter folder (if different from `name`)
+- `sequences`: specifies which Euroc sequences to run, with the following params:
+  - `name`: the name of the Euroc dataset to run. It must exactly match the name of the subfolders in your copy of the Euroc dataset.
+  - `initial/final_frame`: runs the VIO starting on `initial_frame` and finishing on `final_frame`. This is useful for datasets which start/finish by bumping against the ground, which might negatively affect IMU readings.
+  - `analysis`: controls trajectory error evaluations
+      - `segments`: these are the distances btw poses to use when computing the Relative Pose Error (RPE) metric. If multiple are given, then RPE will be calculated for each given distance. For example, if `segments: [1, 5]`, RPE will be calculated for all 1 meter apart poses and plotted in a boxplot, same for all 5m apart poses, etc.
+      - `discard_n_X_poses`: discards `n` poses when aligning ground-truth and estimated trajectories.
 
 # References
 

@@ -20,28 +20,18 @@ COPY ./ $WS
 
 # Get build tools
 RUN apt-get update && apt-get install -y \
-    apt-utils \ 
-    git \
-    python3-tk \
-    python3-pip
+        apt-utils \
+        python3-tk \
+        python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 WORKDIR /home/$USERNAME
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx
-RUN pip install pandas open3d setuptools plotly --upgrade
-RUN git clone https://github.com/MIT-SPARK/evo-1 evo
-RUN cd evo && \
-    git checkout fix/python3 && \
-    pip install . --upgrade --no-binary evo
 
 # Install Kimera-Evaluation
 RUN cd Kimera-Evaluation && \
-    pip install .[notebook] && \
-    python3 setup.py develop
-
-# Cleanup
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    pip install .[notebook]
 
 ENV TERM xterm
 ENV PYTHONIOENCODING UTF-8
