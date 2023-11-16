@@ -53,7 +53,7 @@ You may find the following commands useful:
 
 # Experiment Configuration
 
-Several commands (i.e., `run` and `evaluate`) expect an experiment file with information about what to run.
+Several commands (i.e., `run` and `evaluate`) expect an experiment file with information about what to run:
 ```yaml
 executable_path: '$HOME/Code/spark_vio/build/stereoVIOEuroc'
 params_dir: '$HOME/Code/spark_vio_evaluation/experiments/params'
@@ -82,7 +82,7 @@ The experiment yaml file specifies the following:
 - `executable_path`: where to find the built binary executable to run Kimera-VIO.
 - `params_dir`: the directory where to find the parameters to be used by Kimera-VIO.
 - `dataset_dir`: the path to the Euroc dataset.
-- `pipelines`: Pipelines to run
+- `pipelines`: pipelines to run
     - `name`: descriptive name of the pipeline
     - `param_name`: name of the parameter folder (if different from `name`)
 - `sequences`: specifies which Euroc sequences to run, with the following params:
