@@ -164,8 +164,6 @@ class WebsiteBuilder:
             fout.write(self._boxplot_render.render(boxplot=fig_html))
 
         for pipeline, pipeline_results in results.items():
-            pipeline_output = output_path / pipeline
-            pipeline_output.mkdir(parents=True, exist_ok=True)
             pdfs = {}
             frontend_figs = {}
             trajs = {}
@@ -177,13 +175,13 @@ class WebsiteBuilder:
                 if frontend_fig is not None:
                     frontend_figs[dataset] = frontend_fig
 
-            with (pipeline_output / "detailed_performance.html").open("w") as fout:
+            with (output_path / "detailed_performance.html").open("w") as fout:
                 fout.write(self._detail_render.render(datasets_pdf_path=pdfs))
 
-            with (pipeline_output / "frontend.html").open("w") as fout:
+            with (output_path / "frontend.html").open("w") as fout:
                 fout.write(self._dataset_render.render(datasets_html=frontend_figs))
 
-            with (pipeline_output / "datasets.html").open("w") as fout:
+            with (output_path / "datasets.html").open("w") as fout:
                 fout.write(self._dataset_render.render(datasets_html=trajs))
 
             logging.debug("finished writing website")
