@@ -25,20 +25,13 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import kimera_eval
+import kimera_eval.notebook_helpers as neval
 
 import logging
 
 from evo.core import sync
 from evo.core import trajectory
-
-import evaluation.tools as evt
-from evaluation.evaluation_lib import (
-    get_ape_trans,
-    get_ape_rot,
-    plot_metric,
-    convert_abs_traj_to_rel_traj,
-    convert_rel_traj_from_body_to_cam,
-)
 
 # %matplotlib inline
 # # %matplotlib notebook
@@ -81,86 +74,17 @@ left_cam_calibration_file = (
 # sparse-stereo-matching statistics.
 
 # %%
-# Parse frontend statistics csv file.
-stats_file = os.path.join(
-    os.path.expandvars(vio_output_dir), "output_frontend_stats.csv"
-)
+df_stats = neval.load_frontend_statistics(vio_output_dir)
 
-# Convert to tidy pandas DataFrame object.
-df_stats = pd.read_csv(stats_file, sep=",", index_col=False)
-df_stats.head()
-
-
-# %%
-# Helper functions for processing data summary.
-def get_mean(attrib):
-    ls = df_stats[attrib].tolist()
-    return float(sum(ls)) / len(ls)
-
-
-def get_min(attrib):
-    return min(df_stats[attrib])
-
-
-def get_max(attrib):
-    return max(df_stats[attrib])
-
-
-# Construct and visualize summary. TODO(marcus): use a LaTeX table.
-summary_stats = [
-    ("Average number of detected features", get_mean("nrDetectedFeatures")),
-    ("Minimum number of detected features", get_min("nrDetectedFeatures")),
-    ("Average number of tracked features", get_mean("nrTrackerFeatures")),
-    ("Minimum number of tracked features", get_min("nrTrackerFeatures")),
-    ("Average number of mono ransac inliers", get_mean("nrMonoInliers")),
-    ("Minimum number of mono ransac inliers", get_min("nrMonoInliers")),
-    ("Average number of stereo ransac inliers", get_mean("nrStereoInliers")),
-    ("Minimum number of stereo ransac inliers", get_min("nrStereoInliers")),
-    ("Average number of mono ransac putatives", get_mean("nrMonoPutatives")),
-    ("Minimum number of mono ransac putatives", get_min("nrMonoPutatives")),
-    ("Average number of stereo ransac putatives", get_mean("nrStereoPutatives")),
-    ("Minimum number of stereo ransac putatives", get_min("nrStereoPutatives")),
-]
-
-attrib_len = [len(attrib[0]) for attrib in summary_stats]
-max_attrib_len = max(attrib_len)
-
-print("\nStatistic summary:\n")
-for entry in summary_stats:
-    attrib = entry[0]
-    value = entry[1]
-    spacing = max_attrib_len - len(attrib)
-    print(attrib + " " * spacing + ": " + str(value))
 
 # %%
 # Plot feature tracking statistics.
-use_plotly = False
-
-if not use_plotly:
-    fig0, axes0 = plt.subplots(nrows=1, ncols=1, figsize=(18, 10), squeeze=False)
-    df_stats.plot(kind="line", y="nrDetectedFeatures", ax=axes0[0, 0])
-    df_stats.plot(kind="line", y="nrTrackerFeatures", ax=axes0[0, 0])
-    plt.show()
-else:
-    evt.draw_feature_tracking_stats(df_stats, True)
+kimera_eval.draw_feature_tracking_stats(df_stats, True)
 
 
 # %%
 # Plot ransac inlier, putative and iteration statistics.
-if not use_plotly:
-    fig1, axes1 = plt.subplots(nrows=1, ncols=3, figsize=(18, 10), squeeze=False)
-    df_stats.plot(kind="line", y="nrMonoInliers", ax=axes1[0, 0])
-    df_stats.plot(kind="line", y="nrMonoPutatives", ax=axes1[0, 0])
-    df_stats.plot(kind="line", y="nrStereoInliers", ax=axes1[0, 1])
-    df_stats.plot(kind="line", y="nrStereoPutatives", ax=axes1[0, 1])
-    df_stats.plot(kind="line", y="monoRansacIters", ax=axes1[0, 2])
-    df_stats.plot(kind="line", y="stereoRansacIters", ax=axes1[0, 2])
-    axes1[0, 0].set_ylim([0.0, axes1[0, 0].get_ylim()[1]])
-    axes1[0, 1].set_ylim([0.0, axes1[0, 1].get_ylim()[1]])
-    axes1[0, 2].set_ylim([0.0, axes1[0, 2].get_ylim()[1]])
-    plt.show()
-else:
-    evt.draw_mono_stereo_inliers_outliers(df_stats, True)
+kimera_eval.draw_mono_stereo_inliers_outliers(df_stats, True)
 
 # %%
 # Plot sparse-stereo-matching statistics.
@@ -177,16 +101,7 @@ plt.show()
 
 # %%
 # Plot timing statistics.
-if not use_plotly:
-    fig2, axes2 = plt.subplots(nrows=1, ncols=5, figsize=(18, 10), squeeze=False)
-    df_stats.plot(kind="line", y="featureDetectionTime", ax=axes2[0, 0])
-    df_stats.plot(kind="line", y="featureTrackingTime", ax=axes2[0, 1])
-    df_stats.plot(kind="line", y="monoRansacTime", ax=axes2[0, 2])
-    df_stats.plot(kind="line", y="stereoRansacTime", ax=axes2[0, 3])
-    df_stats.plot(kind="line", y="featureSelectionTime", ax=axes2[0, 4])
-    plt.show()
-else:
-    evt.draw_frontend_timing(df_stats, True)
+kimera_eval.draw_frontend_timing(df_stats, True)
 
 # %% [markdown]
 # ## Frontend Mono RANSAC
@@ -228,20 +143,22 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 # %%
 # Generate some trajectories for later plots
 # Convert to evo trajectory objects
-traj_ref_unassociated = evt.df_to_trajectory(gt_df)
+traj_ref_unassociated = kimera_eval.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
-traj_est_unassociated = evt.df_to_trajectory(mono_df)
+traj_est_unassociated = kimera_eval.df_to_trajectory(mono_df)
 
 # Associate the trajectories
 traj_ref_abs, traj_est_rel = sync.associate_trajectories(
     traj_ref_unassociated, traj_est_unassociated
 )
 
-traj_ref_rel = convert_abs_traj_to_rel_traj(traj_ref_abs, up_to_scale=False)
+traj_ref_rel = kimera_eval.convert_abs_traj_to_rel_traj(traj_ref_abs, up_to_scale=False)
 
 # Transform the relative gt trajectory from body to left camera frame
-traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+traj_ref_cam_rel = kimera_eval.convert_rel_traj_from_body_to_cam(
+    traj_ref_rel, body_T_leftCam
+)
 
 # Remove the first timestamp; we don't have relative pose at first gt timestamp
 traj_est_rel = trajectory.PoseTrajectory3D(
@@ -318,8 +235,8 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-ape_rot = get_ape_rot((traj_ref_cam_rel, traj_est_rel))
-ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
+ape_rot = kimera_eval.get_ape_rot((traj_ref_cam_rel, traj_est_rel))
+ape_tran = kimera_eval.get_ape_trans((traj_ref_cam_rel, traj_est_rel))
 
 # calculate the translation errors up-to-scale
 trans_errors = []
@@ -350,8 +267,10 @@ plt.show()
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-fig1 = plot_metric(ape_rot, "Mono Ransac RPE Rotation Part", figsize=(18, 10))
-fig2 = plot_metric(
+fig1 = kimera_eval.plot_metric(
+    ape_rot, "Mono Ransac RPE Rotation Part", figsize=(18, 10)
+)
+fig2 = kimera_eval.plot_metric(
     ape_tran, "Mono Ransac RPE Translation Part (meters)", figsize=(18, 10)
 )
 plt.show()
@@ -385,17 +304,17 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert to evo trajectory objects
-traj_ref_unassociated = evt.df_to_trajectory(gt_df)
+traj_ref_unassociated = kimera_eval.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
-traj_est_unassociated = evt.df_to_trajectory(stereo_df)
+traj_est_unassociated = kimera_eval.df_to_trajectory(stereo_df)
 
 # Associate the trajectories
 traj_ref_abs, traj_est_rel = sync.associate_trajectories(
     traj_ref_unassociated, traj_est_unassociated
 )
 
-traj_ref_rel = convert_abs_traj_to_rel_traj(traj_ref_abs)
+traj_ref_rel = kimera_eval.convert_abs_traj_to_rel_traj(traj_ref_abs)
 
 # Remove the first timestamp; we don't have relative pose at first gt timestamp
 traj_est_rel = trajectory.PoseTrajectory3D(
@@ -415,11 +334,15 @@ print("traj_est_rel: ", traj_est_rel)
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot = get_ape_rot((traj_ref_rel, traj_est_rel))
-rpe_tran = get_ape_trans((traj_ref_rel, traj_est_rel))
+rpe_rot = kimera_eval.get_ape_rot((traj_ref_rel, traj_est_rel))
+rpe_tran = kimera_eval.get_ape_trans((traj_ref_rel, traj_est_rel))
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-plot_metric(rpe_rot, "Stereo Ransac RPE Rotation Part (degrees)", figsize=(18, 10))
-plot_metric(rpe_tran, "Stereo Ransac RPE Translation Part (meters)", figsize=(18, 10))
+kimera_eval.plot_metric(
+    rpe_rot, "Stereo Ransac RPE Rotation Part (degrees)", figsize=(18, 10)
+)
+kimera_eval.plot_metric(
+    rpe_tran, "Stereo Ransac RPE Translation Part (meters)", figsize=(18, 10)
+)
 plt.show()
