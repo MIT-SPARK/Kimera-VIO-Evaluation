@@ -4,7 +4,6 @@ param_path: ''
 dataset_path: evaluation/tests/test_results
 pipelines:
   - name: Euroc
-    param_name: EurocParams
     extra_flags_path: /some/flag/file/path.flag
   - name: Euroc2
     param_name: EurocAlternate

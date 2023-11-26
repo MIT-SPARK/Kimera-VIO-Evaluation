@@ -54,12 +54,15 @@ class PipelineConfig:
 
     name: str
     param_path: pathlib.Path
-    param_name: Optional[str]
+    param_name: Optional[str] = None
     extra_flags_path: Optional[pathlib.Path] = None
     use_visualizer: bool = False
 
     def __post_init__(self):
         """Normalize paths."""
+        if self.param_name is None:
+            self.param_name = self.name
+
         self.param_path = kimera_eval.paths.normalize_path(self.param_path)
         if self.extra_flags_path:
             self.extra_flags_path = kimera_eval.paths.normalize_path(

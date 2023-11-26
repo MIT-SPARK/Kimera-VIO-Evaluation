@@ -25,11 +25,11 @@ def test_load_config(resources, pkgpath):
     assert len(config.pipelines) == 2
     pipeline = config.pipelines[0]
     assert pipeline.name == "Euroc"
-    assert pipeline.param_name == "EurocParams"
+    assert pipeline.param_name == "Euroc"
     assert pipeline.extra_flags_path == pathlib.Path("/some/flag/file/path.flag")
 
     flag_files = [x for x in pipeline.flag_files]
-    flag_path = this_path / "EurocParams" / "flags"
+    flag_path = this_path / "Euroc" / "flags"
     expected_flag_files = [
         flag_path / "stereoVIOEuroc.flags",
         flag_path / "Mesher.flags",
@@ -41,9 +41,14 @@ def test_load_config(resources, pkgpath):
     ]
     assert flag_files == expected_flag_files
     expected_args = [f"--flagfile={x}" for x in expected_flag_files] + [
-        f"--params_folder_path={this_path / 'EurocParams'}"
+        f"--params_folder_path={this_path / 'Euroc'}"
     ]
     assert pipeline.args == expected_args
+
+    pipeline = config.pipelines[1]
+    assert pipeline.name == "Euroc2"
+    assert pipeline.param_name == "EurocAlternate"
+    assert pipeline.extra_flags_path is None
 
     assert len(config.sequences) == 3
     sequence = config.sequences[0]
@@ -88,7 +93,7 @@ def test_load_config_overrides(resources, pkgpath):
     pipeline = config.pipelines[0]
 
     flag_files = [x for x in pipeline.flag_files]
-    flag_path = pathlib.Path("/bar/foo/EurocParams") / "flags"
+    flag_path = pathlib.Path("/bar/foo/Euroc") / "flags"
     expected_flag_files = [
         flag_path / "stereoVIOEuroc.flags",
         flag_path / "Mesher.flags",
