@@ -368,7 +368,13 @@ def plot_metric(metric, plot_title="", figsize=(8, 8), stat_types=None):
 
 
 def plot_traj_colormap_ape(
-    ape_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
+    ape_metric,
+    traj_ref,
+    traj_est1,
+    traj_est2=None,
+    plot_title="",
+    figsize=(8, 8),
+    cmap="viridis",
 ):
     """
     Add a trajectory colormap of ATE metrics to a plot collection.
@@ -399,6 +405,8 @@ def plot_traj_colormap_ape(
         )
         colormap_traj = traj_est2
 
+    prev_cmap = evo.tools.settings.SETTINGS.plot_trajectory_cmap
+    evo.tools.settings.SETTINGS.plot_trajectory_cmap = cmap
     evo.tools.plot.traj_colormap(
         ax,
         colormap_traj,
@@ -408,12 +416,18 @@ def plot_traj_colormap_ape(
         max_map=math.ceil(ape_stats["max"] * 10) / 10,
         title=plot_title,
     )
-
+    evo.tools.settings.SETTINGS.plot_trajectory_cmap = prev_cmap
     return fig
 
 
 def plot_traj_colormap_rpe(
-    rpe_metric, traj_ref, traj_est1, traj_est2=None, plot_title="", figsize=(8, 8)
+    rpe_metric,
+    traj_ref,
+    traj_est1,
+    traj_est2=None,
+    plot_title="",
+    figsize=(8, 8),
+    cmap="viridis",
 ):
     """
     Add a trajectory colormap of RPE metrics to a plot collection.
@@ -452,6 +466,8 @@ def plot_traj_colormap_rpe(
         )
         colormap_traj = traj_est2
 
+    prev_cmap = evo.tools.settings.SETTINGS.plot_trajectory_cmap
+    evo.tools.settings.SETTINGS.plot_trajectory_cmap = cmap
     evo.tools.plot.traj_colormap(
         ax,
         colormap_traj,
@@ -461,7 +477,7 @@ def plot_traj_colormap_rpe(
         max_map=math.ceil(rpe_stats["max"] * 10) / 10,
         title=plot_title,
     )
-
+    evo.tools.settings.SETTINGS.plot_trajectory_cmap = prev_cmap
     return fig
 
 

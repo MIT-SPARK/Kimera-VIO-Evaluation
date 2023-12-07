@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.15.2
+#       jupytext_version: 1.16.0
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -28,7 +28,7 @@ from scipy.spatial.transform import Rotation as R
 import kimera_eval
 import kimera_eval.notebook_utilities as neval
 
-import logging
+import pathlib
 
 from evo.core import sync
 from evo.core import trajectory
@@ -37,13 +37,8 @@ from evo.core import trajectory
 # # %matplotlib notebook
 import matplotlib.pyplot as plt
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
+neval.setup_logging(__name__)
+
 
 # %% [markdown]
 # ## Data Locations
@@ -58,11 +53,17 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/test_eval_output/MH_01_easy/Euroc"
-gt_data_file = vio_output_dir + "traj_gt.csv"
+vio_output_dir = "~/test_output/MH_01_easy/Euroc"
+gt_data_file = None
 left_cam_calibration_file = (
-    "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+    "~/ros2_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
 )
+
+vio_output_dir = pathlib.Path(vio_output_dir).expanduser()
+left_cam_calibration_file = pathlib.Path(left_cam_calibration_file).expanduser()
+if gt_data_file is None:
+    gt_data_file = vio_output_dir / "traj_gt.csv"
+
 
 # %% [markdown]
 # ## Frontend Statistics
@@ -79,29 +80,45 @@ df_stats = neval.load_frontend_statistics(vio_output_dir)
 
 # %%
 # Plot feature tracking statistics.
-kimera_eval.draw_feature_tracking_stats(df_stats, False)
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(18, 5), squeeze=False, sharex=True)
+df_stats.plot(kind="line", y="nrDetectedFeatures", ax=ax[0, 0])
+df_stats.plot(kind="line", y="nrTrackerFeatures", ax=ax[0, 0])
+plt.show()
 
 
 # %%
 # Plot ransac inlier, putative and iteration statistics.
-kimera_eval.draw_mono_stereo_inliers_outliers(df_stats, False)
+fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(18, 10), squeeze=False, sharex=True)
+df_stats.plot(kind="line", y="nrMonoInliers", ax=ax[0, 0])
+df_stats.plot(kind="line", y="nrMonoPutatives", ax=ax[0, 0])
+df_stats.plot(kind="line", y="nrStereoInliers", ax=ax[1, 0])
+df_stats.plot(kind="line", y="nrStereoPutatives", ax=ax[1, 0])
+df_stats.plot(kind="line", y="monoRansacIters", ax=ax[2, 0])
+df_stats.plot(kind="line", y="stereoRansacIters", ax=ax[2, 0])
+plt.show()
+
 
 # %%
 # Plot sparse-stereo-matching statistics.
-
-fig3, axes3 = plt.subplots(nrows=1, ncols=4, figsize=(18, 10), squeeze=False)
-
-df_stats.plot(kind="line", y="nrValidRKP", ax=axes3[0, 0])
-df_stats.plot(kind="line", y="nrNoLeftRectRKP", ax=axes3[0, 1])
-df_stats.plot(kind="line", y="nrNoRightRectRKP", ax=axes3[0, 1])
-df_stats.plot(kind="line", y="nrNoDepthRKP", ax=axes3[0, 2])
-df_stats.plot(kind="line", y="nrFailedArunRKP", ax=axes3[0, 3])
-
+fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(18, 10), squeeze=False, sharex=True)
+df_stats.plot(kind="line", y="nrValidRKP", ax=ax[0, 0])
+df_stats.plot(kind="line", y="nrNoLeftRectRKP", ax=ax[1, 0])
+df_stats.plot(kind="line", y="nrNoRightRectRKP", ax=ax[1, 0])
+df_stats.plot(kind="line", y="nrNoDepthRKP", ax=ax[2, 0])
+df_stats.plot(kind="line", y="nrFailedArunRKP", ax=ax[3, 0])
 plt.show()
+
 
 # %%
 # Plot timing statistics.
-kimera_eval.draw_frontend_timing(df_stats, False)
+fig, ax = plt.subplots(nrows=5, ncols=1, figsize=(18, 10), squeeze=False, sharex=True)
+df_stats.plot(kind="line", y="featureDetectionTime", ax=ax[0, 0])
+df_stats.plot(kind="line", y="featureTrackingTime", ax=ax[1, 0])
+df_stats.plot(kind="line", y="monoRansacTime", ax=ax[2, 0])
+df_stats.plot(kind="line", y="stereoRansacTime", ax=ax[3, 0])
+df_stats.plot(kind="line", y="featureSelectionTime", ax=ax[4, 0])
+plt.show()
+
 
 # %% [markdown]
 # ## Frontend Mono RANSAC

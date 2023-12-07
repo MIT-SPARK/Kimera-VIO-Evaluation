@@ -25,26 +25,14 @@ import os
 import copy
 import pandas as pd
 import numpy as np
+import pathlib
 from scipy.spatial.transform import Rotation as R
-
-import logging
+import kimera_eval
+import kimera_eval.notebook_utilities as neval
 
 from evo.tools import plot
-from evo.tools.settings import SETTINGS
 
 from evo.core import sync
-from evo.core import transformations
-from evo.core import lie_algebra as lie
-
-import evaluation.tools as evt
-from evaluation.evaluation_lib import (
-    get_ape_trans,
-    get_ape_rot,
-    get_rpe_trans,
-    get_rpe_rot,
-    plot_metric,
-    convert_rel_traj_from_body_to_cam,
-)
 
 # %matplotlib inline
 # # %matplotlib notebook
@@ -52,13 +40,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
+neval.setup_logging(__name__)
 
 
 # %% [markdown]
@@ -74,11 +56,17 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
-gt_data_file = vio_output_dir + "traj_gt.csv"
+vio_output_dir = "~/test_output/MH_01_easy/Euroc"
+gt_data_file = None
 left_cam_calibration_file = (
-    "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
+    "~/ros2_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
 )
+
+vio_output_dir = pathlib.Path(vio_output_dir).expanduser()
+left_cam_calibration_file = pathlib.Path(left_cam_calibration_file).expanduser()
+if gt_data_file is None:
+    gt_data_file = vio_output_dir / "traj_gt.csv"
+
 
 # %%
 # Load calibration data
@@ -88,227 +76,6 @@ with open(left_cam_calibration_file) as f:
     body_T_leftCam = np.reshape(np.array(left_calibration_data["T_BS"]["data"]), (4, 4))
     print("Left cam calibration matrix: ")
     print(body_T_leftCam)
-
-
-# %%
-def downsize_lc_df(df):
-    """Remove all entries from a pandas DataFrame object that have '0' for the timestamp, which
-    includes all entries that do not have loop closures. Returns this cleaned DataFrame.
-
-    Args:
-        df: A pandas.DataFrame object representing loop-closure detections, indexed by timestamp.
-
-    Returns:
-        A pandas.DataFrame object with only loop closure entries.
-    """
-    df = df[~df.index.duplicated()]
-    ts = np.array(df.index.tolist())
-    good_ts = ts[np.where(ts > 0)]
-    res = df.reindex(index=good_ts)
-    return res
-
-
-def downsize_lc_result_df(df):
-    """Same as downsize_lc_df but checks the `isloop` field of the DataFrame for the LCD result
-    DataFrame, instead of the timestamp.
-    """
-    df = df[~df.index.duplicated()]
-    ts = np.array(df.index.tolist())
-    isloop = np.array(df.isLoop.tolist())
-    good_ts = ts[np.where(isloop == 1)]
-    res = df.reindex(index=good_ts)
-    return res
-
-
-def closest_num(ls, query):
-    ls_len = len(ls)
-    return ls[min(range(ls_len), key=lambda i: abs(ls[i] - query))]
-
-
-def get_gt_rel_pose(gt_df, match_ts, query_ts, to_scale=True):
-    """Returns the relative pose from match to query for given timestamps.
-
-    Args:
-        gt_df: A pandas.DataFrame object with timestamps as indices containing, at a minimum,
-            columns representing the xyz position and wxyz quaternion-rotation at each
-            timestamp, corresponding to the absolute pose at that time.
-        match_ts: An integer representing the match frame timestamp.
-        query_ts: An integer representing the query frame timestamp.
-        to_scale: A boolean. If set to False, relative poses will have their translation
-            part normalized.
-    Returns:
-        A 4x4 numpy array representing the relative pose from match to query frame.
-    """
-    w_T_bmatch = None
-    w_T_bquery = None
-
-    try:
-        closest_ts = closest_num(gt_df.index, match_ts)
-        if closest_ts != match_ts:
-            # print("using closest match for timestamps")
-            pass
-
-        w_t_bmatch = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-        w_q_bmatch = np.array(
-            [gt_df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
-        )
-        w_T_bmatch = transformations.quaternion_matrix(w_q_bmatch)
-        w_T_bmatch[:3, 3] = w_t_bmatch
-    except:
-        print(
-            "Failed to convert an abs pose to a rel pose. Timestamp ",
-            match_ts,
-            " is not available in ground truth df.",
-        )
-        return None
-
-    try:
-        closest_ts = closest_num(gt_df.index, query_ts)
-        if closest_ts != query_ts:
-            # print("using closest match for timestamps")
-            pass
-
-        w_t_bquery = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
-        w_q_bquery = np.array(
-            [gt_df.at[closest_ts, idx] for idx in ["qw", "qx", "qy", "qz"]]
-        )
-        w_T_bquery = transformations.quaternion_matrix(w_q_bquery)
-        w_T_bquery[:3, 3] = w_t_bquery
-    except:
-        print(
-            "Failed to convert an abs pose to a rel pose. Timestamp ",
-            query_ts,
-            " is not available in ground truth df.",
-        )
-        return None
-
-    bmatch_T_bquery = lie.relative_se3(w_T_bmatch, w_T_bquery)
-    bmatch_t_bquery = bmatch_T_bquery[:3, 3]
-
-    if not to_scale:
-        norm = np.linalg.norm(bmatch_t_bquery)
-        if norm > 1e-6:
-            bmatch_t_bquery = bmatch_t_bquery / np.linalg.norm(bmatch_t_bquery)
-
-    bmatch_T_bquery[:3, 3] = bmatch_t_bquery
-
-    return bmatch_T_bquery
-
-
-def convert_abs_traj_to_rel_traj_lcd(df, lcd_df, to_scale=True):
-    """Converts an absolute-pose trajectory to a relative-pose trajectory.
-
-    The incoming DataFrame df is processed element-wise. At each kf timestamp (which is the
-    index of the DataFrame row) starting from the second (index 1), the relative pose
-    from the match timestamp to the query stamp is calculated (in the match-
-    timestamp's coordinate frame). This relative pose is then appended to the
-    resulting DataFrame.
-    The resulting DataFrame has timestamp indices corresponding to poses that represent
-    the relative transformation between the match timestamp and the query one.
-
-    Args:
-        df: A pandas.DataFrame object with timestamps as indices containing, at a minimum,
-            columns representing the xyz position and wxyz quaternion-rotation at each
-            timestamp, corresponding to the absolute pose at that time.
-        lcd_df: A pandas.DataFrame object with timestamps as indices containing, at a minimum,
-            columns representing the timestamp of query frames and the timestamps of the
-            match frames.
-        to_scale: A boolean. If set to False, relative poses will have their translation
-            part normalized.
-
-    Returns:
-        A pandas.DataFrame object with xyz position and wxyz quaternion fields for the
-        relative pose trajectory corresponding to the absolute one given in 'df', and
-        relative by the given match and query timestamps.
-    """
-    rows_list = []
-    index_list = []
-
-    for i in range(len(lcd_df.index)):
-        match_ts = lcd_df.timestamp_match[lcd_df.index[i]]
-        query_ts = lcd_df.timestamp_query[lcd_df.index[i]]
-
-        if match_ts == 0 and query_ts == 0:
-            continue
-
-        bi_T_bidelta = get_gt_rel_pose(df, match_ts, query_ts, to_scale)
-
-        if bi_T_bidelta is not None:
-            bi_R_bidelta = copy.deepcopy(bi_T_bidelta)
-            bi_R_bidelta[:, 3] = np.array([0, 0, 0, 1])
-            bi_q_bidelta = transformations.quaternion_from_matrix(bi_R_bidelta)
-            bi_t_bidelta = bi_T_bidelta[:3, 3]
-
-            new_row = {
-                "x": bi_t_bidelta[0],
-                "y": bi_t_bidelta[1],
-                "z": bi_t_bidelta[2],
-                "qw": bi_q_bidelta[0],
-                "qx": bi_q_bidelta[1],
-                "qy": bi_q_bidelta[2],
-                "qz": bi_q_bidelta[3],
-            }
-            rows_list.append(new_row)
-            index_list.append(lcd_df.index[i])
-
-    return pd.DataFrame(data=rows_list, index=index_list)
-
-
-def rename_euroc_gt_df(df):
-    """Renames a DataFrame built from a EuRoC ground-truth data csv file to be easier to read.
-
-    Column labels are changed to be more readable and to be identical to the generic pose
-    trajectory format used with other csv files. Note that '#timestamp' will not actually
-    be renamed if it is the index of the DataFrame (which it should be). It will be
-    appropriately renamed if it is the index name.
-    This operation is 'inplace': It does not return a new DataFrame but simply changes
-    the existing one.
-
-    Args:
-        df: A pandas.DataFrame object.
-    """
-    df.index.names = ["timestamp"]
-    df.rename(
-        columns={
-            " p_RS_R_x [m]": "x",
-            " p_RS_R_y [m]": "y",
-            " p_RS_R_z [m]": "z",
-            " q_RS_w []": "qw",
-            " q_RS_x []": "qx",
-            " q_RS_y []": "qy",
-            " q_RS_z []": "qz",
-            " v_RS_R_x [m s^-1]": "vx",
-            " v_RS_R_y [m s^-1]": "vy",
-            " v_RS_R_z [m s^-1]": "vz",
-            " b_w_RS_S_x [rad s^-1]": "bgx",
-            " b_w_RS_S_y [rad s^-1]": "bgy",
-            " b_w_RS_S_z [rad s^-1]": "bgz",
-            " b_a_RS_S_x [m s^-2]": "bax",
-            " b_a_RS_S_y [m s^-2]": "bay",
-            " b_a_RS_S_z [m s^-2]": "baz",
-        },
-        inplace=True,
-    )
-
-
-def rename_lcd_result_df(df):
-    """Renames a DataFrame built from an LCD results measurements csv file to be converted to a trajectory.
-
-    This is an 'inplace' argument and returns nothing.
-
-    Args:
-        df: A pandas.DataFrame object.
-    """
-    df.index.names = ["timestamp"]
-    df.rename(
-        columns={
-            "#timestamp_match": "timestamp_match",
-            "px": "x",
-            "py": "y",
-            "pz": "z",
-        },
-        inplace=True,
-    )
 
 
 # %% [markdown]
@@ -379,31 +146,31 @@ plt.show()
 # inlier percentages and iterations are plotted for both methods.
 
 # %%
-lcd_debuginfo_small_df = downsize_lc_df(lcd_debuginfo_df)
+lcd_debuginfo_small_df = neval.downsize_lc_df(lcd_debuginfo_df)
 
 
 # Helper functions for processing data summary.
-def get_mean(attrib):
+def _get_mean(attrib):
     ls = lcd_debuginfo_small_df[attrib].tolist()
     return float(sum(ls)) / len(ls)
 
 
-def get_min(attrib):
+def _get_min(attrib):
     return min(lcd_debuginfo_small_df[attrib])
 
 
-def get_max(attrib):
+def _get_max(attrib):
     return max(lcd_debuginfo_small_df[attrib])
 
 
 # Construct and visualize summary. TODO(marcus): use a LaTeX table.
 summary_stats = [
-    ("Average number of mono ransac inliers", get_mean("mono_inliers")),
-    ("Average size of mono ransac input", get_mean("mono_input_size")),
-    ("Average number of stereo ransac inliers", get_mean("stereo_inliers")),
-    ("Average size of stereo ransac input", get_mean("stereo_input_size")),
-    ("Maximum mono ransac iterations", get_max("mono_iters")),
-    ("Maximum stereo ransac iterations", get_max("stereo_iters")),
+    ("Average number of mono ransac inliers", _get_mean("mono_inliers")),
+    ("Average size of mono ransac input", _get_mean("mono_input_size")),
+    ("Average number of stereo ransac inliers", _get_mean("stereo_inliers")),
+    ("Average size of stereo ransac input", _get_mean("stereo_input_size")),
+    ("Maximum mono ransac iterations", _get_max("mono_iters")),
+    ("Maximum stereo ransac iterations", _get_max("stereo_iters")),
 ]
 
 attrib_len = [len(attrib[0]) for attrib in summary_stats]
@@ -445,7 +212,7 @@ plt.show()
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)  # Absolute gt in body frame
-rename_euroc_gt_df(
+neval.rename_euroc_gt_df(
     gt_df
 )  # some pre-processing for euroc only (doesn't affect non-euroc)
 
@@ -454,15 +221,17 @@ output_loop_closures_filename = os.path.join(
     os.path.expandvars(vio_output_dir), "output_lcd_geom_verif.csv"
 )
 lcd_2d2d_df = pd.read_csv(output_loop_closures_filename, sep=",")
-rename_lcd_result_df(lcd_2d2d_df)
+neval.rename_lcd_result_df(lcd_2d2d_df)
 
 # Build trajectory objects
-traj_est_rel = evt.df_to_trajectory(lcd_2d2d_df)
-ref_rel_df = convert_abs_traj_to_rel_traj_lcd(
+traj_est_rel = kimera_eval.df_to_trajectory(lcd_2d2d_df)
+ref_rel_df = neval.convert_abs_traj_to_rel_traj_lcd(
     gt_df, lcd_2d2d_df, True
 )  # keep scale and normalize later
-traj_ref_rel = evt.df_to_trajectory(ref_rel_df)
-traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+traj_ref_rel = kimera_eval.df_to_trajectory(ref_rel_df)
+traj_ref_cam_rel = kimera_eval.convert_rel_traj_from_body_to_cam(
+    traj_ref_rel, body_T_leftCam
+)
 
 print("traj_ref_rel: ", str(traj_ref_rel))
 print("traj_ref_cam_rel: ", str(traj_ref_cam_rel))
@@ -514,7 +283,7 @@ for i in range(len(traj_ref_cam_rel.timestamps)):
     if np.linalg.norm(t_est) > 1e-6:
         t_est /= np.linalg.norm(t_est)
 
-    # calculate error (up to scale, equivalent to the angle between the two translation vectors)
+    # calculate error (up to scale, equiv to the angle between the two translations)
     trans_errors.append(np.linalg.norm(t_ref - t_est))
 
 plt.figure(figsize=(18, 10))
@@ -537,20 +306,23 @@ plt.show()
 
 # %%
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
-rename_euroc_gt_df(gt_df)
+neval.rename_euroc_gt_df(gt_df)
 
-# Get 3d3d or 2d3d ransac results (camera frame, relative, only for LC candidates) as dataframe
+# Get 3d3d or 2d3d ransac results (camera frame, relative, only for LC candidates)
+# as dataframe
 output_loop_closures_filename = os.path.join(
     os.path.expandvars(vio_output_dir), "output_lcd_pose_recovery.csv"
 )
 lcd_3d3d_df = pd.read_csv(output_loop_closures_filename, sep=",")
-rename_lcd_result_df(lcd_3d3d_df)
+neval.rename_lcd_result_df(lcd_3d3d_df)
 
 # Build trajectory objects
-traj_est_rel = evt.df_to_trajectory(lcd_3d3d_df)
-ref_rel_df = convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_3d3d_df, True)
-traj_ref_rel = evt.df_to_trajectory(ref_rel_df)
-traj_ref_cam_rel = convert_rel_traj_from_body_to_cam(traj_ref_rel, body_T_leftCam)
+traj_est_rel = kimera_eval.df_to_trajectory(lcd_3d3d_df)
+ref_rel_df = neval.convert_abs_traj_to_rel_traj_lcd(gt_df, lcd_3d3d_df, True)
+traj_ref_rel = kimera_eval.df_to_trajectory(ref_rel_df)
+traj_ref_cam_rel = kimera_eval.convert_rel_traj_from_body_to_cam(
+    traj_ref_rel, body_T_leftCam
+)
 
 print("traj_ref_rel: ", str(traj_ref_rel))
 print("traj_ref_cam_rel: ", str(traj_ref_cam_rel))
@@ -590,8 +362,8 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-ape_rot = get_ape_rot((traj_ref_cam_rel, traj_est_rel))
-ape_tran = get_ape_trans((traj_ref_cam_rel, traj_est_rel))
+ape_rot = kimera_eval.get_ape_rot((traj_ref_cam_rel, traj_est_rel))
+ape_tran = kimera_eval.get_ape_trans((traj_ref_cam_rel, traj_est_rel))
 
 # calculate the translation errors
 trans_errors = []
@@ -626,12 +398,12 @@ plt.show()
 # Load ground truth and estimated data as csv DataFrames.
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 gt_df = gt_df[~gt_df.index.duplicated()]
-rename_euroc_gt_df(gt_df)
+neval.rename_euroc_gt_df(gt_df)
 
 # Load VIO trajectory
 output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
-traj_ref = evt.df_to_trajectory(gt_df)
+traj_ref = kimera_eval.df_to_trajectory(gt_df)
 
 # %%
 # Get coordinates for all LC lines to plot
@@ -641,10 +413,10 @@ for i in range(len(lcd_3d3d_df)):
     match_ts = lcd_3d3d_df.timestamp_match[i]
     query_ts = lcd_3d3d_df.timestamp_query[i]
 
-    closest_ts = closest_num(gt_df.index, match_ts)
+    closest_ts = neval.closest_num(gt_df.index, match_ts)
     w_t_bmatch_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
 
-    closest_ts = closest_num(gt_df.index, query_ts)
+    closest_ts = neval.closest_num(gt_df.index, query_ts)
     w_t_bquery_gt = np.array([gt_df.at[closest_ts, idx] for idx in ["x", "y", "z"]])
 
     xs.append([w_t_bquery_gt[0], w_t_bmatch_gt[0]])
@@ -657,13 +429,11 @@ ax = plot.prepare_axis(fig, plot_mode)
 # Get colors based on rotation error
 err = np.rad2deg(rot_errors)
 norm = mpl.colors.Normalize(vmin=min(err), vmax=max(err), clip=True)
-mapper = cm.ScalarMappable(
-    norm=norm, cmap=SETTINGS.plot_trajectory_cmap
-)  # cm.*_r is reversed cmap
+mapper = cm.ScalarMappable(norm=norm, cmap="viridis")
 mapper.set_array(err)
 colors = [mapper.to_rgba(a) for a in err]
 cbar = fig.colorbar(
-    mapper, ticks=[min(err), (max(err) - (max(err) - min(err)) / 2), max(err)]
+    mapper, ticks=[min(err), (max(err) - (max(err) - min(err)) / 2), max(err)], ax=ax
 )
 cbar.ax.set_yticklabels(
     [
@@ -675,7 +445,7 @@ cbar.ax.set_yticklabels(
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
 ax.set_title(
-    "Ground-Truth Trajectory with Loop Closures (Colored-Coded by Rotation Error in Deg)"
+    "Ground-Truth Trajectory with Loop Closures (Colored-Coded by Rotation Error [Deg])"
 )
 plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
 
@@ -713,20 +483,20 @@ output_pgo_poses_df = pd.read_csv(output_pgo_poses_filename, sep=",", index_col=
 
 # %%
 gt_df = gt_df[~gt_df.index.duplicated()]
-rename_euroc_gt_df(gt_df)
+neval.rename_euroc_gt_df(gt_df)
 
 # %%
 discard_n_start_poses = 10
 discard_n_end_poses = 10
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref = evt.df_to_trajectory(gt_df)
+traj_ref = kimera_eval.df_to_trajectory(gt_df)
 
 # Compare against the VIO without PGO.
 traj_ref_cp = copy.deepcopy(traj_ref)
-traj_vio = evt.df_to_trajectory(output_poses_df)
+traj_vio = kimera_eval.df_to_trajectory(output_poses_df)
 traj_ref_cp, traj_vio = sync.associate_trajectories(traj_ref_cp, traj_vio)
-traj_vio = evt.align_trajectory(
+traj_vio = kimera_eval.align_trajectory(
     traj_vio,
     traj_ref_cp,
     correct_scale=False,
@@ -735,11 +505,11 @@ traj_vio = evt.align_trajectory(
 )
 
 # Use the PGO output as estimated trajectory.
-traj_est = evt.df_to_trajectory(output_pgo_poses_df)
+traj_est = kimera_eval.df_to_trajectory(output_pgo_poses_df)
 
 # Associate the data.
 traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
-traj_est = evt.align_trajectory(
+traj_est = kimera_eval.align_trajectory(
     traj_est,
     traj_ref,
     correct_scale=False,
@@ -775,17 +545,17 @@ traj_est.reduce_to_ids(
 )
 
 # %%
-ape_rot_vio = get_ape_rot((traj_ref_cp, traj_vio))
-ape_tran_vio = get_ape_trans((traj_ref_cp, traj_vio))
-plot_metric(ape_rot_vio, "VIO ARE in Degrees")
-plot_metric(ape_tran_vio, "VIO ATE in Meters")
+ape_rot_vio = kimera_eval.get_ape_rot((traj_ref_cp, traj_vio))
+ape_tran_vio = kimera_eval.get_ape_trans((traj_ref_cp, traj_vio))
+kimera_eval.plot_metric(ape_rot_vio, "VIO ARE in Degrees")
+kimera_eval.plot_metric(ape_tran_vio, "VIO ATE in Meters")
 plt.show()
 
 # %%
-ape_rot_pgo = get_ape_rot((traj_ref, traj_est))
-ape_tran_pgo = get_ape_trans((traj_ref, traj_est))
-plot_metric(ape_rot_pgo, "VIO+PGO ARE in Degrees")
-plot_metric(ape_tran_pgo, "VIO+PGO ATE in Meters")
+ape_rot_pgo = kimera_eval.get_ape_rot((traj_ref, traj_est))
+ape_tran_pgo = kimera_eval.get_ape_trans((traj_ref, traj_est))
+kimera_eval.plot_metric(ape_rot_pgo, "VIO+PGO ARE in Degrees")
+kimera_eval.plot_metric(ape_tran_pgo, "VIO+PGO ATE in Meters")
 plt.show()
 
 # %%
@@ -815,22 +585,22 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot_vio = get_rpe_rot((traj_ref_cp, traj_vio))
-rpe_tran_vio = get_rpe_trans((traj_ref_cp, traj_vio))
+rpe_rot_vio = kimera_eval.get_rpe_rot((traj_ref_cp, traj_vio))
+rpe_tran_vio = kimera_eval.get_rpe_trans((traj_ref_cp, traj_vio))
 
-rpe_rot_pgo = get_rpe_rot((traj_ref, traj_est))
-rpe_tran_pgo = get_rpe_trans((traj_ref, traj_est))
+rpe_rot_pgo = kimera_eval.get_rpe_rot((traj_ref, traj_est))
+rpe_tran_pgo = kimera_eval.get_rpe_trans((traj_ref, traj_est))
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-plot_metric(rpe_rot_vio, "VIO RRE in Degrees", figsize=(18, 10))
-plot_metric(rpe_tran_vio, "VIO RTE in Meters", figsize=(18, 10))
+kimera_eval.plot_metric(rpe_rot_vio, "VIO RRE in Degrees", figsize=(18, 10))
+kimera_eval.plot_metric(rpe_tran_vio, "VIO RTE in Meters", figsize=(18, 10))
 plt.show()
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
-plot_metric(rpe_rot_pgo, "VIO+PGO RRE in Degrees", figsize=(18, 10))
-plot_metric(rpe_tran_pgo, "VIO+PGO RTE in Meters", figsize=(18, 10))
+kimera_eval.plot_metric(rpe_rot_pgo, "VIO+PGO RRE in Degrees", figsize=(18, 10))
+kimera_eval.plot_metric(rpe_tran_pgo, "VIO+PGO RTE in Meters", figsize=(18, 10))
 plt.show()
 
 # %%
@@ -859,9 +629,9 @@ ax.legend()
 plt.show()
 
 # %%
-traj_vio = evt.df_to_trajectory(output_poses_df)
+traj_vio = kimera_eval.df_to_trajectory(output_poses_df)
 traj_ref, traj_vio = sync.associate_trajectories(traj_ref, traj_est)
-traj_vio = evt.align_trajectory(traj_vio, traj_ref, correct_scale=False)
+traj_vio = kimera_eval.align_trajectory(traj_vio, traj_ref, correct_scale=False)
 
 # Plot the trajectories for quick error visualization.
 

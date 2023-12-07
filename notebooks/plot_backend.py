@@ -26,38 +26,20 @@ import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-import logging
+import kimera_eval
+import kimera_eval.notebook_utilities as neval
 
-from evo.tools import plot
+import pathlib
+
+import evo.tools.plot
 from evo.core import sync
 
-from evaluation.evaluation_lib import (
-    get_ape_trans,
-    get_ape_rot,
-    get_rpe_trans,
-    get_rpe_rot,
-    plot_metric,
-    plot_traj_colormap_ape,
-    plot_traj_colormap_rpe,
-    convert_abs_traj_to_rel_traj,
-    convert_rel_traj_to_abs_traj,
-)
-import evaluation.tools as evt
-
-# #%matplotlib inline
 # #%matplotlib widget
-# %matplotlib notebook
+# #%matplotlib notebook
+# %matplotlib inline
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-import mpl_toolkits.mplot3d.art3d as art3d
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-if not log.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    log.addHandler(ch)
+neval.setup_logging(__name__)
 
 
 # %% [markdown]
@@ -73,108 +55,12 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
-# vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
-gt_data_file = vio_output_dir + "traj_gt.csv"
+vio_output_dir = "~/test_output/MH_01_easy/Euroc"
+gt_data_file = None
 
-
-# %%
-def rename_pim_df(df):
-    """
-    Renames a DataFrame built from PIM measurements to be converted to a trajectory.
-
-    This is an 'inplace' argument and returns nothing.
-
-    Args:
-        df: A pandas.DataFrame object.
-    """
-    df.index.names = ["timestamp"]
-    df.rename(columns={"tx": "x", "ty": "y", "tz": "z"}, inplace=True)
-
-
-# show coordinate axes
-def colored_line_collection(
-    xyz, colors, plot_mode=plot.PlotMode.xy, linestyles="solid", step=2, alpha=1.0
-):
-    if len(xyz) / step != len(colors):
-        raise PlotException(
-            "color values don't have correct length: %d vs. %d"
-            % (len(xyz) / step, len(colors))
-        )
-    x_idx, y_idx, z_idx = plot.plot_mode_to_idx(plot_mode)
-    xs = [[x_1, x_2] for x_1, x_2 in zip(xyz[:-1:step, x_idx], xyz[1::step, x_idx])]
-    ys = [[x_1, x_2] for x_1, x_2 in zip(xyz[:-1:step, y_idx], xyz[1::step, y_idx])]
-    if plot_mode == plot.PlotMode.xyz:
-        zs = [[x_1, x_2] for x_1, x_2 in zip(xyz[:-1:step, z_idx], xyz[1::step, z_idx])]
-        segs = [list(zip(x, y, z)) for x, y, z in zip(xs, ys, zs)]
-        line_collection = art3d.Line3DCollection(
-            segs, colors=colors, alpha=alpha, linestyles=linestyles
-        )
-    else:
-        segs = [list(zip(x, y)) for x, y in zip(xs, ys)]
-        line_collection = LineCollection(
-            segs, colors=colors, alpha=alpha, linestyle=linestyles
-        )
-    return line_collection
-
-
-def draw_coordinate_axes(
-    ax,
-    traj,
-    plot_mode,
-    downsample_ratio=20,
-    marker_scale=1,
-    x_color="r",
-    y_color="g",
-    z_color="b",
-):
-    """
-    Draws a coordinate frame axis for each pose of a trajectory.
-    :param ax: plot axis
-    :param traj: trajectory.PosePath3D or trajectory.PoseTrajectory3D object
-    :param plot_mode: PlotMode value
-    :param marker_scale: affects the size of the marker (1. * marker_scale)
-    :param x_color: color of the x-axis
-    :param y_color: color of the y-axis
-    :param z_color: color of the z-axis
-    """
-    if marker_scale <= 0:
-        return
-
-    unit_x = np.array([1 * marker_scale, 0, 0, 1])
-    unit_y = np.array([0, 1 * marker_scale, 0, 1])
-    unit_z = np.array([0, 0, 1 * marker_scale, 1])
-
-    # Transform start/end vertices of each axis to global frame.
-    x_vertices = np.array(
-        [[p[:3, 3], p.dot(unit_x)[:3]] for p in traj.poses_se3[::downsample_ratio]]
-    )
-    y_vertices = np.array(
-        [[p[:3, 3], p.dot(unit_y)[:3]] for p in traj.poses_se3[::downsample_ratio]]
-    )
-    z_vertices = np.array(
-        [[p[:3, 3], p.dot(unit_z)[:3]] for p in traj.poses_se3[::downsample_ratio]]
-    )
-
-    n = len(traj.poses_se3[::downsample_ratio])
-    # Concatenate all line segment vertices in order x, y, z.
-    vertices = np.concatenate((x_vertices, y_vertices, z_vertices)).reshape(
-        (n * 2 * 3, 3)
-    )
-    # Concatenate all colors per line segment in order x, y, z.
-    colors = np.array(n * [x_color] + n * [y_color] + n * [z_color])
-
-    markers = colored_line_collection(vertices, colors, plot_mode, step=2)
-    ax.add_collection(markers)
-
-
-def draw_start_and_end(ax, traj, plot_mode):
-    """Draw start and end points of the trajectory."""
-    start_pose = traj.poses_se3[0]
-    end_pose = traj.poses_se3[-1]
-    if plot_mode == plot.PlotMode.xy:
-        ax.plot(start_pose[0, 3], start_pose[1, 3], "bo")
-        ax.plot(end_pose[0, 3], end_pose[1, 3], "rx")
+vio_output_dir = pathlib.Path(vio_output_dir).expanduser()
+if gt_data_file is None:
+    gt_data_file = vio_output_dir / "traj_gt.csv"
 
 
 # %% [markdown]
@@ -184,29 +70,29 @@ def draw_start_and_end(ax, traj, plot_mode):
 # Note that this does not include loop closure factors or other optimizations.
 # This is pure VIO.
 
+
 # %%
 # Load ground truth and estimated data as csv DataFrames.
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
+gt_df = gt_df[~gt_df.index.duplicated()]
 
-output_poses_filename = os.path.join(os.path.expandvars(vio_output_dir), "traj_vio.csv")
+output_poses_filename = vio_output_dir / "traj_vio.csv"
 output_poses_df = pd.read_csv(output_poses_filename, sep=",", index_col=0)
 
-# %%
-gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref_complete = evt.df_to_trajectory(gt_df)
+traj_ref_complete = kimera_eval.df_to_trajectory(gt_df)
 
 # Use the backend poses as trajectory.
-traj_est_unaligned = evt.df_to_trajectory(output_poses_df)
+traj_est_unaligned = kimera_eval.df_to_trajectory(output_poses_df)
 discard_n_start_poses = 0
 discard_n_end_poses = 0
 
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
-traj_est = evt.align_trajectory(
+traj_est = kimera_eval.align_trajectory(
     traj_est,
     traj_ref,
     correct_scale=False,
@@ -219,44 +105,47 @@ print("traj_est: ", str(traj_est))
 
 # %%
 # plot ground truth trajectory with pose
-plot_mode = plot.PlotMode.xy
+plot_mode = evo.tools.plot.PlotMode.xy
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
-draw_coordinate_axes(
-    ax, traj_ref_complete, marker_scale=2, downsample_ratio=20, plot_mode=plot_mode
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+neval.draw_trajectory_poses(
+    ax, traj_ref_complete, marker_scale=0.2, plot_mode=plot_mode, downsample=100
 )
-draw_start_and_end(ax, traj_ref_complete, plot_mode)
-plot.traj(ax, plot_mode, traj_ref_complete, "--", "gray", "reference")
+neval.draw_start_and_end(ax, traj_ref_complete, plot_mode)
+evo.tools.plot.traj(ax, plot_mode, traj_ref_complete, "--", "gray", "reference")
 plt.title("Reference trajectory with pose")
 plt.show()
 
 # plot unaligned trajectory with pose
-plot_mode = plot.PlotMode.xy
+plot_mode = evo.tools.plot.PlotMode.xy
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
-draw_coordinate_axes(ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode)
-draw_start_and_end(ax, traj_est_unaligned, plot_mode)
-plot.traj(ax, plot_mode, traj_est_unaligned, "--", "gray", "reference")
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+neval.draw_trajectory_poses(
+    ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode
+)
+neval.draw_start_and_end(ax, traj_est_unaligned, plot_mode)
+evo.tools.plot.traj(ax, plot_mode, traj_est_unaligned, "--", "gray", "reference")
 plt.title("Estimated trajectory with pose")
 plt.show()
 
+
 # %%
-plot_mode = plot.PlotMode.xyz
+plot_mode = evo.tools.plot.PlotMode.xyz
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
 
 gt_df_downsampled = gt_df.iloc[:1200:100]
 
-
 # reference trajectory
-traj_ref_downsampled = evt.df_to_trajectory(gt_df_downsampled)
-draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
-draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
-plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
-plot.traj(ax, plot_mode, traj_est, "--", "green", "estimate (aligned)")
+traj_ref_downsampled = kimera_eval.df_to_trajectory(gt_df_downsampled)
+neval.draw_trajectory_poses(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
+neval.draw_trajectory_poses(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
+evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+evo.tools.plot.traj(ax, plot_mode, traj_est, "--", "green", "estimate (aligned)")
 
 plt.title("Trajectory with pose")
 plt.show()
+
 
 # %% [markdown]
 # ## Absolute-Pose-Error Plotting
@@ -282,13 +171,13 @@ traj_ref.reduce_to_ids(
 
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
 
-ape_tran = get_ape_trans((traj_ref, traj_est))
-fig1 = plot_metric(ape_tran, "VIO ATE in Meters")
+ape_tran = kimera_eval.get_ape_trans((traj_ref, traj_est))
+fig1 = kimera_eval.plot_metric(ape_tran, "VIO ATE in Meters")
 plt.show()
 
 # %%
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig = plot_traj_colormap_ape(
+fig = kimera_eval.plot_traj_colormap_ape(
     ape_tran,
     traj_ref,
     traj_est,
@@ -310,13 +199,13 @@ traj_est_unaligned.reduce_to_ids(
     range(int(discard_n_start_poses), int(num_of_poses - discard_n_end_poses), 1)
 )
 
-ape_rot = get_ape_rot((traj_ref, traj_est_unaligned))
-fig2 = plot_metric(ape_rot, "VIO ARE in Degrees")
+ape_rot = kimera_eval.get_ape_rot((traj_ref, traj_est_unaligned))
+fig2 = kimera_eval.plot_metric(ape_rot, "VIO ARE in Degrees")
 plt.show()
 
 # %%
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig2 = plot_traj_colormap_ape(
+fig2 = kimera_eval.plot_traj_colormap_ape(
     ape_rot,
     traj_ref,
     traj_est_unaligned,
@@ -351,8 +240,8 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot = get_rpe_rot((traj_ref, traj_est))
-rpe_tran = get_rpe_trans((traj_ref, traj_est))
+rpe_rot = kimera_eval.get_rpe_rot((traj_ref, traj_est))
+rpe_tran = kimera_eval.get_rpe_trans((traj_ref, traj_est))
 
 # %% [markdown]
 # ### Relative Translation Errors
@@ -361,8 +250,8 @@ rpe_tran = get_rpe_trans((traj_ref, traj_est))
 # Plot RPE of trajectory rotation and translation parts.
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps[1:]]
 
-fig1 = plot_metric(rpe_tran, "VIO RTE in Meters")
-fig2 = plot_traj_colormap_rpe(
+fig1 = kimera_eval.plot_metric(rpe_tran, "VIO RTE in Meters")
+fig2 = kimera_eval.plot_traj_colormap_rpe(
     rpe_tran,
     traj_ref,
     traj_est,
@@ -374,8 +263,8 @@ plt.show()
 # ### Relative Rotation Errors
 
 # %%
-fig1 = plot_metric(rpe_rot, "VIO RRE in Degrees")
-fig2 = plot_traj_colormap_rpe(
+fig1 = kimera_eval.plot_metric(rpe_rot, "VIO RRE in Degrees")
+fig2 = kimera_eval.plot_traj_colormap_rpe(
     rpe_rot,
     traj_ref,
     traj_est,
@@ -384,7 +273,7 @@ fig2 = plot_traj_colormap_rpe(
 plt.show()
 
 # %%
-fig = plot_traj_colormap_rpe(
+fig = kimera_eval.plot_traj_colormap_rpe(
     rpe_rot,
     traj_ref,
     traj_est,
@@ -406,8 +295,11 @@ traj_by_label = {
     "estimate (aligned)": traj_est,
     "reference": traj_ref,
 }
-plot.trajectories(
-    fig, traj_by_label, plot.PlotMode.xyz, title="PIM Trajectory Tracking in 3D"
+evo.tools.plot.trajectories(
+    fig,
+    traj_by_label,
+    evo.tools.plot.PlotMode.xyz,
+    title="PIM Trajectory Tracking in 3D",
 )
 plt.show()
 
@@ -427,7 +319,7 @@ pim_filename = os.path.join(
 )
 pim_df = pd.read_csv(pim_filename, sep=",", index_col=0)
 pim_df = pim_df.iloc[1:]  # first row is logged as zero, remove
-rename_pim_df(pim_df)
+neval.rename_pim_df(pim_df)
 
 gt_df = pd.read_csv(gt_data_file, sep=",", index_col=0)
 gt_df = gt_df[~gt_df.index.duplicated()]
@@ -435,16 +327,16 @@ gt_df = gt_df[~gt_df.index.duplicated()]
 
 # %%
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref = evt.df_to_trajectory(gt_df)
+traj_ref = kimera_eval.df_to_trajectory(gt_df)
 
 # Use the mono ransac file as estimated trajectory.
 # traj_est_unassociated = file_interface.read_swe_csv_trajectory(ransac_mono_filename)
-traj_est_unaligned = evt.df_to_trajectory(pim_df)
+traj_est_unaligned = kimera_eval.df_to_trajectory(pim_df)
 
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est)
-traj_est = evt.align_trajectory(traj_est, traj_ref, correct_scale=False)
+traj_est = kimera_eval.align_trajectory(traj_est, traj_ref, correct_scale=False)
 
 print("traj_ref: ", str(traj_ref))
 print("traj_est: ", str(traj_est))
@@ -466,8 +358,8 @@ plt.show()
 
 # %%
 # Convert to relative traj
-traj_ref_rel = convert_abs_traj_to_rel_traj(traj_ref, up_to_scale=False)
-traj_est_rel = convert_abs_traj_to_rel_traj(traj_est, up_to_scale=False)
+traj_ref_rel = kimera_eval.convert_abs_traj_to_rel_traj(traj_ref, up_to_scale=False)
+traj_est_rel = kimera_eval.convert_abs_traj_to_rel_traj(traj_est, up_to_scale=False)
 
 # Plot the PIM angles
 PIM_angles = []
@@ -507,19 +399,19 @@ plt.show()
 
 # %%
 # Get RPE for entire relative trajectory.
-rpe_rot = get_rpe_rot((traj_ref, traj_est))
-rpe_tran = get_rpe_trans((traj_ref, traj_est))
+rpe_rot = kimera_eval.get_rpe_rot((traj_ref, traj_est))
+rpe_tran = kimera_eval.get_rpe_trans((traj_ref, traj_est))
 
 # %%
 # Plot RPE of trajectory rotation and translation parts.
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps[1:]]
 
-plot_metric(rpe_rot, "PIM RRE in Degrees")
-plot_metric(rpe_tran, "PIM RTE in Meters")
+kimera_eval.plot_metric(rpe_rot, "PIM RRE in Degrees")
+kimera_eval.plot_metric(rpe_tran, "PIM RTE in Meters")
 plt.show()
 
 # %%
-fig = plot_traj_colormap_rpe(
+fig = kimera_eval.plot_traj_colormap_rpe(
     rpe_rot,
     traj_ref,
     traj_est,
@@ -575,6 +467,7 @@ plt.gcf().set_size_inches([9, 6])
 plt.tight_layout()
 plt.show()
 
+
 # %% [markdown]
 # # Biases
 # Plot biases of gyro and accelerometer
@@ -597,6 +490,7 @@ plt.xlabel("Timestamps")
 plt.legend()
 plt.show()
 
+
 # %% [markdown]
 # # External Odometry
 # Plot external odometry trajectory against ground truth.
@@ -613,20 +507,20 @@ output_external_odom_df = pd.read_csv(
 )
 
 # Convert the gt relative-pose DataFrame to a trajectory object.
-traj_ref_complete = evt.df_to_trajectory(gt_df)
+traj_ref_complete = kimera_eval.df_to_trajectory(gt_df)
 
 # Use the backend poses as trajectory.
-traj_est_unaligned_rel = evt.df_to_trajectory(output_external_odom_df)
+traj_est_unaligned_rel = kimera_eval.df_to_trajectory(output_external_odom_df)
 
 # Convert to absolute trajectory by concatenating all between poses
-traj_est_unaligned = convert_rel_traj_to_abs_traj(traj_est_unaligned_rel)
+traj_est_unaligned = kimera_eval.convert_rel_traj_to_abs_traj(traj_est_unaligned_rel)
 discard_n_start_poses = 0
 discard_n_end_poses = 0
 
 # Associate the data.
 traj_est = copy.deepcopy(traj_est_unaligned)
 traj_ref, traj_est = sync.associate_trajectories(traj_ref_complete, traj_est)
-traj_est = evt.align_trajectory(
+traj_est = kimera_eval.align_trajectory(
     traj_est,
     traj_ref,
     correct_scale=False,
@@ -639,42 +533,43 @@ print("traj_est: ", str(traj_est))
 
 # %%
 # plot ground truth trajectory with pose
-plot_mode = plot.PlotMode.xy
+plot_mode = evo.tools.plot.PlotMode.xy
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
-draw_coordinate_axes(
-    ax, traj_ref_complete, marker_scale=2, downsample_ratio=20, plot_mode=plot_mode
-)
-draw_start_and_end(ax, traj_ref_complete, plot_mode)
-plot.traj(ax, plot_mode, traj_ref_complete, "--", "gray", "reference")
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+neval.draw_trajectory_poses(ax, traj_ref_complete, marker_scale=2, plot_mode=plot_mode)
+neval.draw_start_and_end(ax, traj_ref_complete, plot_mode)
+evo.tools.plot.traj(ax, plot_mode, traj_ref_complete, "--", "gray", "reference")
 plt.title("Reference trajectory with pose")
 plt.show()
 
 # plot unaligned trajectory with pose
-plot_mode = plot.PlotMode.xy
+plot_mode = evo.tools.plot.PlotMode.xy
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
-draw_coordinate_axes(ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode)
-draw_start_and_end(ax, traj_est_unaligned, plot_mode)
-plot.traj(ax, plot_mode, traj_est_unaligned, "--", "gray", "reference")
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
+neval.draw_trajectory_poses(
+    ax, traj_est_unaligned, marker_scale=0.3, plot_mode=plot_mode
+)
+neval.draw_start_and_end(ax, traj_est_unaligned, plot_mode)
+evo.tools.plot.traj(ax, plot_mode, traj_est_unaligned, "--", "gray", "reference")
 plt.title("External odometry estimated trajectory with pose")
 plt.show()
 
-plot_mode = plot.PlotMode.xyz
+plot_mode = evo.tools.plot.PlotMode.xyz
 fig = plt.figure()
-ax = plot.prepare_axis(fig, plot_mode)
+ax = evo.tools.plot.prepare_axis(fig, plot_mode)
 
 gt_df_downsampled = gt_df.iloc[:1200:100]
 
 # reference trajectory
-traj_ref_downsampled = evt.df_to_trajectory(gt_df_downsampled)
-draw_coordinate_axes(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
-draw_coordinate_axes(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
-plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
-plot.traj(ax, plot_mode, traj_est, "--", "green", "estimate (aligned)")
+traj_ref_downsampled = kimera_eval.df_to_trajectory(gt_df_downsampled)
+neval.draw_trajectory_poses(ax, traj_ref, plot_mode=plot_mode, marker_scale=3)
+neval.draw_trajectory_poses(ax, traj_est, plot_mode=plot_mode, marker_scale=3)
+evo.tools.plot.traj(ax, plot_mode, traj_ref, "--", "gray", "reference")
+evo.tools.plot.traj(ax, plot_mode, traj_est, "--", "green", "estimate (aligned)")
 
 plt.title("Trajectory with pose")
 plt.show()
+
 
 # %%
 # Plot APE of trajectory rotation and translation parts.
@@ -688,12 +583,12 @@ traj_ref.reduce_to_ids(
 
 seconds_from_start = [t - traj_est.timestamps[0] for t in traj_est.timestamps]
 
-ape_tran = get_ape_trans((traj_ref, traj_est))
-fig1 = plot_metric(ape_tran, "External Odometry ATE in Meters")
+ape_tran = kimera_eval.get_ape_trans((traj_ref, traj_est))
+fig1 = kimera_eval.plot_metric(ape_tran, "External Odometry ATE in Meters")
 plt.show()
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig2 = plot_traj_colormap_ape(
+fig2 = kimera_eval.plot_traj_colormap_ape(
     ape_tran,
     traj_ref,
     traj_est,
@@ -703,36 +598,15 @@ plt.show()
 
 # Plot ARE
 
-ape_rot = get_ape_rot((traj_ref, traj_est))
-fig3 = plot_metric(ape_rot, "External Odometry ARE in Degrees")
+ape_rot = kimera_eval.get_ape_rot((traj_ref, traj_est))
+fig3 = kimera_eval.plot_metric(ape_rot, "External Odometry ARE in Degrees")
 plt.show()
 
 # Plot the ground truth and estimated trajectories against each other with APE overlaid.
-fig4 = plot_traj_colormap_ape(
+fig4 = kimera_eval.plot_traj_colormap_ape(
     ape_rot,
     traj_ref,
     traj_est,
     plot_title="External Odometry Trajectory Tracking - Color Coded by ARE",
 )
 plt.show()
-
-# %% [markdown]
-# # Website Builder
-
-# %%
-import evaluation.tools.website_builder as web
-from jinja2 import Environment, PackageLoader, select_autoescape
-
-jinja_env = Environment(
-    loader=PackageLoader("website", "templates"),
-    autoescape=select_autoescape(["html", "xml"]),
-)
-
-# %%
-raw_output_web = web.RawOutputWebsiteBuilder(jinja_env, ".", "traj_vio.csv")
-
-# %%
-raw_output_web.add_dataset_to_website("RealSense", vio_output_dir)
-
-# %%
-raw_output_web.write_datasets_website()
