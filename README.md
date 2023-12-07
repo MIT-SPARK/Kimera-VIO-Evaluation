@@ -1,6 +1,6 @@
 # Kimera VIO Evaluation
 
-![Python package](https://github.com/MIT-SPARK/Kimera-VIO-Evaluation/actions/workflows/tox.yml/badge.svg)](https://github.com/MIT-SPARK/Kimera-VIO-Evaluation/actions/workflows/tox.yml)
+![Python package](https://github.com/MIT-SPARK/Kimera-VIO-Evaluation/actions/workflows/tox.yml/badge.svg)
 
 Code to evaluate [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
