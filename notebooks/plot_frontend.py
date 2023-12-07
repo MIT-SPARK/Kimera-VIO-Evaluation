@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.15.2
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -26,7 +26,7 @@ import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import kimera_eval
-import kimera_eval.notebook_helpers as neval
+import kimera_eval.notebook_utilities as neval
 
 import logging
 
@@ -58,7 +58,7 @@ if not log.handlers:
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "/home/ubuntu/catkin_ws/src/kimera_vio_ros/output_logs/uHumans2/"
+vio_output_dir = "/home/ubuntu/test_eval_output/MH_01_easy/Euroc"
 gt_data_file = vio_output_dir + "traj_gt.csv"
 left_cam_calibration_file = (
     "/home/ubuntu/catkin_ws/src/kimera_vio/params/uHumans2/LeftCameraParams.yaml"
@@ -79,12 +79,12 @@ df_stats = neval.load_frontend_statistics(vio_output_dir)
 
 # %%
 # Plot feature tracking statistics.
-kimera_eval.draw_feature_tracking_stats(df_stats, True)
+kimera_eval.draw_feature_tracking_stats(df_stats, False)
 
 
 # %%
 # Plot ransac inlier, putative and iteration statistics.
-kimera_eval.draw_mono_stereo_inliers_outliers(df_stats, True)
+kimera_eval.draw_mono_stereo_inliers_outliers(df_stats, False)
 
 # %%
 # Plot sparse-stereo-matching statistics.
@@ -101,7 +101,7 @@ plt.show()
 
 # %%
 # Plot timing statistics.
-kimera_eval.draw_frontend_timing(df_stats, True)
+kimera_eval.draw_frontend_timing(df_stats, False)
 
 # %% [markdown]
 # ## Frontend Mono RANSAC
