@@ -1,5 +1,7 @@
 # Kimera VIO Evaluation
 
+![Build and Test](https://github.com/MIT-SPARK/config_utilities/actions/workflows/tox.yml/badge.svg)
+
 Code to evaluate [Kimera-VIO](https://github.com/MIT-SPARK/Kimera-VIO) on [Euroc's dataset](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets).
 
 # Installation
