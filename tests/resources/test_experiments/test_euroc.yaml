@@ -1,0 +1,12 @@
+---
+executable_path: ''
+param_path: ''
+dataset_path: ''
+pipelines:
+  - name: Euroc
+    param_name: EurocParams
+sequences:
+  - name: V1_01_easy
+    initial_frame: 10
+    final_frame: 3500
+    use_lcd: true

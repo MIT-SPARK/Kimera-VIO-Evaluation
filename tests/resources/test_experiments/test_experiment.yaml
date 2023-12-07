@@ -1,0 +1,24 @@
+---
+executable_path: ''
+param_path: ''
+dataset_path: evaluation/tests/test_results
+pipelines:
+  - name: Euroc
+    extra_flags_path: /some/flag/file/path.flag
+  - name: Euroc2
+    param_name: EurocAlternate
+sequences:
+  - name: V1_01_easy
+    initial_frame: 10
+    final_frame: 3500
+    use_lcd: true
+    plot_vio_and_pgo: true
+  - name: V1_02_medium
+    initial_frame: 20
+    use_lcd: false
+    analysis:
+        segments: [1, 2, 3]
+        discard_n_start_poses: 42
+        discard_n_end_poses: 13
+  - name: V1_03_hard
+    final_frame: 20

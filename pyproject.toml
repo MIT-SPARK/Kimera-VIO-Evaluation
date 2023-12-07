@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kimera_eval"
+version = "0.2.0"
+authors = [
+  { name = "Antoni Rosinol", email="arosinol@mit.edu" },
+  { name = "Marcus Abate", email="mabate@mit.edu" },
+  { name = "Nathan Hughes", email="na26933@mit.edu" },
+]
+description = "Code for evaluating the performance of the Kimera VIO pipeline"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "evo",
+    "click",
+    "jinja2",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "plotly",
+    "pyyaml",
+    "tqdm",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/MIT-SPARK/Kimera-VIO-Evaluation"
+
+[project.scripts]
+kimera-eval = "kimera_eval:__main__.main"
+
+[project.optional-dependencies]
+notebook = ["jupyter", "jupytext", "matplotlib"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
