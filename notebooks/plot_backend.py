@@ -48,14 +48,15 @@ neval.setup_logging(__name__)
 # Make sure to set the following paths.
 #
 # `vio_output_dir` is the path to the directory containing `output_*.csv` files obtained
-# from logging a run of SparkVio.
+# from logging a run of Kimera-VIO.
 #
 # `gt_data_file` is the absolute path to the `csv` file containing ground truth data for
-# the absolute pose at each timestamp of the dataset.
+# the absolute pose at each timestamp of the dataset. If `None`, the path is inferred
+# from `vio_output_dir`.
 
 # %%
 # Define directory to VIO output csv files as well as ground truth absolute poses.
-vio_output_dir = "~/test_output/MH_01_easy/Euroc"
+vio_output_dir = ""
 gt_data_file = None
 
 vio_output_dir = pathlib.Path(vio_output_dir).expanduser()
